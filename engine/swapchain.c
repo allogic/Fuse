@@ -1,8 +1,8 @@
+#include <library/core/api.h>
+
 #include <engine/context.h>
 #include <engine/macros.h>
 #include <engine/swapchain.h>
-
-#include <engine/core/api.h>
 
 static void swapchain_compute_local_variables(void);
 

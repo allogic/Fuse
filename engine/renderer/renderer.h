@@ -5,10 +5,10 @@
 
 #include <vulkan/vulkan.h>
 
+#include <library/math/api.h>
+
 #include <engine/transform.h>
 #include <engine/camera.h>
-
-#include <engine/math/api.h>
 
 #ifdef __cplusplus
 extern "C" {

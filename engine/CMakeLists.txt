@@ -2,9 +2,6 @@
 
 add_executable (engine ${SRC_FILES})
 
-add_subdirectory (core)
-add_subdirectory (math)
-add_subdirectory (parser)
 add_subdirectory (physics)
 add_subdirectory (renderer)
 
@@ -16,4 +13,5 @@ target_include_directories (engine PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 target_link_directories (engine PRIVATE "${VULKAN_SDK_DIR}/Lib")
 
+target_link_libraries (engine PRIVATE library)
 target_link_libraries (engine PRIVATE "vulkan-1.lib")

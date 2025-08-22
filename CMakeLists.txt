@@ -66,4 +66,6 @@ else ()
 
 endif ()
 
+add_subdirectory (library)
 add_subdirectory (engine)
+add_subdirectory (enton)

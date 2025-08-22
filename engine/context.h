@@ -9,14 +9,14 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
-typedef enum _key_state_t {
+typedef enum key_state_t {
   KEY_STATE_UP,
   KEY_STATE_PRESSED,
   KEY_STATE_DOWN,
   KEY_STATE_RELEASED,
 } key_state_t;
 
-typedef enum _keyboard_key_t {
+typedef enum keyboard_key_t {
   KEYBOARD_KEY_BACK = 0x08,
   KEYBOARD_KEY_TAB = 0x09,
   KEYBOARD_KEY_RETURN = 0x0D,
@@ -126,7 +126,7 @@ typedef enum _keyboard_key_t {
   KEYBOARD_KEY_RIGHT_MENU = 0xA5,
 } keyboard_key_t;
 
-typedef enum _mouse_key_t {
+typedef enum mouse_key_t {
   MOUSE_KEY_LEFT,
   MOUSE_KEY_MIDDLE,
   MOUSE_KEY_RIGHT,

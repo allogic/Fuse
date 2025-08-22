@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <engine/math/api.h>
+#include <library/math/api.h>
 
 typedef struct transform_t {
   struct transform_t *parent;
