@@ -60,14 +60,32 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    IDENT = 258,                   /* IDENT  */
-    STRING = 259,                  /* STRING  */
-    STRUCT = 260,                  /* STRUCT  */
-    SEMICOLON = 261,               /* SEMICOLON  */
-    LPAREN = 262,                  /* LPAREN  */
-    RPAREN = 263,                  /* RPAREN  */
-    LBRACE = 264,                  /* LBRACE  */
-    RBRACE = 265                   /* RBRACE  */
+    VERSION = 258,                 /* VERSION  */
+    CORE = 259,                    /* CORE  */
+    EXTENSION = 260,               /* EXTENSION  */
+    STRUCT = 261,                  /* STRUCT  */
+    QUALIFIER = 262,               /* QUALIFIER  */
+    LAYOUT = 263,                  /* LAYOUT  */
+    LOCATION = 264,                /* LOCATION  */
+    BINDING = 265,                 /* BINDING  */
+    IN = 266,                      /* IN  */
+    UNIFORM = 267,                 /* UNIFORM  */
+    HASH = 268,                    /* HASH  */
+    COMMA = 269,                   /* COMMA  */
+    COLON = 270,                   /* COLON  */
+    SEMICOLON = 271,               /* SEMICOLON  */
+    LPAREN = 272,                  /* LPAREN  */
+    RPAREN = 273,                  /* RPAREN  */
+    LBRACE = 274,                  /* LBRACE  */
+    RBRACE = 275,                  /* RBRACE  */
+    EQ = 276,                      /* EQ  */
+    INT = 277,                     /* INT  */
+    VEC3 = 278,                    /* VEC3  */
+    IVEC3 = 279,                   /* IVEC3  */
+    MAT4 = 280,                    /* MAT4  */
+    IDENT = 281,                   /* IDENT  */
+    STRING = 282,                  /* STRING  */
+    NUMBER = 283                   /* NUMBER  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -79,9 +97,9 @@ union YYSTYPE
 #line 14 "./parser.y"
 
 	core_string_t string;
-	enton_expression_t expression;
+	int64_t number;
 
-#line 85 "./parser.h"
+#line 103 "./parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

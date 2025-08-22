@@ -3,8 +3,6 @@
 %{
 #include "enton/parser.h"
 
-// TODO: first column and line numbers..
-
 #ifndef UPDATE_CURSOR_LOCATION_SINGLE_LINE
 	#define UPDATE_CURSOR_LOCATION_SINGLE_LINE() \
 		yylloc.first_line = g_line_number; \
@@ -61,9 +59,69 @@
 %}
 
 %%
+"version" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return VERSION;
+}
+
+"core" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return CORE;
+}
+
+"extension" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return EXTENSION;
+}
+
 "struct" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	return STRUCT;
+}
+
+"require" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return QUALIFIER;
+}
+
+"layout" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return LAYOUT;
+}
+
+"location" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return LOCATION;
+}
+
+"binding" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return BINDING;
+}
+
+"in" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return IN;
+}
+
+"uniform" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return UNIFORM;
+}
+
+"," {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return COMMA;
+}
+
+"#" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return HASH;
+}
+
+":" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return COLON;
 }
 
 ";" {
@@ -89,6 +147,31 @@
 "}" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	return RBRACE;
+}
+
+"=" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return EQ;
+}
+
+"int" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return INT;
+}
+
+"vec3" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return VEC3;
+}
+
+"ivec3" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return IVEC3;
+}
+
+"mat4" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return MAT4;
 }
 
 "\r" {
@@ -143,6 +226,12 @@
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	yylval.string = core_string_from(yytext + 1, yyleng - 2);
 	return STRING;
+}
+
+[0-9]+ {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	yylval.number = atoll(yytext + 1);
+	return NUMBER;
 }
 
 . {
