@@ -8,10 +8,16 @@
 %code requires
 {
 #ifdef _WIN32
+	#include <io.h>
+
 	#define fileno _fileno
 	#define isatty _isatty
 #endif // _WIN32
 
+	// flex --header-file="./lexer.h" --outfile="./lexer.c" --yylineno --nounistd "./lexer.l"
+	// bison --header="./parser.h" --output="./parser.c" --locations "./parser.y"
+
+	#include <stdio.h>
 	#include <stdint.h>
 	#include <stdarg.h>
 
@@ -20,6 +26,7 @@
 	#include "engine/parser/config.h"
 	#include "engine/parser/context.h"
 	#include "engine/parser/expression.h"
+	//#include "engine/parser/lexer.h"
 
 	extern char const* g_current_filename;
 	extern char* yytext;
@@ -27,6 +34,7 @@
 	extern int32_t g_column_number;
 	extern int32_t yyleng;
 
+	extern int yylex(void);
 	extern int32_t yyerror(char const* msg, ...);
 	extern int32_t yywrap(void);
 
@@ -82,7 +90,10 @@ void parser_parse_file(char const* file_path) {
 	g_line_number = 1;
 	g_column_number = 1;
 
-	if (core_filesystem_read_text(file_buffer, file_length, file_path))
+	uint8_t *file_buffer = 0;
+	uint64_t file_length = 0;
+
+	if (core_filesystem_read_text(&file_buffer, &file_length, file_path))
 	{
 		//ctx_alloc();
 		//ctx_push_scope();

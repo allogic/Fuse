@@ -36,10 +36,10 @@
    private implementation details that can be changed or removed.  */
 
 #ifndef YY_YY_PARSER_H_INCLUDED
-#define YY_YY_PARSER_H_INCLUDED
+# define YY_YY_PARSER_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-#  define YYDEBUG 0
+# define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -48,83 +48,97 @@ extern int yydebug;
 #line 9 "./parser.y"
 
 #ifdef _WIN32
-#  define fileno _fileno
-#  define isatty _isatty
+	#include <io.h>
+
+	#define fileno _fileno
+	#define isatty _isatty
 #endif // _WIN32
 
-#include <stdint.h>
-#include <stdarg.h>
+	// flex --header-file="./lexer.h" --outfile="./lexer.c" --yylineno --nounistd "./lexer.l"
+	// bison --header="./parser.h" --output="./parser.c" --locations "./parser.y"
 
-#include "engine/core/api.h"
+	#include <stdio.h>
+	#include <stdint.h>
+	#include <stdarg.h>
 
-#include "engine/parser/config.h"
-#include "engine/parser/context.h"
-#include "engine/parser/expression.h"
+	#include "engine/core/api.h"
 
-extern char const *g_current_filename;
-extern char *yytext;
-extern int32_t g_line_number;
-extern int32_t g_column_number;
-extern int32_t yyleng;
+	#include "engine/parser/config.h"
+	#include "engine/parser/context.h"
+	#include "engine/parser/expression.h"
+	//#include "engine/parser/lexer.h"
 
-extern int32_t yyerror(char const *msg, ...);
-extern int32_t yywrap(void);
+	extern char const* g_current_filename;
+	extern char* yytext;
+	extern int32_t g_line_number;
+	extern int32_t g_column_number;
+	extern int32_t yyleng;
 
-void parser_parse_file(char const *file_path);
+	extern int yylex(void);
+	extern int32_t yyerror(char const* msg, ...);
+	extern int32_t yywrap(void);
 
-#line 79 "./parser.h"
+	void parser_parse_file(char const* file_path);
+
+#line 84 "./parser.h"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
-#  define YYTOKENTYPE
-enum yytokentype {
-  YYEMPTY = -2,
-  YYEOF = 0,       /* "end of file"  */
-  YYerror = 256,   /* error  */
-  YYUNDEF = 257,   /* "invalid token"  */
-  IDENT = 258,     /* IDENT  */
-  STRING = 259,    /* STRING  */
-  STRUCT = 260,    /* STRUCT  */
-  SEMICOLON = 261, /* SEMICOLON  */
-  LPAREN = 262,    /* LPAREN  */
-  RPAREN = 263,    /* RPAREN  */
-  LBRACE = 264,    /* LBRACE  */
-  RBRACE = 265     /* RBRACE  */
-};
-typedef enum yytokentype yytoken_kind_t;
+# define YYTOKENTYPE
+  enum yytokentype
+  {
+    YYEMPTY = -2,
+    YYEOF = 0,                     /* "end of file"  */
+    YYerror = 256,                 /* error  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    IDENT = 258,                   /* IDENT  */
+    STRING = 259,                  /* STRING  */
+    STRUCT = 260,                  /* STRUCT  */
+    SEMICOLON = 261,               /* SEMICOLON  */
+    LPAREN = 262,                  /* LPAREN  */
+    RPAREN = 263,                  /* RPAREN  */
+    LBRACE = 264,                  /* LBRACE  */
+    RBRACE = 265                   /* RBRACE  */
+  };
+  typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
-#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
-union YYSTYPE {
-#  line 40 "./parser.y"
+#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
+union YYSTYPE
+{
+#line 45 "./parser.y"
 
-  core_string_t string;
-  parser_expression_t expression;
+	core_string_t string;
+	parser_expression_t expression;
 
-#  line 111 "./parser.h"
+#line 116 "./parser.h"
+
 };
 typedef union YYSTYPE YYSTYPE;
-#  define YYSTYPE_IS_TRIVIAL 1
-#  define YYSTYPE_IS_DECLARED 1
+# define YYSTYPE_IS_TRIVIAL 1
+# define YYSTYPE_IS_DECLARED 1
 #endif
 
 /* Location type.  */
-#if !defined YYLTYPE && !defined YYLTYPE_IS_DECLARED
+#if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
 typedef struct YYLTYPE YYLTYPE;
-struct YYLTYPE {
+struct YYLTYPE
+{
   int first_line;
   int first_column;
   int last_line;
   int last_column;
 };
-#  define YYLTYPE_IS_DECLARED 1
-#  define YYLTYPE_IS_TRIVIAL 1
+# define YYLTYPE_IS_DECLARED 1
+# define YYLTYPE_IS_TRIVIAL 1
 #endif
+
 
 extern YYSTYPE yylval;
 extern YYLTYPE yylloc;
 
-int yyparse(void);
+int yyparse (void);
+
 
 #endif /* !YY_YY_PARSER_H_INCLUDED  */

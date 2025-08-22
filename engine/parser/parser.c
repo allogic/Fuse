@@ -502,7 +502,7 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int8 yyrline[] =
 {
-       0,    56,    56,    57,    61
+       0,    61,    61,    62,    66
 };
 #endif
 
@@ -1444,7 +1444,7 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* PROGRAM: PROGRAM STRUCT_DECL  */
-#line 56 "./parser.y"
+#line 61 "./parser.y"
                               {  }
 #line 1450 "./parser.c"
     break;
@@ -1679,7 +1679,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 63 "./parser.y"
+#line 68 "./parser.y"
 
 
 char const* g_current_filename;
@@ -1705,7 +1705,10 @@ void parser_parse_file(char const* file_path) {
 	g_line_number = 1;
 	g_column_number = 1;
 
-	if (core_filesystem_read_text(file_buffer, file_length, file_path))
+	uint8_t *file_buffer = 0;
+	uint64_t file_length = 0;
+
+	if (core_filesystem_read_text(&file_buffer, &file_length, file_path))
 	{
 		//ctx_alloc();
 		//ctx_push_scope();
