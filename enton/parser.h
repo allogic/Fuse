@@ -79,13 +79,15 @@ extern int yydebug;
     LBRACE = 274,                  /* LBRACE  */
     RBRACE = 275,                  /* RBRACE  */
     EQ = 276,                      /* EQ  */
-    INT = 277,                     /* INT  */
-    VEC3 = 278,                    /* VEC3  */
-    IVEC3 = 279,                   /* IVEC3  */
-    MAT4 = 280,                    /* MAT4  */
-    IDENT = 281,                   /* IDENT  */
-    STRING = 282,                  /* STRING  */
-    NUMBER = 283                   /* NUMBER  */
+    VOID = 277,                    /* VOID  */
+    INT = 278,                     /* INT  */
+    VEC3 = 279,                    /* VEC3  */
+    IVEC3 = 280,                   /* IVEC3  */
+    MAT4 = 281,                    /* MAT4  */
+    IDENT = 282,                   /* IDENT  */
+    STRING = 283,                  /* STRING  */
+    NUMBER = 284,                  /* NUMBER  */
+    OTHER = 285                    /* OTHER  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -99,7 +101,7 @@ union YYSTYPE
 	core_string_t string;
 	int64_t number;
 
-#line 103 "./parser.h"
+#line 105 "./parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

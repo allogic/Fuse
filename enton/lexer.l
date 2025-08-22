@@ -154,6 +154,11 @@
 	return EQ;
 }
 
+"void" {
+	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return VOID;
+}
+
 "int" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	return INT;
@@ -236,5 +241,6 @@
 
 . {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
+	return OTHER;
 }
 %%

@@ -35,6 +35,7 @@
 %token LBRACE RBRACE
 %token EQ
 
+%token VOID
 %token INT
 %token VEC3
 %token IVEC3
@@ -42,6 +43,8 @@
 
 %token IDENT STRING
 %token NUMBER
+
+%token OTHER
 
 %type <string> IDENT STRING
 %type <number> NUMBER
@@ -51,6 +54,7 @@ PROGRAM
 	: PROGRAM STRUCT_DECL {  }
 	| PROGRAM PRE_PROCESSOR_DECL {  }
 	| PROGRAM LAYOUT_DECL {  }
+	| PROGRAM FUNCTION_DECL {  }
 	| %empty
 	;
 
@@ -106,8 +110,26 @@ TYPE_DECL
 	: IDENT
 	;
 
+FUNCTION_DECL
+	: TYPE IDENT LPAREN RPAREN
+	;
+
+SCOPE
+	: LBRACE SCOPE_BODY RBRACE
+	;
+
+SCOPE_BODY
+	: SCOPE_BODY SCOPE_ITEM
+	;
+
+SCOPE_ITEM
+	: SCOPE
+	| OTHER
+	;
+
 TYPE
-	: INT
+	: VOID
+	| INT
 	| VEC3
 	| IVEC3
 	| MAT4
