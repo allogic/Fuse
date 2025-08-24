@@ -3,39 +3,93 @@
 
 #include "library/core/api.h"
 
-#include "enton/config.h"
-#include "enton/macros.h"
 #include "enton/context.h"
 #include "enton/expression.h"
 
-static core_vector_t s_enton_expressions = {0};
+static core_vector_t s_context_preproc_decls = {0};
+static core_vector_t s_context_struct_decls = {0};
+static core_vector_t s_context_layout_decls = {0};
 
-void enton_context_alloc(void) {
-  s_enton_expressions = core_vector_alloc(sizeof(enton_expression_t));
+void context_alloc(void) {
+  s_context_preproc_decls = core_vector_alloc(sizeof(expression_t));
+  s_context_struct_decls = core_vector_alloc(sizeof(expression_t));
+  s_context_layout_decls = core_vector_alloc(sizeof(expression_t));
 }
-void enton_context_build(void) {
+void context_build(void) {
 }
-void enton_context_print(void) {
-  uint64_t expression_index = 0;
-  uint64_t expression_count = core_vector_count(&s_enton_expressions);
-  while (expression_index < expression_count) {
-    enton_expression_t expression = *(enton_expression_t *)core_vector_at(&s_enton_expressions, expression_index);
+void context_print(void) {
+  uint64_t preproc_expression_index = 0;
+  uint64_t preproc_expression_count = core_vector_count(&s_context_preproc_decls);
+  while (preproc_expression_index < preproc_expression_count) {
+    expression_t preproc_expression = *(expression_t *)core_vector_at(&s_context_preproc_decls, preproc_expression_index);
 
-    enton_expression_print(expression, 0, 2, 1, expression_index == 0, expression_index == (expression_count - 1));
+    expression_print(preproc_expression, 0, 2, 1, preproc_expression_index == 0, preproc_expression_index == (preproc_expression_count - 1));
 
-    expression_index++;
-  }
-}
-void enton_context_free(void) {
-  uint64_t expression_index = 0;
-  uint64_t expression_count = core_vector_count(&s_enton_expressions);
-  while (expression_index < expression_count) {
-    enton_expression_t expression = *(enton_expression_t *)core_vector_at(&s_enton_expressions, expression_index);
-
-    enton_expression_free(expression);
-
-    expression_index++;
+    preproc_expression_index++;
   }
 
-  core_vector_free(&s_enton_expressions);
+  uint64_t struct_expression_index = 0;
+  uint64_t struct_expression_count = core_vector_count(&s_context_struct_decls);
+  while (struct_expression_index < struct_expression_count) {
+    expression_t struct_expression = *(expression_t *)core_vector_at(&s_context_struct_decls, struct_expression_index);
+
+    expression_print(struct_expression, 0, 2, 1, struct_expression_index == 0, struct_expression_index == (struct_expression_count - 1));
+
+    struct_expression_index++;
+  }
+
+  uint64_t layout_expression_index = 0;
+  uint64_t layout_expression_count = core_vector_count(&s_context_layout_decls);
+  while (layout_expression_index < layout_expression_count) {
+    expression_t layout_expression = *(expression_t *)core_vector_at(&s_context_layout_decls, layout_expression_index);
+
+    expression_print(layout_expression, 0, 2, 1, layout_expression_index == 0, layout_expression_index == (layout_expression_count - 1));
+
+    layout_expression_index++;
+  }
+}
+void context_free(void) {
+  uint64_t preproc_expression_index = 0;
+  uint64_t preproc_expression_count = core_vector_count(&s_context_preproc_decls);
+  while (preproc_expression_index < preproc_expression_count) {
+    expression_t preproc_expression = *(expression_t *)core_vector_at(&s_context_preproc_decls, preproc_expression_index);
+
+    expression_free(preproc_expression);
+
+    preproc_expression_index++;
+  }
+
+  uint64_t struct_expression_index = 0;
+  uint64_t struct_expression_count = core_vector_count(&s_context_struct_decls);
+  while (struct_expression_index < struct_expression_count) {
+    expression_t struct_expression = *(expression_t *)core_vector_at(&s_context_struct_decls, struct_expression_index);
+
+    expression_free(struct_expression);
+
+    struct_expression_index++;
+  }
+
+  uint64_t layout_expression_index = 0;
+  uint64_t layout_expression_count = core_vector_count(&s_context_layout_decls);
+  while (layout_expression_index < layout_expression_count) {
+    expression_t layout_expression = *(expression_t *)core_vector_at(&s_context_layout_decls, layout_expression_index);
+
+    expression_free(layout_expression);
+
+    layout_expression_index++;
+  }
+
+  core_vector_free(&s_context_preproc_decls);
+  core_vector_free(&s_context_struct_decls);
+  core_vector_free(&s_context_layout_decls);
+}
+
+void context_push_preproc_decl(expression_t preproc_expression) {
+  core_vector_push(&s_context_preproc_decls, &preproc_expression);
+}
+void context_push_struct_decl(expression_t struct_expression) {
+  core_vector_push(&s_context_struct_decls, &struct_expression);
+}
+void context_push_layout_decl(expression_t layout_expression) {
+  core_vector_push(&s_context_layout_decls, &layout_expression);
 }

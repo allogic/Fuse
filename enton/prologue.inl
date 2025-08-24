@@ -11,7 +11,6 @@
 
 #include "library/core/api.h"
 
-#include "enton/config.h"
 #include "enton/context.h"
 #include "enton/expression.h"
 

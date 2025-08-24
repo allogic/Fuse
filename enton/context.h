@@ -1,5 +1,5 @@
-#ifndef ENTON_CONTEXT_H
-#define ENTON_CONTEXT_H
+#ifndef CONTEXT_H
+#define CONTEXT_H
 
 #include <stdint.h>
 
@@ -9,13 +9,17 @@
 extern "C" {
 #endif // __cplusplus
 
-void enton_context_alloc(void);
-void enton_context_build(void);
-void enton_context_print(void);
-void enton_context_free(void);
+void context_alloc(void);
+void context_build(void);
+void context_print(void);
+void context_free(void);
+
+void context_push_preproc_decl(expression_t preproc_expression);
+void context_push_struct_decl(expression_t struct_expression);
+void context_push_layout_decl(expression_t layout_expression);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
-#endif // ENTON_CONTEXT_H
+#endif // CONTEXT_H

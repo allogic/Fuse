@@ -1149,7 +1149,7 @@ YY_RULE_SETUP
 {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	yylval.string = core_string_from(yytext, yyleng);
-	return IDENT;
+	return IDENTIFIER;
 }
 	YY_BREAK
 case 36:
@@ -1176,15 +1176,14 @@ YY_RULE_SETUP
 #line 242 "./lexer.l"
 {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return OTHER;
 }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 246 "./lexer.l"
+#line 245 "./lexer.l"
 ECHO;
 	YY_BREAK
-#line 1188 "./lexer.c"
+#line 1187 "./lexer.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(MULTI_LINE_COMMENT):
 	yyterminate();
@@ -2202,6 +2201,6 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 246 "./lexer.l"
+#line 245 "./lexer.l"
 
 

@@ -12,14 +12,14 @@ int32_t main(int32_t argc, char **argv) {
   FILE *file = fopen(ROOT_DIR "/shader/chunk/renderer.vert", "r");
 
   if (file) {
-    enton_context_alloc();
+    context_alloc();
 
     yyrestart(file);
     yyparse();
 
-    enton_context_build();
-    enton_context_print();
-    enton_context_free();
+    context_build();
+    context_print();
+    context_free();
 
     fclose(file);
   }

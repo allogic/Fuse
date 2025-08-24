@@ -84,10 +84,9 @@ extern int yydebug;
     VEC3 = 279,                    /* VEC3  */
     IVEC3 = 280,                   /* IVEC3  */
     MAT4 = 281,                    /* MAT4  */
-    IDENT = 282,                   /* IDENT  */
+    IDENTIFIER = 282,              /* IDENTIFIER  */
     STRING = 283,                  /* STRING  */
-    NUMBER = 284,                  /* NUMBER  */
-    OTHER = 285                    /* OTHER  */
+    NUMBER = 284                   /* NUMBER  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -99,9 +98,12 @@ union YYSTYPE
 #line 14 "./parser.y"
 
 	core_string_t string;
+	core_vector_t vector;
 	int64_t number;
+	expression_t expression;
+	datatype_t datatype;
 
-#line 105 "./parser.h"
+#line 107 "./parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

@@ -224,7 +224,7 @@
 [a-zA-Z_][a-zA-Z0-9_]* {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	yylval.string = core_string_from(yytext, yyleng);
-	return IDENT;
+	return IDENTIFIER;
 }
 
 "\""[^"]*"\"" {
@@ -241,6 +241,5 @@
 
 . {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return OTHER;
 }
 %%
