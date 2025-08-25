@@ -4,12 +4,12 @@
 int32_t main(int32_t argc, char **argv) {
   core_heap_prologue();
 
-  g_current_filename = ROOT_DIR "/shader/chunk/renderer.vert";
+  g_current_filename = argv[1];
 
   g_line_number = 1;
   g_column_number = 1;
 
-  FILE *file = fopen(ROOT_DIR "/shader/chunk/renderer.vert", "r");
+  FILE *file = fopen(argv[1], "r");
 
   if (file) {
     context_alloc();

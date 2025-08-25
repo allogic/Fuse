@@ -89,16 +89,6 @@
 	return LAYOUT;
 }
 
-"location" {
-	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return LOCATION;
-}
-
-"binding" {
-	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return BINDING;
-}
-
 "in" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
 	return IN;
@@ -131,22 +121,22 @@
 
 "(" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return LPAREN;
+	return L_PAREN;
 }
 
 ")" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return RPAREN;
+	return R_PAREN;
 }
 
 "{" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return LBRACE;
+	return L_BRACE;
 }
 
 "}" {
 	UPDATE_CURSOR_LOCATION_SINGLE_LINE();
-	return RBRACE;
+	return R_BRACE;
 }
 
 "=" {

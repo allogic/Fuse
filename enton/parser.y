@@ -16,7 +16,7 @@
 	core_vector_t vector;
 	int64_t number;
 	expression_t expression;
-	datatype_t datatype;
+	primitive_type_t primitive_type;
 }
 
 %token VERSION
@@ -25,8 +25,6 @@
 %token STRUCT
 %token QUALIFIER
 %token LAYOUT
-%token LOCATION
-%token BINDING
 %token IN
 %token UNIFORM
 
@@ -34,8 +32,8 @@
 %token COMMA
 %token COLON
 %token SEMICOLON
-%token LPAREN RPAREN
-%token LBRACE RBRACE
+%token L_PAREN R_PAREN
+%token L_BRACE R_BRACE
 %token EQ
 
 %token VOID
@@ -44,13 +42,31 @@
 %token IVEC3
 %token MAT4
 
-%token IDENTIFIER STRING
+%token IDENTIFIER
+%token STRING
 %token NUMBER
 
-%type <string> IDENTIFIER STRING
+%type <string> IDENTIFIER
+%type <string> STRING
+
 %type <number> NUMBER
-%type <expression> PREPROC_DECL VERSION_DECL EXTENSION_DECL STRUCT_DECL LAYOUT_DECL ASSIGNMENT MODIFIER_PACK
-%type <datatype> PRIMITIVE_TYPE
+
+%type <expression> PREPROC_DECL
+%type <expression> VERSION_DECL
+%type <expression> EXTENSION_DECL
+
+%type <expression> MODIFIER_DECL
+%type <expression> MODIFIER
+
+%type <expression> LAYOUT_DECL
+%type <expression> LAYOUT_INPUT_DECL
+%type <expression> LAYOUT_UNIFORM_DECL
+
+%type <expression> STRUCT_DECL
+%type <expression> STRUCT_TYPE_DECL
+%type <expression> STRUCT_MEMBER
+
+%type <primitive_type> PRIMITIVE_TYPE
 
 %%
 PROGRAM
@@ -72,38 +88,54 @@ VERSION_DECL
 	;
 
 EXTENSION_DECL
-	: HASH EXTENSION IDENTIFIER COLON QUALIFIER { $$ = expression_extension($3); }
+	: HASH EXTENSION IDENTIFIER COLON QUALIFIER { $$ = expression_extension(expression_identifier($3)); }
 	;
+
+///////////////////////////////////////////////////////////////
+// Layout Declaration
+///////////////////////////////////////////////////////////////
 
 LAYOUT_DECL
-	: LAYOUT LPAREN MODIFIER_PACK RPAREN IN PRIMITIVE_TYPE IDENTIFIER SEMICOLON
+	: LAYOUT_INPUT_DECL
+	| LAYOUT_UNIFORM_DECL
+	;
+
+LAYOUT_INPUT_DECL
+	: LAYOUT MODIFIER_DECL IN PRIMITIVE_TYPE IDENTIFIER SEMICOLON
 		{
 			$$ = expression_layout_input(
-				$3,
-				$6,
-				$7);
+				$2,
+				expression_primitive($4),
+				expression_identifier($5));
 		}
-	| LAYOUT LPAREN MODIFIER_PACK RPAREN UNIFORM STRUCT_DECL IDENTIFIER SEMICOLON
+	;
+
+LAYOUT_UNIFORM_DECL
+	: LAYOUT MODIFIER_DECL UNIFORM STRUCT_DECL IDENTIFIER SEMICOLON
 		{
 			$$ = expression_layout_uniform(
-				$3,
-				$6,
-				$7);
+				$2,
+				$4,
+				expression_identifier($5));
 		}
 	;
 
-MODIFIER_PACK
-	: { context_push_expression_vector(); } LPAREN MODIFIER_LIST RPAREN { $$ = expression_packv(context_pop_expression_vector()); }
+///////////////////////////////////////////////////////////////
+// Modifier Declaration
+///////////////////////////////////////////////////////////////
+
+MODIFIER_DECL
+	: { context_push_expression_vector(); } L_PAREN MODIFIER_VECTOR R_PAREN { $$ = expression_modifier(expression_packv(context_pop_expression_vector())); }
 	;
 
-MODIFIER_LIST
-	: ASSIGNMENT COMMA MODIFIER_LIST { context_push_expression(expression_modifier($1)); }
-	| ASSIGNMENT { context_push_expression(expression_modifier($1)); }
+MODIFIER_VECTOR
+	: MODIFIER COMMA MODIFIER_VECTOR { context_push_expression($1); }
+	| MODIFIER { context_push_expression($1); }
 	| %empty
 	;
 
-ASSIGNMENT
-	: IDENTIFIER EQ NUMBER { $$ = expression_assign($1, $3); }
+MODIFIER
+	: IDENTIFIER EQ NUMBER { $$ = expression_assignment(expression_identifier($1), expression_number($3)); }
 	;
 
 ///////////////////////////////////////////////////////////////
@@ -111,17 +143,21 @@ ASSIGNMENT
 ///////////////////////////////////////////////////////////////
 
 STRUCT_DECL
-	: { context_push_expression_vector(); } PRIMITIVE_TYPE LPAREN STRUCT_MEMBER_LIST RPAREN { $$ = expression_struct($1, context_pop_expression_vector()); }
+	: { context_push_expression_vector(); } STRUCT_TYPE_DECL L_BRACE STRUCT_MEMBER_VECTOR R_BRACE { $$ = expression_struct($2, expression_packv(context_pop_expression_vector())); }
 	;
 
-STRUCT_MEMBER_LIST
-	: STRUCT_MEMBER COMMA MODIFIER_LIST { context_push_expression(expression_modifier($1)); }
-	| STRUCT_MEMBER { context_push_expression(expression_modifier($1)); }
+STRUCT_TYPE_DECL
+	: IDENTIFIER { $$ = expression_type($1); }
+	;
+
+STRUCT_MEMBER_VECTOR
+	: STRUCT_MEMBER SEMICOLON STRUCT_MEMBER_VECTOR { context_push_expression($1); }
+	| STRUCT_MEMBER { context_push_expression($1); }
 	| %empty
 	;
 
 STRUCT_MEMBER
-	: PRIMITIVE_TYPE IDENTIFIER SEMICOLON { $$ = expression_struct_member($1, $3); }
+	: PRIMITIVE_TYPE IDENTIFIER { $$ = expression_struct_member(expression_primitive($1), expression_identifier($2)); }
 	;
 
 ///////////////////////////////////////////////////////////////
@@ -133,7 +169,7 @@ FUNCTION_DECL
 	;
 
 FUNCTION_ARG_PACK
-	: LPAREN FUNCTION_ARG RPAREN
+	: L_PAREN FUNCTION_ARG R_PAREN
 
 FUNCTION_ARG
 	: PRIMITIVE_TYPE COMMA FUNCTION_ARG
@@ -141,12 +177,16 @@ FUNCTION_ARG
 	| %empty
 	;
 
+///////////////////////////////////////////////////////////////
+// Primitive Types
+///////////////////////////////////////////////////////////////
+
 PRIMITIVE_TYPE
-	: VOID { $$ = DATATYPE_VOID; }
-	| INT { $$ = DATATYPE_INT; }
-	| VEC3 { $$ = DATATYPE_VEC3; }
-	| IVEC3 { $$ = DATATYPE_IVEC3; }
-	| MAT4 { $$ = DATATYPE_MAT4; }
+	: VOID { $$ = PRIMITIVE_TYPE_VOID; }
+	| INT { $$ = PRIMITIVE_TYPE_INT; }
+	| VEC3 { $$ = PRIMITIVE_TYPE_VEC3; }
+	| IVEC3 { $$ = PRIMITIVE_TYPE_IVEC3; }
+	| MAT4 { $$ = PRIMITIVE_TYPE_MAT4; }
 	;
 %%
 

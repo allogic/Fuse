@@ -7,8 +7,7 @@
 #include "library/core/string.h"
 
 core_string_t core_string_alloc(void) {
-  core_string_t string;
-  memset(&string, 0, sizeof(core_string_t));
+  core_string_t string = {0};
 
   string.buffer = (char *)core_heap_alloc(CORE_ALIGN_UP_BY(CORE_STRING_BUFFER_CAPACITY, CORE_STRING_BUFFER_ALIGNMENT));
   string.buffer_capacity = CORE_ALIGN_UP_BY(CORE_STRING_BUFFER_CAPACITY, CORE_STRING_BUFFER_ALIGNMENT);
@@ -18,8 +17,7 @@ core_string_t core_string_alloc(void) {
   return string;
 }
 core_string_t core_string_copy(core_string_t *reference) {
-  core_string_t string;
-  memset(&string, 0, sizeof(core_string_t));
+  core_string_t string = {0};
 
   string.buffer = (char *)core_heap_alloc(reference->buffer_capacity);
   string.buffer_capacity = reference->buffer_capacity;
@@ -122,6 +120,4 @@ uint64_t core_string_capacity(core_string_t *string) {
 }
 void core_string_free(core_string_t *string) {
   core_heap_free(string->buffer);
-
-  memset(string, 0, sizeof(core_string_t));
 }

@@ -7,8 +7,7 @@
 #include "library/core/vector.h"
 
 core_vector_t core_vector_alloc(uint64_t value_size) {
-  core_vector_t vector;
-  memset(&vector, 0, sizeof(core_vector_t));
+  core_vector_t vector = {0};
 
   vector.buffer = (uint8_t *)core_heap_alloc(CORE_ALIGN_UP_BY(CORE_VECTOR_BUFFER_CAPACITY, CORE_VECTOR_BUFFER_ALIGNMENT) * value_size);
   vector.swap_buffer = (uint8_t *)core_heap_alloc(value_size);
@@ -20,8 +19,7 @@ core_vector_t core_vector_alloc(uint64_t value_size) {
   return vector;
 }
 core_vector_t core_vector_copy(core_vector_t *reference) {
-  core_vector_t vector;
-  memset(&vector, 0, sizeof(core_vector_t));
+  core_vector_t vector = {0};
 
   vector.buffer = (uint8_t *)core_heap_alloc(reference->buffer_capacity);
   vector.swap_buffer = (uint8_t *)core_heap_alloc(reference->value_size);
@@ -174,6 +172,4 @@ uint64_t core_vector_capacity(core_vector_t *vector) {
 void core_vector_free(core_vector_t *vector) {
   core_heap_free(vector->buffer);
   core_heap_free(vector->swap_buffer);
-
-  memset(vector, 0, sizeof(core_vector_t));
 }

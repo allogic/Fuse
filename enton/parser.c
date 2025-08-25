@@ -102,42 +102,46 @@ enum yysymbol_kind_t
   YYSYMBOL_STRUCT = 6,                     /* STRUCT  */
   YYSYMBOL_QUALIFIER = 7,                  /* QUALIFIER  */
   YYSYMBOL_LAYOUT = 8,                     /* LAYOUT  */
-  YYSYMBOL_LOCATION = 9,                   /* LOCATION  */
-  YYSYMBOL_BINDING = 10,                   /* BINDING  */
-  YYSYMBOL_IN = 11,                        /* IN  */
-  YYSYMBOL_UNIFORM = 12,                   /* UNIFORM  */
-  YYSYMBOL_HASH = 13,                      /* HASH  */
-  YYSYMBOL_COMMA = 14,                     /* COMMA  */
-  YYSYMBOL_COLON = 15,                     /* COLON  */
-  YYSYMBOL_SEMICOLON = 16,                 /* SEMICOLON  */
-  YYSYMBOL_LPAREN = 17,                    /* LPAREN  */
-  YYSYMBOL_RPAREN = 18,                    /* RPAREN  */
-  YYSYMBOL_LBRACE = 19,                    /* LBRACE  */
-  YYSYMBOL_RBRACE = 20,                    /* RBRACE  */
-  YYSYMBOL_EQ = 21,                        /* EQ  */
-  YYSYMBOL_VOID = 22,                      /* VOID  */
-  YYSYMBOL_INT = 23,                       /* INT  */
-  YYSYMBOL_VEC3 = 24,                      /* VEC3  */
-  YYSYMBOL_IVEC3 = 25,                     /* IVEC3  */
-  YYSYMBOL_MAT4 = 26,                      /* MAT4  */
-  YYSYMBOL_IDENTIFIER = 27,                /* IDENTIFIER  */
-  YYSYMBOL_STRING = 28,                    /* STRING  */
-  YYSYMBOL_NUMBER = 29,                    /* NUMBER  */
-  YYSYMBOL_YYACCEPT = 30,                  /* $accept  */
-  YYSYMBOL_PROGRAM = 31,                   /* PROGRAM  */
-  YYSYMBOL_PREPROC_DECL = 32,              /* PREPROC_DECL  */
-  YYSYMBOL_VERSION_DECL = 33,              /* VERSION_DECL  */
-  YYSYMBOL_EXTENSION_DECL = 34,            /* EXTENSION_DECL  */
-  YYSYMBOL_LAYOUT_DECL = 35,               /* LAYOUT_DECL  */
-  YYSYMBOL_MODIFIER_PACK = 36,             /* MODIFIER_PACK  */
+  YYSYMBOL_IN = 9,                         /* IN  */
+  YYSYMBOL_UNIFORM = 10,                   /* UNIFORM  */
+  YYSYMBOL_HASH = 11,                      /* HASH  */
+  YYSYMBOL_COMMA = 12,                     /* COMMA  */
+  YYSYMBOL_COLON = 13,                     /* COLON  */
+  YYSYMBOL_SEMICOLON = 14,                 /* SEMICOLON  */
+  YYSYMBOL_L_PAREN = 15,                   /* L_PAREN  */
+  YYSYMBOL_R_PAREN = 16,                   /* R_PAREN  */
+  YYSYMBOL_L_BRACE = 17,                   /* L_BRACE  */
+  YYSYMBOL_R_BRACE = 18,                   /* R_BRACE  */
+  YYSYMBOL_EQ = 19,                        /* EQ  */
+  YYSYMBOL_VOID = 20,                      /* VOID  */
+  YYSYMBOL_INT = 21,                       /* INT  */
+  YYSYMBOL_VEC3 = 22,                      /* VEC3  */
+  YYSYMBOL_IVEC3 = 23,                     /* IVEC3  */
+  YYSYMBOL_MAT4 = 24,                      /* MAT4  */
+  YYSYMBOL_IDENTIFIER = 25,                /* IDENTIFIER  */
+  YYSYMBOL_STRING = 26,                    /* STRING  */
+  YYSYMBOL_NUMBER = 27,                    /* NUMBER  */
+  YYSYMBOL_YYACCEPT = 28,                  /* $accept  */
+  YYSYMBOL_PROGRAM = 29,                   /* PROGRAM  */
+  YYSYMBOL_PREPROC_DECL = 30,              /* PREPROC_DECL  */
+  YYSYMBOL_VERSION_DECL = 31,              /* VERSION_DECL  */
+  YYSYMBOL_EXTENSION_DECL = 32,            /* EXTENSION_DECL  */
+  YYSYMBOL_LAYOUT_DECL = 33,               /* LAYOUT_DECL  */
+  YYSYMBOL_LAYOUT_INPUT_DECL = 34,         /* LAYOUT_INPUT_DECL  */
+  YYSYMBOL_LAYOUT_UNIFORM_DECL = 35,       /* LAYOUT_UNIFORM_DECL  */
+  YYSYMBOL_MODIFIER_DECL = 36,             /* MODIFIER_DECL  */
   YYSYMBOL_37_1 = 37,                      /* $@1  */
-  YYSYMBOL_MODIFIER_LIST = 38,             /* MODIFIER_LIST  */
-  YYSYMBOL_ASSIGNMENT = 39,                /* ASSIGNMENT  */
+  YYSYMBOL_MODIFIER_VECTOR = 38,           /* MODIFIER_VECTOR  */
+  YYSYMBOL_MODIFIER = 39,                  /* MODIFIER  */
   YYSYMBOL_STRUCT_DECL = 40,               /* STRUCT_DECL  */
-  YYSYMBOL_FUNCTION_DECL = 41,             /* FUNCTION_DECL  */
-  YYSYMBOL_FUNCTION_ARG_PACK = 42,         /* FUNCTION_ARG_PACK  */
-  YYSYMBOL_FUNCTION_ARG = 43,              /* FUNCTION_ARG  */
-  YYSYMBOL_TYPE = 44                       /* TYPE  */
+  YYSYMBOL_41_2 = 41,                      /* $@2  */
+  YYSYMBOL_STRUCT_TYPE_DECL = 42,          /* STRUCT_TYPE_DECL  */
+  YYSYMBOL_STRUCT_MEMBER_VECTOR = 43,      /* STRUCT_MEMBER_VECTOR  */
+  YYSYMBOL_STRUCT_MEMBER = 44,             /* STRUCT_MEMBER  */
+  YYSYMBOL_FUNCTION_DECL = 45,             /* FUNCTION_DECL  */
+  YYSYMBOL_FUNCTION_ARG_PACK = 46,         /* FUNCTION_ARG_PACK  */
+  YYSYMBOL_FUNCTION_ARG = 47,              /* FUNCTION_ARG  */
+  YYSYMBOL_PRIMITIVE_TYPE = 48             /* PRIMITIVE_TYPE  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -474,19 +478,19 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  2
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   52
+#define YYLAST   56
 
 /* YYNTOKENS -- Number of terminals.  */
-#define YYNTOKENS  30
+#define YYNTOKENS  28
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  15
+#define YYNNTS  21
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  30
+#define YYNRULES  38
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  58
+#define YYNSTATES  64
 
 /* YYMAXUTOK -- Last valid token kind.  */
-#define YYMAXUTOK   284
+#define YYMAXUTOK   282
 
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
@@ -528,17 +532,17 @@ static const yytype_int8 yytranslate[] =
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
        5,     6,     7,     8,     9,    10,    11,    12,    13,    14,
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
-      25,    26,    27,    28,    29
+      25,    26,    27
 };
 
 #if YYDEBUG
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_int8 yyrline[] =
+static const yytype_uint8 yyrline[] =
 {
-       0,    57,    57,    58,    59,    60,    61,    65,    66,    70,
-      71,    75,    79,    80,    84,    84,    88,    89,    90,    94,
-      98,   102,   106,   109,   110,   111,   115,   116,   117,   118,
-     119
+       0,    73,    73,    74,    75,    76,    77,    81,    82,    86,
+      87,    91,    99,   100,   104,   114,   128,   128,   132,   133,
+     134,   138,   146,   146,   150,   154,   155,   156,   160,   168,
+     172,   175,   176,   177,   185,   186,   187,   188,   189
 };
 #endif
 
@@ -555,13 +559,15 @@ static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
 static const char *const yytname[] =
 {
   "\"end of file\"", "error", "\"invalid token\"", "VERSION", "CORE",
-  "EXTENSION", "STRUCT", "QUALIFIER", "LAYOUT", "LOCATION", "BINDING",
-  "IN", "UNIFORM", "HASH", "COMMA", "COLON", "SEMICOLON", "LPAREN",
-  "RPAREN", "LBRACE", "RBRACE", "EQ", "VOID", "INT", "VEC3", "IVEC3",
-  "MAT4", "IDENTIFIER", "STRING", "NUMBER", "$accept", "PROGRAM",
-  "PREPROC_DECL", "VERSION_DECL", "EXTENSION_DECL", "LAYOUT_DECL",
-  "MODIFIER_PACK", "$@1", "MODIFIER_LIST", "ASSIGNMENT", "STRUCT_DECL",
-  "FUNCTION_DECL", "FUNCTION_ARG_PACK", "FUNCTION_ARG", "TYPE", YY_NULLPTR
+  "EXTENSION", "STRUCT", "QUALIFIER", "LAYOUT", "IN", "UNIFORM", "HASH",
+  "COMMA", "COLON", "SEMICOLON", "L_PAREN", "R_PAREN", "L_BRACE",
+  "R_BRACE", "EQ", "VOID", "INT", "VEC3", "IVEC3", "MAT4", "IDENTIFIER",
+  "STRING", "NUMBER", "$accept", "PROGRAM", "PREPROC_DECL", "VERSION_DECL",
+  "EXTENSION_DECL", "LAYOUT_DECL", "LAYOUT_INPUT_DECL",
+  "LAYOUT_UNIFORM_DECL", "MODIFIER_DECL", "$@1", "MODIFIER_VECTOR",
+  "MODIFIER", "STRUCT_DECL", "$@2", "STRUCT_TYPE_DECL",
+  "STRUCT_MEMBER_VECTOR", "STRUCT_MEMBER", "FUNCTION_DECL",
+  "FUNCTION_ARG_PACK", "FUNCTION_ARG", "PRIMITIVE_TYPE", YY_NULLPTR
 };
 
 static const char *
@@ -571,7 +577,7 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-21)
+#define YYPACT_NINF (-19)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
@@ -585,12 +591,13 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int8 yypact[] =
 {
-     -21,     1,   -21,   -14,    -2,     5,   -21,   -21,   -21,   -21,
-     -21,   -21,   -21,   -21,   -21,   -21,   -21,   -11,     2,   -21,
-     -12,    -9,     3,     4,    10,    12,    17,    15,   -20,   -21,
-      16,     0,     6,   -21,    24,    18,    20,   -21,   -20,    29,
-      19,    21,    27,   -21,   -21,   -20,    11,    22,    13,   -21,
-       6,   -21,    28,    30,   -21,   -21,   -21,   -21
+     -19,     1,   -19,   -19,     5,   -19,   -19,   -19,   -19,   -19,
+     -19,   -19,   -19,   -19,   -19,   -19,   -19,   -14,   -19,   -10,
+       4,    -8,   -11,    -7,   -19,     0,    12,   -18,   -19,    -6,
+      16,    15,   -18,   -18,   -19,     6,     8,    10,    14,    22,
+     -19,    28,    18,    23,    13,    24,    27,    29,    30,    19,
+     -19,    -6,   -19,   -19,   -18,   -19,   -19,   -18,   -19,   -19,
+     -19,   -19,   -19,   -19
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -598,26 +605,29 @@ static const yytype_int8 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       6,     0,     1,     0,     0,     0,    26,    27,    28,    29,
-      30,     2,     7,     8,     4,     3,     5,     0,     0,    14,
-       0,     0,     0,     0,     0,     0,     9,     0,    25,    21,
-       0,     0,    18,    10,     0,     0,    24,    20,     0,     0,
-       0,     0,    17,    11,    22,    25,     0,     0,     0,    15,
-      18,    23,     0,     0,    19,    16,    12,    13
+       6,    22,     1,    16,     0,    34,    35,    36,    37,    38,
+       2,     7,     8,     4,    12,    13,     3,     0,     5,     0,
+       0,     0,     0,     0,    24,     0,     0,     0,    22,    20,
+       9,     0,    27,    33,    29,     0,     0,     0,     0,    19,
+      10,     0,     0,    26,     0,     0,    32,     0,     0,     0,
+      17,    20,    11,    23,    27,    28,    30,    33,    14,    15,
+      21,    18,    25,    31
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int8 yypgoto[] =
 {
-     -21,   -21,   -21,   -21,   -21,   -21,   -21,   -21,    -7,   -21,
-       8,   -21,   -21,     7,    -1
+     -19,   -19,   -19,   -19,   -19,   -19,   -19,   -19,   -19,   -19,
+      -9,   -19,    17,   -19,   -19,   -13,   -19,   -19,   -19,    -5,
+      -1
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int8 yydefgoto[] =
 {
-       0,     1,    11,    12,    13,    14,    24,    25,    41,    42,
-      15,    16,    29,    35,    36
+       0,     1,    10,    11,    12,    13,    14,    15,    20,    21,
+      38,    39,    16,    17,    25,    42,    43,    18,    34,    45,
+      44
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -625,52 +635,53 @@ static const yytype_int8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int8 yytable[] =
 {
-      17,     2,     6,     7,     8,     9,    10,     3,    20,     4,
-      21,    38,    39,    18,     5,    19,    22,    26,    27,    23,
-      28,    33,    30,     6,     7,     8,     9,    10,    31,    32,
-      34,    43,    37,    40,    45,     3,    44,    46,    52,    49,
-      48,    50,    54,    55,    56,     0,    57,    47,     0,    53,
-       0,     0,    51
+      19,     2,     5,     6,     7,     8,     9,    29,    22,     3,
+      23,    24,     4,    27,    28,    26,    30,    32,    31,    37,
+      40,     5,     6,     7,     8,     9,    35,    33,    41,    49,
+      50,    47,    46,    48,    51,    52,    53,    54,    55,    57,
+      56,    62,    61,    58,    59,    36,    60,     0,     0,     0,
+       0,     0,    63,     0,     0,     0,    46
 };
 
 static const yytype_int8 yycheck[] =
 {
-       1,     0,    22,    23,    24,    25,    26,     6,     3,     8,
-       5,    11,    12,    27,    13,    17,    27,    29,    27,    17,
-      17,     4,    18,    22,    23,    24,    25,    26,    18,    17,
-      15,     7,    16,    27,    14,     6,    18,    38,    27,    18,
-      21,    14,    29,    50,    16,    -1,    16,    39,    -1,    27,
-      -1,    -1,    45
+       1,     0,    20,    21,    22,    23,    24,    15,     3,     8,
+       5,    25,    11,     9,    10,    25,    27,    17,    25,    25,
+       4,    20,    21,    22,    23,    24,    27,    15,    13,    19,
+      16,    25,    33,    25,    12,     7,    18,    14,    25,    12,
+      16,    54,    51,    14,    14,    28,    27,    -1,    -1,    -1,
+      -1,    -1,    57,    -1,    -1,    -1,    57
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
    state STATE-NUM.  */
 static const yytype_int8 yystos[] =
 {
-       0,    31,     0,     6,     8,    13,    22,    23,    24,    25,
-      26,    32,    33,    34,    35,    40,    41,    44,    27,    17,
-       3,     5,    27,    17,    36,    37,    29,    27,    17,    42,
-      18,    18,    17,     4,    15,    43,    44,    16,    11,    12,
-      27,    38,    39,     7,    18,    14,    44,    40,    21,    18,
-      14,    43,    27,    27,    29,    38,    16,    16
+       0,    29,     0,     8,    11,    20,    21,    22,    23,    24,
+      30,    31,    32,    33,    34,    35,    40,    41,    45,    48,
+      36,    37,     3,     5,    25,    42,    25,     9,    10,    15,
+      27,    25,    17,    15,    46,    48,    40,    25,    38,    39,
+       4,    13,    43,    44,    48,    47,    48,    25,    25,    19,
+      16,    12,     7,    18,    14,    25,    16,    12,    14,    14,
+      27,    38,    43,    47
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr1[] =
 {
-       0,    30,    31,    31,    31,    31,    31,    32,    32,    33,
-      33,    34,    35,    35,    37,    36,    38,    38,    38,    39,
-      40,    41,    42,    43,    43,    43,    44,    44,    44,    44,
-      44
+       0,    28,    29,    29,    29,    29,    29,    30,    30,    31,
+      31,    32,    33,    33,    34,    35,    37,    36,    38,    38,
+      38,    39,    41,    40,    42,    43,    43,    43,    44,    45,
+      46,    47,    47,    47,    48,    48,    48,    48,    48
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
 static const yytype_int8 yyr2[] =
 {
        0,     2,     2,     2,     2,     2,     0,     1,     1,     3,
-       4,     5,     8,     8,     0,     4,     3,     1,     0,     3,
-       5,     3,     3,     3,     1,     0,     1,     1,     1,     1,
-       1
+       4,     5,     1,     1,     6,     6,     0,     4,     3,     1,
+       0,     3,     0,     5,     1,     3,     1,     0,     2,     3,
+       3,     3,     1,     0,     1,     1,     1,     1,     1
 };
 
 
@@ -1518,127 +1529,167 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* PROGRAM: PROGRAM PREPROC_DECL  */
-#line 57 "./parser.y"
+#line 73 "parser.y"
                                { context_push_preproc_decl((yyvsp[0].expression)); }
-#line 1524 "./parser.c"
+#line 1535 "parser.c"
     break;
 
   case 3: /* PROGRAM: PROGRAM STRUCT_DECL  */
-#line 58 "./parser.y"
+#line 74 "parser.y"
                               { context_push_struct_decl((yyvsp[0].expression)); }
-#line 1530 "./parser.c"
+#line 1541 "parser.c"
     break;
 
   case 4: /* PROGRAM: PROGRAM LAYOUT_DECL  */
-#line 59 "./parser.y"
+#line 75 "parser.y"
                               { context_push_layout_decl((yyvsp[0].expression)); }
-#line 1536 "./parser.c"
+#line 1547 "parser.c"
     break;
 
   case 5: /* PROGRAM: PROGRAM FUNCTION_DECL  */
-#line 60 "./parser.y"
+#line 76 "parser.y"
                                 { YYACCEPT; }
-#line 1542 "./parser.c"
+#line 1553 "parser.c"
     break;
 
   case 9: /* VERSION_DECL: HASH VERSION NUMBER  */
-#line 70 "./parser.y"
+#line 86 "parser.y"
                               { (yyval.expression) = expression_version((yyvsp[0].number)); }
-#line 1548 "./parser.c"
+#line 1559 "parser.c"
     break;
 
   case 10: /* VERSION_DECL: HASH VERSION NUMBER CORE  */
-#line 71 "./parser.y"
+#line 87 "parser.y"
                                    { (yyval.expression) = expression_version((yyvsp[-1].number)); }
-#line 1554 "./parser.c"
+#line 1565 "parser.c"
     break;
 
   case 11: /* EXTENSION_DECL: HASH EXTENSION IDENTIFIER COLON QUALIFIER  */
-#line 75 "./parser.y"
-                                                    { (yyval.expression) = expression_extension((yyvsp[-2].string)); }
-#line 1560 "./parser.c"
+#line 91 "parser.y"
+                                                    { (yyval.expression) = expression_extension(expression_identifier((yyvsp[-2].string))); }
+#line 1571 "parser.c"
     break;
 
-  case 12: /* LAYOUT_DECL: LAYOUT LPAREN MODIFIER_PACK RPAREN IN TYPE IDENTIFIER SEMICOLON  */
-#line 79 "./parser.y"
-                                                                          { (yyval.expression) = expression_layout_input((yyvsp[-5].expression), (yyvsp[-2].datatype), (yyvsp[-1].string)); }
-#line 1566 "./parser.c"
+  case 14: /* LAYOUT_INPUT_DECL: LAYOUT MODIFIER_DECL IN PRIMITIVE_TYPE IDENTIFIER SEMICOLON  */
+#line 105 "parser.y"
+                {
+			(yyval.expression) = expression_layout_input(
+				(yyvsp[-4].expression),
+				expression_primitive((yyvsp[-2].primitive_type)),
+				expression_identifier((yyvsp[-1].string)));
+		}
+#line 1582 "parser.c"
     break;
 
-  case 13: /* LAYOUT_DECL: LAYOUT LPAREN MODIFIER_PACK RPAREN UNIFORM STRUCT_DECL IDENTIFIER SEMICOLON  */
-#line 80 "./parser.y"
-                                                                                      { (yyval.expression) = expression_layout_uniform((yyvsp[-5].expression), (yyvsp[-2].expression), (yyvsp[-1].string)); }
-#line 1572 "./parser.c"
+  case 15: /* LAYOUT_UNIFORM_DECL: LAYOUT MODIFIER_DECL UNIFORM STRUCT_DECL IDENTIFIER SEMICOLON  */
+#line 115 "parser.y"
+                {
+			(yyval.expression) = expression_layout_uniform(
+				(yyvsp[-4].expression),
+				(yyvsp[-2].expression),
+				expression_identifier((yyvsp[-1].string)));
+		}
+#line 1593 "parser.c"
     break;
 
-  case 14: /* $@1: %empty  */
-#line 84 "./parser.y"
+  case 16: /* $@1: %empty  */
+#line 128 "parser.y"
           { context_push_expression_vector(); }
-#line 1578 "./parser.c"
+#line 1599 "parser.c"
     break;
 
-  case 15: /* MODIFIER_PACK: $@1 LPAREN MODIFIER_LIST RPAREN  */
-#line 84 "./parser.y"
-                                                                            { (yyval.expression) = expression_packv(context_pop_expression_vector()); }
-#line 1584 "./parser.c"
+  case 17: /* MODIFIER_DECL: $@1 L_PAREN MODIFIER_VECTOR R_PAREN  */
+#line 128 "parser.y"
+                                                                                { (yyval.expression) = expression_modifier(expression_packv(context_pop_expression_vector())); }
+#line 1605 "parser.c"
     break;
 
-  case 16: /* MODIFIER_LIST: ASSIGNMENT COMMA MODIFIER_LIST  */
-#line 88 "./parser.y"
-                                         { context_push_expression(expression_modifier((yyvsp[-2].expression))); }
-#line 1590 "./parser.c"
+  case 18: /* MODIFIER_VECTOR: MODIFIER COMMA MODIFIER_VECTOR  */
+#line 132 "parser.y"
+                                         { context_push_expression((yyvsp[-2].expression)); }
+#line 1611 "parser.c"
     break;
 
-  case 17: /* MODIFIER_LIST: ASSIGNMENT  */
-#line 89 "./parser.y"
-                     { context_push_expression(expression_modifier((yyvsp[0].expression))); }
-#line 1596 "./parser.c"
+  case 19: /* MODIFIER_VECTOR: MODIFIER  */
+#line 133 "parser.y"
+                   { context_push_expression((yyvsp[0].expression)); }
+#line 1617 "parser.c"
     break;
 
-  case 19: /* ASSIGNMENT: IDENTIFIER EQ NUMBER  */
-#line 94 "./parser.y"
-                               { (yyval.expression) = expression_assign((yyvsp[-2].string), (yyvsp[0].number)); }
-#line 1602 "./parser.c"
+  case 21: /* MODIFIER: IDENTIFIER EQ NUMBER  */
+#line 138 "parser.y"
+                               { (yyval.expression) = expression_assignment(expression_identifier((yyvsp[-2].string)), expression_number((yyvsp[0].number))); }
+#line 1623 "parser.c"
     break;
 
-  case 20: /* STRUCT_DECL: STRUCT IDENTIFIER LPAREN RPAREN SEMICOLON  */
-#line 98 "./parser.y"
-                                                    { (yyval.expression) = expression_struct(); }
-#line 1608 "./parser.c"
+  case 22: /* $@2: %empty  */
+#line 146 "parser.y"
+          { context_push_expression_vector(); }
+#line 1629 "parser.c"
     break;
 
-  case 26: /* TYPE: VOID  */
-#line 115 "./parser.y"
-               { (yyval.datatype) = DATATYPE_VOID; }
-#line 1614 "./parser.c"
+  case 23: /* STRUCT_DECL: $@2 STRUCT_TYPE_DECL L_BRACE STRUCT_MEMBER_VECTOR R_BRACE  */
+#line 146 "parser.y"
+                                                                                                      { (yyval.expression) = expression_struct((yyvsp[-3].expression), expression_packv(context_pop_expression_vector())); }
+#line 1635 "parser.c"
     break;
 
-  case 27: /* TYPE: INT  */
-#line 116 "./parser.y"
-              { (yyval.datatype) = DATATYPE_INT; }
-#line 1620 "./parser.c"
+  case 24: /* STRUCT_TYPE_DECL: IDENTIFIER  */
+#line 150 "parser.y"
+                     { (yyval.expression) = expression_type((yyvsp[0].string)); }
+#line 1641 "parser.c"
     break;
 
-  case 28: /* TYPE: VEC3  */
-#line 117 "./parser.y"
-               { (yyval.datatype) = DATATYPE_VEC3; }
-#line 1626 "./parser.c"
+  case 25: /* STRUCT_MEMBER_VECTOR: STRUCT_MEMBER SEMICOLON STRUCT_MEMBER_VECTOR  */
+#line 154 "parser.y"
+                                                       { context_push_expression((yyvsp[-2].expression)); }
+#line 1647 "parser.c"
     break;
 
-  case 29: /* TYPE: IVEC3  */
-#line 118 "./parser.y"
-                { (yyval.datatype) = DATATYPE_IVEC3; }
-#line 1632 "./parser.c"
+  case 26: /* STRUCT_MEMBER_VECTOR: STRUCT_MEMBER  */
+#line 155 "parser.y"
+                        { context_push_expression((yyvsp[0].expression)); }
+#line 1653 "parser.c"
     break;
 
-  case 30: /* TYPE: MAT4  */
-#line 119 "./parser.y"
-               { (yyval.datatype) = DATATYPE_MAT4; }
-#line 1638 "./parser.c"
+  case 28: /* STRUCT_MEMBER: PRIMITIVE_TYPE IDENTIFIER  */
+#line 160 "parser.y"
+                                    { (yyval.expression) = expression_struct_member(expression_primitive((yyvsp[-1].primitive_type)), expression_identifier((yyvsp[0].string))); }
+#line 1659 "parser.c"
+    break;
+
+  case 34: /* PRIMITIVE_TYPE: VOID  */
+#line 185 "parser.y"
+               { (yyval.primitive_type) = PRIMITIVE_TYPE_VOID; }
+#line 1665 "parser.c"
+    break;
+
+  case 35: /* PRIMITIVE_TYPE: INT  */
+#line 186 "parser.y"
+              { (yyval.primitive_type) = PRIMITIVE_TYPE_INT; }
+#line 1671 "parser.c"
+    break;
+
+  case 36: /* PRIMITIVE_TYPE: VEC3  */
+#line 187 "parser.y"
+               { (yyval.primitive_type) = PRIMITIVE_TYPE_VEC3; }
+#line 1677 "parser.c"
+    break;
+
+  case 37: /* PRIMITIVE_TYPE: IVEC3  */
+#line 188 "parser.y"
+                { (yyval.primitive_type) = PRIMITIVE_TYPE_IVEC3; }
+#line 1683 "parser.c"
+    break;
+
+  case 38: /* PRIMITIVE_TYPE: MAT4  */
+#line 189 "parser.y"
+               { (yyval.primitive_type) = PRIMITIVE_TYPE_MAT4; }
+#line 1689 "parser.c"
     break;
 
 
-#line 1642 "./parser.c"
+#line 1693 "parser.c"
 
       default: break;
     }
@@ -1867,7 +1918,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 121 "./parser.y"
+#line 191 "parser.y"
 
 
 #include "enton/epilogue.inl"

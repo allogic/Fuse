@@ -6,3 +6,9 @@ Fuse is a lightweight, dependency-free engine built in pure C11. It features a c
 flex --outfile="lexer.c" --yylineno --nounistd "lexer.l"
 bison --header="parser.h" --output="parser.c" --locations "parser.y"
 ```
+
+```
+ TODO: reformat GLSL code
+ TODO: Rename all pack to vector
+ TODO: remove column code from parser
+```
