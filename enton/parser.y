@@ -7,7 +7,26 @@
 
 %code requires
 {
-#include "enton/prologue.inl"
+#ifdef OS_WINDOWS
+#  include <io.h>
+
+#  define fileno _fileno
+#  define isatty _isatty
+#endif // OS_WINDOWS
+
+#include <stdio.h>
+#include <stdint.h>
+#include <stdarg.h>
+
+#include "library/core/api.h"
+
+#include "enton/context.h"
+#include "enton/expression.h"
+#include "enton/lexer.h"
+
+extern char const *yyfilename;
+
+int32_t yyerror(char const *msg, ...);
 }
 
 %union
@@ -19,16 +38,11 @@
 	primitive_type_t primitive_type;
 }
 
-%token VERSION
-%token CORE
-%token EXTENSION
 %token STRUCT
-%token QUALIFIER
 %token LAYOUT
 %token IN
 %token UNIFORM
 
-%token HASH
 %token COMMA
 %token COLON
 %token SEMICOLON
@@ -51,10 +65,6 @@
 
 %type <number> NUMBER
 
-%type <expression> PREPROC_DECL
-%type <expression> VERSION_DECL
-%type <expression> EXTENSION_DECL
-
 %type <expression> MODIFIER_DECL
 %type <expression> MODIFIER
 
@@ -63,32 +73,17 @@
 %type <expression> LAYOUT_UNIFORM_DECL
 
 %type <expression> STRUCT_DECL
-%type <expression> STRUCT_TYPE_DECL
+%type <expression> STRUCT_MEMBER_DECL
 %type <expression> STRUCT_MEMBER
 
 %type <primitive_type> PRIMITIVE_TYPE
 
 %%
 PROGRAM
-	: PROGRAM PREPROC_DECL { context_push_preproc_decl($2); }
+	: PROGRAM LAYOUT_DECL { context_push_layout_decl($2); }
 	| PROGRAM STRUCT_DECL { context_push_struct_decl($2); }
-	| PROGRAM LAYOUT_DECL { context_push_layout_decl($2); }
 	| PROGRAM FUNCTION_DECL { YYACCEPT; }
 	| %empty
-	;
-
-PREPROC_DECL
-	: VERSION_DECL
-	| EXTENSION_DECL
-	;
-
-VERSION_DECL
-	: HASH VERSION NUMBER { $$ = expression_version($3); }
-	| HASH VERSION NUMBER CORE { $$ = expression_version($3); }
-	;
-
-EXTENSION_DECL
-	: HASH EXTENSION IDENTIFIER COLON QUALIFIER { $$ = expression_extension(expression_identifier($3)); }
 	;
 
 ///////////////////////////////////////////////////////////////
@@ -104,9 +99,9 @@ LAYOUT_INPUT_DECL
 	: LAYOUT MODIFIER_DECL IN PRIMITIVE_TYPE IDENTIFIER SEMICOLON
 		{
 			$$ = expression_layout_input(
-				$2,
-				expression_primitive($4),
-				expression_identifier($5));
+				expression_primitive_type($4),
+				expression_identifier($5),
+				$2);
 		}
 	;
 
@@ -114,9 +109,9 @@ LAYOUT_UNIFORM_DECL
 	: LAYOUT MODIFIER_DECL UNIFORM STRUCT_DECL IDENTIFIER SEMICOLON
 		{
 			$$ = expression_layout_uniform(
-				$2,
 				$4,
-				expression_identifier($5));
+				expression_identifier($5),
+				$2);
 		}
 	;
 
@@ -125,7 +120,7 @@ LAYOUT_UNIFORM_DECL
 ///////////////////////////////////////////////////////////////
 
 MODIFIER_DECL
-	: { context_push_expression_vector(); } L_PAREN MODIFIER_VECTOR R_PAREN { $$ = expression_modifier(expression_packv(context_pop_expression_vector())); }
+	: { context_push_expression_vector(); } L_PAREN MODIFIER_VECTOR R_PAREN { $$ = expression_vector(context_pop_expression_vector()); }
 	;
 
 MODIFIER_VECTOR
@@ -135,7 +130,8 @@ MODIFIER_VECTOR
 	;
 
 MODIFIER
-	: IDENTIFIER EQ NUMBER { $$ = expression_assignment(expression_identifier($1), expression_number($3)); }
+	: IDENTIFIER { $$ = expression_identifier($1); }
+	| IDENTIFIER EQ NUMBER { $$ = expression_assignment(expression_identifier($1), expression_number($3)); }
 	;
 
 ///////////////////////////////////////////////////////////////
@@ -143,11 +139,11 @@ MODIFIER
 ///////////////////////////////////////////////////////////////
 
 STRUCT_DECL
-	: { context_push_expression_vector(); } STRUCT_TYPE_DECL L_BRACE STRUCT_MEMBER_VECTOR R_BRACE { $$ = expression_struct($2, expression_packv(context_pop_expression_vector())); }
+	: IDENTIFIER STRUCT_MEMBER_DECL { $$ = expression_struct(expression_identifier($1), $2); }
 	;
 
-STRUCT_TYPE_DECL
-	: IDENTIFIER { $$ = expression_type($1); }
+STRUCT_MEMBER_DECL
+	: { context_push_expression_vector(); } L_BRACE STRUCT_MEMBER_VECTOR R_BRACE { $$ = expression_vector(context_pop_expression_vector()); }
 	;
 
 STRUCT_MEMBER_VECTOR
@@ -157,7 +153,7 @@ STRUCT_MEMBER_VECTOR
 	;
 
 STRUCT_MEMBER
-	: PRIMITIVE_TYPE IDENTIFIER { $$ = expression_struct_member(expression_primitive($1), expression_identifier($2)); }
+	: PRIMITIVE_TYPE IDENTIFIER { $$ = expression_struct_member(expression_primitive_type($1), expression_identifier($2)); }
 	;
 
 ///////////////////////////////////////////////////////////////
@@ -190,4 +186,18 @@ PRIMITIVE_TYPE
 	;
 %%
 
-#include "enton/epilogue.inl"
+#define LOG_FMT_BUFFER_SIZE (0x1000ULL)
+
+char const *yyfilename = 0;
+
+int32_t yyerror(char const *fmt, ...) {
+  static char fmt_buffer[LOG_FMT_BUFFER_SIZE];
+
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(fmt_buffer, LOG_FMT_BUFFER_SIZE, fmt, args);
+  printf("%s:%d: %s\n", yyfilename, yylineno, fmt_buffer);
+  va_end(args);
+
+  return 1;
+}

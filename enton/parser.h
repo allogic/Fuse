@@ -47,9 +47,28 @@ extern int yydebug;
 /* "%code requires" blocks.  */
 #line 9 "parser.y"
 
-#include "enton/prologue.inl"
+#ifdef OS_WINDOWS
+#  include <io.h>
 
-#line 53 "parser.h"
+#  define fileno _fileno
+#  define isatty _isatty
+#endif // OS_WINDOWS
+
+#include <stdio.h>
+#include <stdint.h>
+#include <stdarg.h>
+
+#include "library/core/api.h"
+
+#include "enton/context.h"
+#include "enton/expression.h"
+#include "enton/lexer.h"
+
+extern char const *yyfilename;
+
+int32_t yyerror(char const *msg, ...);
+
+#line 72 "parser.h"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -60,31 +79,26 @@ extern int yydebug;
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
-    VERSION = 258,                 /* VERSION  */
-    CORE = 259,                    /* CORE  */
-    EXTENSION = 260,               /* EXTENSION  */
-    STRUCT = 261,                  /* STRUCT  */
-    QUALIFIER = 262,               /* QUALIFIER  */
-    LAYOUT = 263,                  /* LAYOUT  */
-    IN = 264,                      /* IN  */
-    UNIFORM = 265,                 /* UNIFORM  */
-    HASH = 266,                    /* HASH  */
-    COMMA = 267,                   /* COMMA  */
-    COLON = 268,                   /* COLON  */
-    SEMICOLON = 269,               /* SEMICOLON  */
-    L_PAREN = 270,                 /* L_PAREN  */
-    R_PAREN = 271,                 /* R_PAREN  */
-    L_BRACE = 272,                 /* L_BRACE  */
-    R_BRACE = 273,                 /* R_BRACE  */
-    EQ = 274,                      /* EQ  */
-    VOID = 275,                    /* VOID  */
-    INT = 276,                     /* INT  */
-    VEC3 = 277,                    /* VEC3  */
-    IVEC3 = 278,                   /* IVEC3  */
-    MAT4 = 279,                    /* MAT4  */
-    IDENTIFIER = 280,              /* IDENTIFIER  */
-    STRING = 281,                  /* STRING  */
-    NUMBER = 282                   /* NUMBER  */
+    STRUCT = 258,                  /* STRUCT  */
+    LAYOUT = 259,                  /* LAYOUT  */
+    IN = 260,                      /* IN  */
+    UNIFORM = 261,                 /* UNIFORM  */
+    COMMA = 262,                   /* COMMA  */
+    COLON = 263,                   /* COLON  */
+    SEMICOLON = 264,               /* SEMICOLON  */
+    L_PAREN = 265,                 /* L_PAREN  */
+    R_PAREN = 266,                 /* R_PAREN  */
+    L_BRACE = 267,                 /* L_BRACE  */
+    R_BRACE = 268,                 /* R_BRACE  */
+    EQ = 269,                      /* EQ  */
+    VOID = 270,                    /* VOID  */
+    INT = 271,                     /* INT  */
+    VEC3 = 272,                    /* VEC3  */
+    IVEC3 = 273,                   /* IVEC3  */
+    MAT4 = 274,                    /* MAT4  */
+    IDENTIFIER = 275,              /* IDENTIFIER  */
+    STRING = 276,                  /* STRING  */
+    NUMBER = 277                   /* NUMBER  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -93,7 +107,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 14 "parser.y"
+#line 33 "parser.y"
 
 	core_string_t string;
 	core_vector_t vector;
@@ -101,7 +115,7 @@ union YYSTYPE
 	expression_t expression;
 	primitive_type_t primitive_type;
 
-#line 105 "parser.h"
+#line 119 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

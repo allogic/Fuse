@@ -70,7 +70,7 @@ void core_heap_free(void *block) {
 void core_heap_epilogue(void) {
 #ifdef _DEBUG
   if (g_core_heap_allocated_bytes) {
-    printf("%zu bytes not freed\n", g_core_heap_allocated_bytes);
+    printf("%zu bytes leaked\n", g_core_heap_allocated_bytes);
   }
 #endif // _DEBUG
 

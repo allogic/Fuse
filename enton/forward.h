@@ -9,14 +9,11 @@ typedef enum expression_type_t {
   EXPRESSION_TYPE_NONE = 0,
   EXPRESSION_TYPE_VECTOR,
   EXPRESSION_TYPE_IDENTIFIER,
-  EXPRESSION_TYPE_TYPE,
+  EXPRESSION_TYPE_CUSTOM_TYPE,
   EXPRESSION_TYPE_STRING,
   EXPRESSION_TYPE_NUMBER,
-  EXPRESSION_TYPE_VERSION,
-  EXPRESSION_TYPE_MODIFIER,
-  EXPRESSION_TYPE_PRIMITIVE,
+  EXPRESSION_TYPE_PRIMITIVE_TYPE,
   EXPRESSION_TYPE_ASSIGNMENT,
-  EXPRESSION_TYPE_EXTENSION,
   EXPRESSION_TYPE_LAYOUT_INPUT,
   EXPRESSION_TYPE_LAYOUT_UNIFORM,
   EXPRESSION_TYPE_STRUCT,
@@ -25,9 +22,8 @@ typedef enum expression_type_t {
 
 typedef enum allocation_type_t {
   ALLOCATION_TYPE_NONE = 0x0,
-  ALLOCATION_TYPE_IDENTIFIER = 0x1,
-  ALLOCATION_TYPE_STRING = 0x2,
-  ALLOCATION_TYPE_VECTOR = 0x4,
+  ALLOCATION_TYPE_STRING = 0x1,
+  ALLOCATION_TYPE_VECTOR = 0x2,
 } allocation_type_t;
 
 typedef enum primitive_type_t {
@@ -43,10 +39,9 @@ typedef struct expression_t {
   expression_type_t expression_type;
   allocation_type_t allocation_type;
   primitive_type_t primitive_type;
-  core_string_t identifier;
   core_string_t string;
-  int64_t number;
   core_vector_t vector;
+  int64_t number;
 } expression_t;
 
 #endif // FORWARD_H

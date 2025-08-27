@@ -4,12 +4,9 @@
 int32_t main(int32_t argc, char **argv) {
   core_heap_prologue();
 
-  g_current_filename = argv[1];
+  yyfilename = "C:\\Users\\burm\\Downloads\\Fuse\\shader\\test.glsl";
 
-  g_line_number = 1;
-  g_column_number = 1;
-
-  FILE *file = fopen(argv[1], "r");
+  FILE *file = fopen("C:\\Users\\burm\\Downloads\\Fuse\\shader\\test.glsl", "r");
 
   if (file) {
     context_alloc();
@@ -23,8 +20,6 @@ int32_t main(int32_t argc, char **argv) {
 
     fclose(file);
   }
-
-  printf("DONE\n");
 
   core_heap_epilogue();
 
