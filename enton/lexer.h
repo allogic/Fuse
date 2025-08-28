@@ -216,8 +216,9 @@ extern char *yytext;
 
 #ifdef YY_HEADER_EXPORT_START_CONDITIONS
 #define INITIAL 0
-#define MULTI_LINE_COMMENT 1
-#define PRE_PROCESSOR_DIRECTIVE 2
+#define ACTIVE_MODE 1
+#define MULTI_LINE_COMMENT 2
+#define PRE_PROCESSOR_DIRECTIVE 3
 
 #endif
 
@@ -463,9 +464,9 @@ extern int yylex (void);
 #undef yyTABLES_NAME
 #endif
 
-#line 56 "lexer.l"
+#line 70 "lexer.l"
 
 
-#line 470 "lexer.h"
+#line 471 "lexer.h"
 #undef yyIN_HEADER
 #endif /* yyHEADER_H */

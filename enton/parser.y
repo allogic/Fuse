@@ -82,7 +82,6 @@ int32_t yyerror(char const *msg, ...);
 PROGRAM
 	: PROGRAM LAYOUT_DECL { context_push_layout_decl($2); }
 	| PROGRAM STRUCT_DECL { context_push_struct_decl($2); }
-	| PROGRAM FUNCTION_DECL { YYACCEPT; }
 	| %empty
 	;
 
@@ -154,23 +153,6 @@ STRUCT_MEMBER_VECTOR
 
 STRUCT_MEMBER
 	: PRIMITIVE_TYPE IDENTIFIER { $$ = expression_struct_member(expression_primitive_type($1), expression_identifier($2)); }
-	;
-
-///////////////////////////////////////////////////////////////
-// Function Declaration
-///////////////////////////////////////////////////////////////
-
-FUNCTION_DECL
-	: PRIMITIVE_TYPE IDENTIFIER FUNCTION_ARG_PACK
-	;
-
-FUNCTION_ARG_PACK
-	: L_PAREN FUNCTION_ARG R_PAREN
-
-FUNCTION_ARG
-	: PRIMITIVE_TYPE COMMA FUNCTION_ARG
-	| PRIMITIVE_TYPE
-	| %empty
 	;
 
 ///////////////////////////////////////////////////////////////
