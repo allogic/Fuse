@@ -9,13 +9,12 @@
 extern "C" {
 #endif // __cplusplus
 
-extern uint64_t g_core_heap_allocated_bytes;
+extern uint64_t g_heap_allocated_bytes;
 
-void core_heap_prologue(void);
-void *core_heap_alloc(uint64_t size);
-void *core_heap_realloc(void *block, uint64_t size);
-void core_heap_free(void *block);
-void core_heap_epilogue(void);
+void *heap_alloc(uint64_t size);
+void *heap_realloc(void *block, uint64_t size);
+void heap_free(void *block);
+void heap_reset(void);
 
 #ifdef __cplusplus
 }

@@ -11,31 +11,31 @@
 extern "C" {
 #endif // __cplusplus
 
-__forceinline math_vector3_t math_vector3_zero(void);
-__forceinline math_vector3_t math_vector3_one(void);
-__forceinline math_vector3_t math_vector3_right(void);
-__forceinline math_vector3_t math_vector3_up(void);
-__forceinline math_vector3_t math_vector3_front(void);
-__forceinline math_vector3_t math_vector3_left(void);
-__forceinline math_vector3_t math_vector3_down(void);
-__forceinline math_vector3_t math_vector3_back(void);
-__forceinline math_vector3_t math_vector3_xyz(float x, float y, float z);
-__forceinline math_vector3_t math_vector3_negate(math_vector3_t a);
-__forceinline math_vector3_t math_vector3_add(math_vector3_t a, math_vector3_t b);
-__forceinline math_vector3_t math_vector3_sub(math_vector3_t a, math_vector3_t b);
-__forceinline math_vector3_t math_vector3_mul(math_vector3_t a, math_vector3_t b);
-__forceinline math_vector3_t math_vector3_div(math_vector3_t a, math_vector3_t b);
-__forceinline math_vector3_t math_vector3_add_scalar(math_vector3_t a, float b);
-__forceinline math_vector3_t math_vector3_sub_scalar(math_vector3_t a, float b);
-__forceinline math_vector3_t math_vector3_mul_scalar(math_vector3_t a, float b);
-__forceinline math_vector3_t math_vector3_div_scalar(math_vector3_t a, float b);
-__forceinline math_vector3_t math_vector3_norm(math_vector3_t a);
-__forceinline math_vector3_t math_vector3_cross(math_vector3_t a, math_vector3_t b);
-__forceinline math_vector3_t math_vector3_rotate(math_vector3_t a, math_quaternion_t b);
-__forceinline float math_vector3_dot(math_vector3_t a, math_vector3_t b);
-__forceinline float math_vector3_length(math_vector3_t a);
-__forceinline float math_vector3_length2(math_vector3_t a);
-__forceinline void math_vector3_print(math_vector3_t a);
+__forceinline vector3_t vector3_zero(void);
+__forceinline vector3_t vector3_one(void);
+__forceinline vector3_t vector3_right(void);
+__forceinline vector3_t vector3_up(void);
+__forceinline vector3_t vector3_front(void);
+__forceinline vector3_t vector3_left(void);
+__forceinline vector3_t vector3_down(void);
+__forceinline vector3_t vector3_back(void);
+__forceinline vector3_t vector3_xyz(float x, float y, float z);
+__forceinline vector3_t vector3_negate(vector3_t a);
+__forceinline vector3_t vector3_add(vector3_t a, vector3_t b);
+__forceinline vector3_t vector3_sub(vector3_t a, vector3_t b);
+__forceinline vector3_t vector3_mul(vector3_t a, vector3_t b);
+__forceinline vector3_t vector3_div(vector3_t a, vector3_t b);
+__forceinline vector3_t vector3_adds(vector3_t a, float b);
+__forceinline vector3_t vector3_subs(vector3_t a, float b);
+__forceinline vector3_t vector3_muls(vector3_t a, float b);
+__forceinline vector3_t vector3_divs(vector3_t a, float b);
+__forceinline vector3_t vector3_norm(vector3_t a);
+__forceinline vector3_t vector3_cross(vector3_t a, vector3_t b);
+__forceinline vector3_t vector3_rotate(vector3_t a, quaternion_t b);
+__forceinline float vector3_dot(vector3_t a, vector3_t b);
+__forceinline float vector3_length(vector3_t a);
+__forceinline float vector3_length2(vector3_t a);
+__forceinline void vector3_print(vector3_t a);
 
 #ifdef __cplusplus
 }

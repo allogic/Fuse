@@ -63,8 +63,8 @@
 <PRE_PROCESSOR_DIRECTIVE>.*\\\n  {  }
 <PRE_PROCESSOR_DIRECTIVE>.*\n    { BEGIN(ACTIVE_MODE); }
 
-<ACTIVE_MODE>[a-zA-Z_][a-zA-Z0-9_]* { yylval.string = core_string_from(yytext, yyleng); return IDENTIFIER; }
-<ACTIVE_MODE>"\""[^"]*"\""          { yylval.string = core_string_from(yytext + 1, yyleng - 2); return STRING; }
+<ACTIVE_MODE>[a-zA-Z_][a-zA-Z0-9_]* { yylval.string = string_from(yytext, yyleng); return IDENTIFIER; }
+<ACTIVE_MODE>"\""[^"]*"\""          { yylval.string = string_from(yytext + 1, yyleng - 2); return STRING; }
 <ACTIVE_MODE>[0-9]+                 { yylval.number = atoll(yytext + 1); return NUMBER; }
 
 <ACTIVE_MODE>. {  }

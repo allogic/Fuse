@@ -1,5 +1,5 @@
-__forceinline math_matrix4_t math_matrix4_zero(void) {
-  math_matrix4_t m = {
+__forceinline matrix4_t matrix4_zero(void) {
+  matrix4_t m = {
     0.0F,
     0.0F,
     0.0F,
@@ -20,8 +20,8 @@ __forceinline math_matrix4_t math_matrix4_zero(void) {
 
   return m;
 }
-__forceinline math_matrix4_t math_matrix4_identity(void) {
-  math_matrix4_t m = {
+__forceinline matrix4_t matrix4_identity(void) {
+  matrix4_t m = {
     1.0F,
     0.0F,
     0.0F,
@@ -42,7 +42,7 @@ __forceinline math_matrix4_t math_matrix4_identity(void) {
 
   return m;
 }
-__forceinline math_matrix4_t math_matrix4_inverse(math_matrix4_t a) {
+__forceinline matrix4_t matrix4_inverse(matrix4_t a) {
   float determinant = a.m00 * (a.m11 * (a.m22 * a.m33 - a.m23 * a.m32) - a.m12 * (a.m21 * a.m33 - a.m23 * a.m31) + a.m13 * (a.m21 * a.m32 - a.m22 * a.m31)) -
                       a.m01 * (a.m10 * (a.m22 * a.m33 - a.m23 * a.m32) - a.m12 * (a.m20 * a.m33 - a.m23 * a.m30) + a.m13 * (a.m20 * a.m32 - a.m22 * a.m30)) +
                       a.m02 * (a.m10 * (a.m21 * a.m33 - a.m23 * a.m31) - a.m11 * (a.m20 * a.m33 - a.m23 * a.m30) + a.m13 * (a.m20 * a.m31 - a.m21 * a.m30)) -
@@ -54,7 +54,7 @@ __forceinline math_matrix4_t math_matrix4_inverse(math_matrix4_t a) {
 
   float determinant_inv = 1.0F / determinant;
 
-  math_matrix4_t m = {
+  matrix4_t m = {
     (a.m11 * (a.m22 * a.m33 - a.m23 * a.m32) - a.m12 * (a.m21 * a.m33 - a.m23 * a.m31) + a.m13 * (a.m21 * a.m32 - a.m22 * a.m31)) * determinant_inv,
     -(a.m01 * (a.m22 * a.m33 - a.m23 * a.m32) - a.m02 * (a.m21 * a.m33 - a.m23 * a.m31) + a.m03 * (a.m21 * a.m32 - a.m22 * a.m31)) * determinant_inv,
     (a.m01 * (a.m12 * a.m33 - a.m13 * a.m32) - a.m02 * (a.m11 * a.m33 - a.m13 * a.m31) + a.m03 * (a.m11 * a.m32 - a.m12 * a.m31)) * determinant_inv,
@@ -78,8 +78,8 @@ __forceinline math_matrix4_t math_matrix4_inverse(math_matrix4_t a) {
 
   return m;
 }
-__forceinline math_vector3_t math_matrix4_position(math_matrix4_t a) {
-  math_vector3_t m = {
+__forceinline vector3_t matrix4_position(matrix4_t a) {
+  vector3_t m = {
     a.m30,
     a.m31,
     a.m32,
@@ -87,16 +87,16 @@ __forceinline math_vector3_t math_matrix4_position(math_matrix4_t a) {
 
   return m;
 }
-__forceinline math_quaternion_t math_matrix4_rotation(math_matrix4_t a) {
-  math_quaternion_t q;
+__forceinline quaternion_t matrix4_rotation(matrix4_t a) {
+  quaternion_t q;
 
-  math_vector3_t c0 = {a.m00, a.m10, a.m20};
-  math_vector3_t c1 = {a.m01, a.m11, a.m21};
-  math_vector3_t c2 = {a.m02, a.m12, a.m22};
+  vector3_t c0 = {a.m00, a.m10, a.m20};
+  vector3_t c1 = {a.m01, a.m11, a.m21};
+  vector3_t c2 = {a.m02, a.m12, a.m22};
 
-  math_vector3_t cn0 = math_vector3_norm(c0);
-  math_vector3_t cn1 = math_vector3_norm(c1);
-  math_vector3_t cn2 = math_vector3_norm(c2);
+  vector3_t cn0 = vector3_norm(c0);
+  vector3_t cn1 = vector3_norm(c1);
+  vector3_t cn2 = vector3_norm(c2);
 
   float trace = cn0.x + cn1.y + cn2.z;
   if (trace > 0.0F) {
@@ -133,23 +133,23 @@ __forceinline math_quaternion_t math_matrix4_rotation(math_matrix4_t a) {
 
   return q;
 }
-__forceinline math_vector3_t math_matrix4_euler_angles(math_matrix4_t a) {
-  math_vector3_t v;
+__forceinline vector3_t matrix4_euler_angles(matrix4_t a) {
+  vector3_t v;
 
-  if (fabsf(a.m02) < (1.0F - MATH_EPSILON_6)) {
+  if (fabsf(a.m02) < (1.0F - EPSILON_6)) {
     v.x = atan2f(-a.m12, a.m22);
     v.y = asinf(a.m02);
     v.z = atan2f(-a.m01, a.m00);
   } else {
     v.x = atan2f(a.m10, a.m11);
-    v.y = (a.m02 > 0.0F) ? MATH_PI_HALF : -MATH_PI_HALF;
+    v.y = (a.m02 > 0.0F) ? PI_HALF : -PI_HALF;
     v.z = 0.0F;
   }
 
   return v;
 }
-__forceinline math_vector3_t math_matrix4_scale(math_matrix4_t a) {
-  math_vector3_t v = {
+__forceinline vector3_t matrix4_scale(matrix4_t a) {
+  vector3_t v = {
     a.m00,
     a.m11,
     a.m22,
@@ -157,22 +157,22 @@ __forceinline math_vector3_t math_matrix4_scale(math_matrix4_t a) {
 
   return v;
 }
-__forceinline void math_matrix4_decompose(math_matrix4_t a, math_vector3_t *p, math_quaternion_t *r, math_vector3_t *s) {
+__forceinline void matrix4_decompose(matrix4_t a, vector3_t *p, quaternion_t *r, vector3_t *s) {
   p->x = a.m30;
   p->y = a.m31;
   p->z = a.m32;
 
-  math_vector3_t c0 = {a.m00, a.m10, a.m20};
-  math_vector3_t c1 = {a.m01, a.m11, a.m21};
-  math_vector3_t c2 = {a.m02, a.m12, a.m22};
+  vector3_t c0 = {a.m00, a.m10, a.m20};
+  vector3_t c1 = {a.m01, a.m11, a.m21};
+  vector3_t c2 = {a.m02, a.m12, a.m22};
 
-  s->x = math_vector3_length(c0);
-  s->y = math_vector3_length(c1);
-  s->z = math_vector3_length(c2);
+  s->x = vector3_length(c0);
+  s->y = vector3_length(c1);
+  s->z = vector3_length(c2);
 
-  math_vector3_t cn0 = math_vector3_norm(c0);
-  math_vector3_t cn1 = math_vector3_norm(c1);
-  math_vector3_t cn2 = math_vector3_norm(c2);
+  vector3_t cn0 = vector3_norm(c0);
+  vector3_t cn1 = vector3_norm(c1);
+  vector3_t cn2 = vector3_norm(c2);
 
   float trace = cn0.x + cn1.y + cn2.z;
   if (trace > 0.0F) {
@@ -207,8 +207,8 @@ __forceinline void math_matrix4_decompose(math_matrix4_t a, math_vector3_t *p, m
     }
   }
 }
-__forceinline math_matrix4_t math_matrix4_mul(math_matrix4_t a, math_matrix4_t b) {
-  math_matrix4_t m = {
+__forceinline matrix4_t matrix4_mul(matrix4_t a, matrix4_t b) {
+  matrix4_t m = {
     (a.m00 * b.m00) + (a.m01 * b.m10) + (a.m02 * b.m20) + (a.m03 * b.m30),
     (a.m00 * b.m01) + (a.m01 * b.m11) + (a.m02 * b.m21) + (a.m03 * b.m31),
     (a.m00 * b.m02) + (a.m01 * b.m12) + (a.m02 * b.m22) + (a.m03 * b.m32),
@@ -232,8 +232,8 @@ __forceinline math_matrix4_t math_matrix4_mul(math_matrix4_t a, math_matrix4_t b
 
   return m;
 }
-__forceinline math_vector4_t math_matrix4_mul_vector(math_matrix4_t a, math_vector4_t b) {
-  math_vector4_t v = {
+__forceinline vector4_t matrix4_mul_vector(matrix4_t a, vector4_t b) {
+  vector4_t v = {
     (a.m00 * b.x) + (a.m01 * b.y) + (a.m02 * b.z) + (a.m03 * b.w),
     (a.m10 * b.x) + (a.m11 * b.y) + (a.m12 * b.z) + (a.m13 * b.w),
     (a.m20 * b.x) + (a.m21 * b.y) + (a.m22 * b.z) + (a.m23 * b.w),
@@ -242,8 +242,8 @@ __forceinline math_vector4_t math_matrix4_mul_vector(math_matrix4_t a, math_vect
 
   return v;
 }
-__forceinline math_matrix4_t math_matrix4_ortho(float left, float right, float bottom, float top, float near_z, float far_z) {
-  math_matrix4_t m = {
+__forceinline matrix4_t matrix4_ortho(float left, float right, float bottom, float top, float near_z, float far_z) {
+  matrix4_t m = {
     2.0F / (right - left),
     0.0F,
     0.0F,
@@ -264,10 +264,10 @@ __forceinline math_matrix4_t math_matrix4_ortho(float left, float right, float b
 
   return m;
 }
-__forceinline math_matrix4_t math_matrix4_persp(float fov, float aspect_ratio, float near_z, float far_z) {
+__forceinline matrix4_t matrix4_persp(float fov, float aspect_ratio, float near_z, float far_z) {
   float tan_half_fov = tanf(fov * 0.5F);
 
-  math_matrix4_t m = {
+  matrix4_t m = {
     1.0F / (aspect_ratio * tan_half_fov),
     0.0F,
     0.0F,
@@ -288,12 +288,12 @@ __forceinline math_matrix4_t math_matrix4_persp(float fov, float aspect_ratio, f
 
   return m;
 }
-__forceinline math_matrix4_t math_matrix4_look_at(math_vector3_t eye, math_vector3_t center, math_vector3_t up) {
-  math_vector3_t f = math_vector3_norm(math_vector3_sub(center, eye));
-  math_vector3_t r = math_vector3_norm(math_vector3_cross(f, up));
-  math_vector3_t u = math_vector3_cross(r, f);
+__forceinline matrix4_t matrix4_look_at(vector3_t eye, vector3_t center, vector3_t up) {
+  vector3_t f = vector3_norm(vector3_sub(center, eye));
+  vector3_t r = vector3_norm(vector3_cross(f, up));
+  vector3_t u = vector3_cross(r, f);
 
-  math_matrix4_t m = {
+  matrix4_t m = {
     r.x,
     u.x,
     f.x,
@@ -306,15 +306,15 @@ __forceinline math_matrix4_t math_matrix4_look_at(math_vector3_t eye, math_vecto
     u.z,
     f.z,
     0.0F,
-    -math_vector3_dot(r, eye),
-    -math_vector3_dot(u, eye),
-    -math_vector3_dot(f, eye),
+    -vector3_dot(r, eye),
+    -vector3_dot(u, eye),
+    -vector3_dot(f, eye),
     1.0F,
   };
 
   return m;
 }
-__forceinline void math_matrix4_print(math_matrix4_t a) {
+__forceinline void matrix4_print(matrix4_t a) {
   printf("[%f, %f, %f, %f]\n", a.m00, a.m01, a.m02, a.m03);
   printf("[%f, %f, %f, %f]\n", a.m10, a.m11, a.m12, a.m13);
   printf("[%f, %f, %f, %f]\n", a.m20, a.m21, a.m22, a.m23);

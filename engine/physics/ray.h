@@ -10,7 +10,7 @@
 extern "C" {
 #endif // __cplusplus
 
-physics_ray_t physics_ray_from(math_vector3_t origin, math_vector3_t direction);
+physics_ray_t physics_ray_from(vector3_t origin, vector3_t direction);
 void physics_ray_cast(physics_ray_t ray, int32_t max_steps);
 
 #ifdef __cplusplus

@@ -8,8 +8,5 @@ bison --header="parser.h" --output="parser.c" --locations "parser.y"
 ```
 
 ```
- TODO: Check all _DEBUG macros
  TODO: reformat GLSL code
- TODO: Rename all pack to vector
- TODO: remove column code from parser
 ```

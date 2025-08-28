@@ -101,7 +101,7 @@ static VkVertexInputAttributeDescription const s_renderer_chunk_renderer_vertex_
 };
 static VkVertexInputAttributeDescription const s_renderer_debug_line_vertex_input_attribute_descriptions[] = {
   {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-  {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, CORE_OFFSET_OF(renderer_debug_line_vertex_t, color)},
+  {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, OFFSET_OF(renderer_debug_line_vertex_t, color)},
 };
 
 static VkPushConstantRange const s_renderer_chunk_editor_push_constant_ranges[] = {
@@ -218,7 +218,7 @@ static uint8_t s_renderer_cluster_worker_should_stop = 0;
 void renderer_create(void) {
   renderer_compute_local_variables();
 
-  s_renderer_cluster_is_dirty = (int32_t *)core_heap_alloc(sizeof(int32_t) * g_renderer_frames_in_flight);
+  s_renderer_cluster_is_dirty = (int32_t *)heap_alloc(sizeof(int32_t) * g_renderer_frames_in_flight);
 
   int32_t frame_index = 0;
   while (frame_index < g_renderer_frames_in_flight) {
@@ -259,8 +259,8 @@ void renderer_create(void) {
   renderer_update_chunk_renderer_descriptor_sets();
   renderer_update_debug_line_descriptor_sets();
 
-  s_renderer_debug_line_vertex_offset = (int32_t *)core_heap_alloc(sizeof(int32_t) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_index_offset = (int32_t *)core_heap_alloc(sizeof(int32_t) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_vertex_offset = (int32_t *)heap_alloc(sizeof(int32_t) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_index_offset = (int32_t *)heap_alloc(sizeof(int32_t) * s_renderer_frames_in_flight);
 
   s_renderer_cluster_worker_should_stop = 0;
 
@@ -269,21 +269,21 @@ void renderer_create(void) {
 }
 void renderer_update(void) {
   if (g_renderer_enable_debug) {
-    math_vector3_t cluster_position = {0.0F, 0.0F, 0.0F};
-    math_vector3_t cluster_size = {(float)s_renderer_chunk_count_x * (float)g_renderer_chunk_size, (float)s_renderer_chunk_count_y * (float)g_renderer_chunk_size, (float)s_renderer_chunk_count_z * (float)g_renderer_chunk_size};
-    math_vector4_t cluster_color = {0.2F, 0.5F, 0.8F, 1.0F};
+    vector3_t cluster_position = {0.0F, 0.0F, 0.0F};
+    vector3_t cluster_size = {(float)s_renderer_chunk_count_x * (float)g_renderer_chunk_size, (float)s_renderer_chunk_count_y * (float)g_renderer_chunk_size, (float)s_renderer_chunk_count_z * (float)g_renderer_chunk_size};
+    vector4_t cluster_color = {0.2F, 0.5F, 0.8F, 1.0F};
 
     renderer_draw_debug_box(cluster_position, cluster_size, cluster_color);
 
-    math_vector3_t chunk_position = {0.0F, 0.0F, 0.0F};
-    math_vector3_t chunk_size = {(float)g_renderer_chunk_size, (float)g_renderer_chunk_size, (float)g_renderer_chunk_size};
-    math_vector4_t chunk_color = {0.2F, 0.5F, 0.8F, 1.0F};
+    vector3_t chunk_position = {0.0F, 0.0F, 0.0F};
+    vector3_t chunk_size = {(float)g_renderer_chunk_size, (float)g_renderer_chunk_size, (float)g_renderer_chunk_size};
+    vector4_t chunk_color = {0.2F, 0.5F, 0.8F, 1.0F};
 
     renderer_draw_debug_box(chunk_position, chunk_size, chunk_color);
 
-    math_vector3_t voxel_position = {0.0F, 0.0F, 0.0F};
-    math_vector3_t voxel_size = {1.0F, 1.0F, 1.0F};
-    math_vector4_t voxel_color = {1.0F, 0.0F, 0.0F, 1.0F};
+    vector3_t voxel_position = {0.0F, 0.0F, 0.0F};
+    vector3_t voxel_size = {1.0F, 1.0F, 1.0F};
+    vector4_t voxel_color = {1.0F, 0.0F, 0.0F, 1.0F};
 
     renderer_draw_debug_box(voxel_position, voxel_size, voxel_color);
   }
@@ -463,8 +463,8 @@ void renderer_destroy(void) {
   VULKAN_CHECK(vkQueueWaitIdle(g_context_graphics_queue));
   VULKAN_CHECK(vkQueueWaitIdle(g_context_present_queue));
 
-  core_heap_free(s_renderer_debug_line_vertex_offset);
-  core_heap_free(s_renderer_debug_line_index_offset);
+  heap_free(s_renderer_debug_line_vertex_offset);
+  heap_free(s_renderer_debug_line_index_offset);
 
   renderer_destroy_chunk_images();
 
@@ -485,16 +485,16 @@ void renderer_destroy(void) {
   renderer_destroy_sync_objects();
   renderer_destroy_command_buffer();
 
-  core_heap_free(s_renderer_cluster_is_dirty);
+  heap_free(s_renderer_cluster_is_dirty);
 }
 
-void renderer_draw_debug_line(math_vector3_t from, math_vector3_t to, math_vector4_t color) {
+void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
   if (g_renderer_enable_debug) {
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].position = (math_vector3_t){from.x, from.y, from.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].position = (math_vector3_t){to.x, to.y, to.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].position = (vector3_t){from.x, from.y, from.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].position = (vector3_t){to.x, to.y, to.z};
 
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].color = (math_vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].color = (vector4_t){color.x, color.y, color.z, color.w};
 
     s_renderer_debug_line_index[s_renderer_frame_index][s_renderer_debug_line_index_offset[s_renderer_frame_index] + 0] = s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0;
     s_renderer_debug_line_index[s_renderer_frame_index][s_renderer_debug_line_index_offset[s_renderer_frame_index] + 1] = s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1;
@@ -503,25 +503,25 @@ void renderer_draw_debug_line(math_vector3_t from, math_vector3_t to, math_vecto
     s_renderer_debug_line_index_offset[s_renderer_frame_index] += 2;
   }
 }
-void renderer_draw_debug_box(math_vector3_t position, math_vector3_t size, math_vector4_t color) {
+void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color) {
   if (g_renderer_enable_debug) {
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].position = (math_vector3_t){position.x, position.y, position.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].position = (math_vector3_t){position.x, position.y + size.y, position.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 2].position = (math_vector3_t){position.x + size.x, position.y, position.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 3].position = (math_vector3_t){position.x + size.x, position.y + size.y, position.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 4].position = (math_vector3_t){position.x, position.y, position.z + size.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 5].position = (math_vector3_t){position.x, position.y + size.y, position.z + size.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 6].position = (math_vector3_t){position.x + size.x, position.y, position.z + size.z};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 7].position = (math_vector3_t){position.x + size.x, position.y + size.y, position.z + size.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].position = (vector3_t){position.x, position.y, position.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].position = (vector3_t){position.x, position.y + size.y, position.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 2].position = (vector3_t){position.x + size.x, position.y, position.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 3].position = (vector3_t){position.x + size.x, position.y + size.y, position.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 4].position = (vector3_t){position.x, position.y, position.z + size.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 5].position = (vector3_t){position.x, position.y + size.y, position.z + size.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 6].position = (vector3_t){position.x + size.x, position.y, position.z + size.z};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 7].position = (vector3_t){position.x + size.x, position.y + size.y, position.z + size.z};
 
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 2].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 3].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 4].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 5].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 6].color = (math_vector4_t){color.x, color.y, color.z, color.w};
-    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 7].color = (math_vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 2].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 3].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 4].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 5].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 6].color = (vector4_t){color.x, color.y, color.z, color.w};
+    s_renderer_debug_line_vertex[s_renderer_frame_index][s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 7].color = (vector4_t){color.x, color.y, color.z, color.w};
 
     s_renderer_debug_line_index[s_renderer_frame_index][s_renderer_debug_line_index_offset[s_renderer_frame_index] + 0] = s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 0;
     s_renderer_debug_line_index[s_renderer_frame_index][s_renderer_debug_line_index_offset[s_renderer_frame_index] + 1] = s_renderer_debug_line_vertex_offset[s_renderer_frame_index] + 1;
@@ -555,8 +555,8 @@ void renderer_draw_debug_box(math_vector3_t position, math_vector3_t size, math_
 
 static void renderer_compute_local_variables(void) {
   s_renderer_frames_in_flight = g_renderer_frames_in_flight;
-  s_renderer_frames_in_flight = CORE_MAX(s_renderer_frames_in_flight, 1);
-  s_renderer_frames_in_flight = CORE_MIN(s_renderer_frames_in_flight, g_swapchain_image_count);
+  s_renderer_frames_in_flight = MAX(s_renderer_frames_in_flight, 1);
+  s_renderer_frames_in_flight = MIN(s_renderer_frames_in_flight, g_swapchain_image_count);
   g_renderer_frames_in_flight = s_renderer_frames_in_flight;
 
   s_renderer_chunk_count_x = g_renderer_chunk_count_x;
@@ -571,7 +571,7 @@ static void renderer_compute_local_variables(void) {
 }
 
 static void renderer_create_command_buffer(void) {
-  s_renderer_graphics_command_buffers = (VkCommandBuffer *)core_heap_alloc(sizeof(VkCommandBuffer) * s_renderer_frames_in_flight);
+  s_renderer_graphics_command_buffers = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * s_renderer_frames_in_flight);
 
   VkCommandBufferAllocateInfo command_buffer_alloc_create_info = {0};
   command_buffer_alloc_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -582,9 +582,9 @@ static void renderer_create_command_buffer(void) {
   VULKAN_CHECK(vkAllocateCommandBuffers(g_context_device, &command_buffer_alloc_create_info, s_renderer_graphics_command_buffers));
 }
 static void renderer_create_sync_objects(void) {
-  s_renderer_graphics_complete_semaphores = (VkSemaphore *)core_heap_alloc(sizeof(VkSemaphore) * s_renderer_frames_in_flight);
-  s_renderer_present_complete_semaphores = (VkSemaphore *)core_heap_alloc(sizeof(VkSemaphore) * s_renderer_frames_in_flight);
-  s_renderer_frame_fences = (VkFence *)core_heap_alloc(sizeof(VkFence) * s_renderer_frames_in_flight);
+  s_renderer_graphics_complete_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * s_renderer_frames_in_flight);
+  s_renderer_present_complete_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * s_renderer_frames_in_flight);
+  s_renderer_frame_fences = (VkFence *)heap_alloc(sizeof(VkFence) * s_renderer_frames_in_flight);
 
   VkSemaphoreCreateInfo semaphore_create_info = {0};
   semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -614,7 +614,7 @@ static void renderer_create_descriptor_pools(void) {
   VkDescriptorPoolCreateInfo chunk_editor_descriptor_pool_create_info = {0};
   chunk_editor_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   chunk_editor_descriptor_pool_create_info.pPoolSizes = chunk_editor_descriptor_pool_sizes;
-  chunk_editor_descriptor_pool_create_info.poolSizeCount = CORE_ARRAY_COUNT(chunk_editor_descriptor_pool_sizes);
+  chunk_editor_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_editor_descriptor_pool_sizes);
   chunk_editor_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
 
   VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_editor_descriptor_pool_create_info, 0, &s_renderer_chunk_editor_descriptor_pool));
@@ -628,7 +628,7 @@ static void renderer_create_descriptor_pools(void) {
   VkDescriptorPoolCreateInfo chunk_generator_descriptor_pool_create_info = {0};
   chunk_generator_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   chunk_generator_descriptor_pool_create_info.pPoolSizes = chunk_generator_descriptor_pool_sizes;
-  chunk_generator_descriptor_pool_create_info.poolSizeCount = CORE_ARRAY_COUNT(chunk_generator_descriptor_pool_sizes);
+  chunk_generator_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_generator_descriptor_pool_sizes);
   chunk_generator_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
 
   VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_generator_descriptor_pool_create_info, 0, &s_renderer_chunk_generator_descriptor_pool));
@@ -642,7 +642,7 @@ static void renderer_create_descriptor_pools(void) {
   VkDescriptorPoolCreateInfo chunk_mipmap_descriptor_pool_create_info = {0};
   chunk_mipmap_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   chunk_mipmap_descriptor_pool_create_info.pPoolSizes = chunk_mipmap_descriptor_pool_sizes;
-  chunk_mipmap_descriptor_pool_create_info.poolSizeCount = CORE_ARRAY_COUNT(chunk_mipmap_descriptor_pool_sizes);
+  chunk_mipmap_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_mipmap_descriptor_pool_sizes);
   chunk_mipmap_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
 
   VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_mipmap_descriptor_pool_create_info, 0, &s_renderer_chunk_mipmap_descriptor_pool));
@@ -656,7 +656,7 @@ static void renderer_create_descriptor_pools(void) {
   VkDescriptorPoolCreateInfo chunk_renderer_descriptor_pool_create_info = {0};
   chunk_renderer_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   chunk_renderer_descriptor_pool_create_info.pPoolSizes = chunk_renderer_descriptor_pool_sizes;
-  chunk_renderer_descriptor_pool_create_info.poolSizeCount = CORE_ARRAY_COUNT(chunk_renderer_descriptor_pool_sizes);
+  chunk_renderer_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_renderer_descriptor_pool_sizes);
   chunk_renderer_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
 
   VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_renderer_descriptor_pool_create_info, 0, &s_renderer_chunk_renderer_descriptor_pool));
@@ -669,7 +669,7 @@ static void renderer_create_descriptor_pools(void) {
   VkDescriptorPoolCreateInfo debug_line_descriptor_pool_create_info = {0};
   debug_line_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   debug_line_descriptor_pool_create_info.pPoolSizes = debug_line_descriptor_pool_sizes;
-  debug_line_descriptor_pool_create_info.poolSizeCount = CORE_ARRAY_COUNT(debug_line_descriptor_pool_sizes);
+  debug_line_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(debug_line_descriptor_pool_sizes);
   debug_line_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
 
   VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &debug_line_descriptor_pool_create_info, 0, &s_renderer_debug_line_descriptor_pool));
@@ -684,7 +684,7 @@ static void renderer_create_descriptor_set_layouts(void) {
   VkDescriptorSetLayoutCreateInfo chunk_editor_descriptor_set_layout_create_info = {0};
   chunk_editor_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   chunk_editor_descriptor_set_layout_create_info.pBindings = chunk_editor_descriptor_set_layout_bindings;
-  chunk_editor_descriptor_set_layout_create_info.bindingCount = CORE_ARRAY_COUNT(chunk_editor_descriptor_set_layout_bindings);
+  chunk_editor_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_editor_descriptor_set_layout_bindings);
   chunk_editor_descriptor_set_layout_create_info.pNext = 0;
 
   VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_editor_descriptor_set_layout_create_info, 0, &s_renderer_chunk_editor_descriptor_set_layout));
@@ -698,7 +698,7 @@ static void renderer_create_descriptor_set_layouts(void) {
   VkDescriptorSetLayoutCreateInfo chunk_generator_descriptor_set_layout_create_info = {0};
   chunk_generator_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   chunk_generator_descriptor_set_layout_create_info.pBindings = chunk_generator_descriptor_set_layout_bindings;
-  chunk_generator_descriptor_set_layout_create_info.bindingCount = CORE_ARRAY_COUNT(chunk_generator_descriptor_set_layout_bindings);
+  chunk_generator_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_generator_descriptor_set_layout_bindings);
   chunk_generator_descriptor_set_layout_create_info.pNext = 0;
 
   VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_generator_descriptor_set_layout_create_info, 0, &s_renderer_chunk_generator_descriptor_set_layout));
@@ -712,7 +712,7 @@ static void renderer_create_descriptor_set_layouts(void) {
   VkDescriptorSetLayoutCreateInfo chunk_mipmap_descriptor_set_layout_create_info = {0};
   chunk_mipmap_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   chunk_mipmap_descriptor_set_layout_create_info.pBindings = chunk_mipmap_descriptor_set_layout_bindings;
-  chunk_mipmap_descriptor_set_layout_create_info.bindingCount = CORE_ARRAY_COUNT(chunk_mipmap_descriptor_set_layout_bindings);
+  chunk_mipmap_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_mipmap_descriptor_set_layout_bindings);
   chunk_mipmap_descriptor_set_layout_create_info.pNext = 0;
 
   VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_mipmap_descriptor_set_layout_create_info, 0, &s_renderer_chunk_mipmap_descriptor_set_layout));
@@ -729,7 +729,7 @@ static void renderer_create_descriptor_set_layouts(void) {
   VkDescriptorSetLayoutCreateInfo chunk_renderer_descriptor_set_layout_create_info = {0};
   chunk_renderer_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   chunk_renderer_descriptor_set_layout_create_info.pBindings = chunk_renderer_descriptor_set_layout_bindings;
-  chunk_renderer_descriptor_set_layout_create_info.bindingCount = CORE_ARRAY_COUNT(chunk_renderer_descriptor_set_layout_bindings);
+  chunk_renderer_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_renderer_descriptor_set_layout_bindings);
   chunk_renderer_descriptor_set_layout_create_info.pNext = 0;
 
   VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_renderer_descriptor_set_layout_create_info, 0, &s_renderer_chunk_renderer_descriptor_set_layout));
@@ -744,7 +744,7 @@ static void renderer_create_descriptor_set_layouts(void) {
   VkDescriptorSetLayoutCreateInfo debug_line_descriptor_set_layout_create_info = {0};
   debug_line_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   debug_line_descriptor_set_layout_create_info.pBindings = debug_line_descriptor_set_layout_bindings;
-  debug_line_descriptor_set_layout_create_info.bindingCount = CORE_ARRAY_COUNT(debug_line_descriptor_set_layout_bindings);
+  debug_line_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(debug_line_descriptor_set_layout_bindings);
   debug_line_descriptor_set_layout_create_info.pNext = 0;
 
   VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &debug_line_descriptor_set_layout_create_info, 0, &s_renderer_debug_line_descriptor_set_layout));
@@ -756,17 +756,17 @@ static void renderer_create_descriptor_sets(void) {
   int32_t chunk_renderer_descriptor_set_count = s_renderer_frames_in_flight;
   int32_t debug_line_descriptor_set_count = s_renderer_frames_in_flight;
 
-  s_renderer_chunk_editor_descriptor_sets = (VkDescriptorSet *)core_heap_alloc(sizeof(VkDescriptorSet) * chunk_editor_descriptor_set_count);
-  s_renderer_chunk_generator_descriptor_sets = (VkDescriptorSet *)core_heap_alloc(sizeof(VkDescriptorSet) * chunk_generator_descriptor_set_count);
-  s_renderer_chunk_mipmap_descriptor_sets = (VkDescriptorSet *)core_heap_alloc(sizeof(VkDescriptorSet) * chunk_mipmap_descriptor_set_count);
-  s_renderer_chunk_renderer_descriptor_sets = (VkDescriptorSet *)core_heap_alloc(sizeof(VkDescriptorSet) * chunk_renderer_descriptor_set_count);
-  s_renderer_debug_line_descriptor_sets = (VkDescriptorSet *)core_heap_alloc(sizeof(VkDescriptorSet) * debug_line_descriptor_set_count);
+  s_renderer_chunk_editor_descriptor_sets = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * chunk_editor_descriptor_set_count);
+  s_renderer_chunk_generator_descriptor_sets = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * chunk_generator_descriptor_set_count);
+  s_renderer_chunk_mipmap_descriptor_sets = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * chunk_mipmap_descriptor_set_count);
+  s_renderer_chunk_renderer_descriptor_sets = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * chunk_renderer_descriptor_set_count);
+  s_renderer_debug_line_descriptor_sets = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * debug_line_descriptor_set_count);
 
-  VkDescriptorSetLayout *chunk_editor_descriptor_set_layouts = (VkDescriptorSetLayout *)core_heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_editor_descriptor_set_count);
-  VkDescriptorSetLayout *chunk_generator_descriptor_set_layouts = (VkDescriptorSetLayout *)core_heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_generator_descriptor_set_count);
-  VkDescriptorSetLayout *chunk_mipmap_descriptor_set_layouts = (VkDescriptorSetLayout *)core_heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_mipmap_descriptor_set_count);
-  VkDescriptorSetLayout *chunk_renderer_descriptor_set_layouts = (VkDescriptorSetLayout *)core_heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_renderer_descriptor_set_count);
-  VkDescriptorSetLayout *debug_line_descriptor_set_layouts = (VkDescriptorSetLayout *)core_heap_alloc(sizeof(VkDescriptorSetLayout) * debug_line_descriptor_set_count);
+  VkDescriptorSetLayout *chunk_editor_descriptor_set_layouts = (VkDescriptorSetLayout *)heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_editor_descriptor_set_count);
+  VkDescriptorSetLayout *chunk_generator_descriptor_set_layouts = (VkDescriptorSetLayout *)heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_generator_descriptor_set_count);
+  VkDescriptorSetLayout *chunk_mipmap_descriptor_set_layouts = (VkDescriptorSetLayout *)heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_mipmap_descriptor_set_count);
+  VkDescriptorSetLayout *chunk_renderer_descriptor_set_layouts = (VkDescriptorSetLayout *)heap_alloc(sizeof(VkDescriptorSetLayout) * chunk_renderer_descriptor_set_count);
+  VkDescriptorSetLayout *debug_line_descriptor_set_layouts = (VkDescriptorSetLayout *)heap_alloc(sizeof(VkDescriptorSetLayout) * debug_line_descriptor_set_count);
 
   int32_t chunk_editor_descriptor_set_index = 0;
   while (chunk_editor_descriptor_set_index < chunk_editor_descriptor_set_count) {
@@ -843,11 +843,11 @@ static void renderer_create_descriptor_sets(void) {
 
   VULKAN_CHECK(vkAllocateDescriptorSets(g_context_device, &debug_line_descriptor_set_allocate_info, s_renderer_debug_line_descriptor_sets));
 
-  core_heap_free(chunk_editor_descriptor_set_layouts);
-  core_heap_free(chunk_generator_descriptor_set_layouts);
-  core_heap_free(chunk_mipmap_descriptor_set_layouts);
-  core_heap_free(chunk_renderer_descriptor_set_layouts);
-  core_heap_free(debug_line_descriptor_set_layouts);
+  heap_free(chunk_editor_descriptor_set_layouts);
+  heap_free(chunk_generator_descriptor_set_layouts);
+  heap_free(chunk_mipmap_descriptor_set_layouts);
+  heap_free(chunk_renderer_descriptor_set_layouts);
+  heap_free(debug_line_descriptor_set_layouts);
 }
 static void renderer_create_pipeline_layouts(void) {
   VkPipelineLayoutCreateInfo chunk_editor_pipeline_layout_create_info = {0};
@@ -855,7 +855,7 @@ static void renderer_create_pipeline_layouts(void) {
   chunk_editor_pipeline_layout_create_info.setLayoutCount = 1;
   chunk_editor_pipeline_layout_create_info.pSetLayouts = &s_renderer_chunk_editor_descriptor_set_layout;
   chunk_editor_pipeline_layout_create_info.pPushConstantRanges = s_renderer_chunk_editor_push_constant_ranges;
-  chunk_editor_pipeline_layout_create_info.pushConstantRangeCount = CORE_ARRAY_COUNT(s_renderer_chunk_editor_push_constant_ranges);
+  chunk_editor_pipeline_layout_create_info.pushConstantRangeCount = ARRAY_COUNT(s_renderer_chunk_editor_push_constant_ranges);
 
   VULKAN_CHECK(vkCreatePipelineLayout(g_context_device, &chunk_editor_pipeline_layout_create_info, 0, &s_renderer_chunk_editor_pipeline_layout));
 
@@ -864,7 +864,7 @@ static void renderer_create_pipeline_layouts(void) {
   chunk_generator_pipeline_layout_create_info.setLayoutCount = 1;
   chunk_generator_pipeline_layout_create_info.pSetLayouts = &s_renderer_chunk_generator_descriptor_set_layout;
   chunk_generator_pipeline_layout_create_info.pPushConstantRanges = s_renderer_chunk_generator_push_constant_ranges;
-  chunk_generator_pipeline_layout_create_info.pushConstantRangeCount = CORE_ARRAY_COUNT(s_renderer_chunk_generator_push_constant_ranges);
+  chunk_generator_pipeline_layout_create_info.pushConstantRangeCount = ARRAY_COUNT(s_renderer_chunk_generator_push_constant_ranges);
 
   VULKAN_CHECK(vkCreatePipelineLayout(g_context_device, &chunk_generator_pipeline_layout_create_info, 0, &s_renderer_chunk_generator_pipeline_layout));
 
@@ -873,7 +873,7 @@ static void renderer_create_pipeline_layouts(void) {
   chunk_mipmap_pipeline_layout_create_info.setLayoutCount = 1;
   chunk_mipmap_pipeline_layout_create_info.pSetLayouts = &s_renderer_chunk_mipmap_descriptor_set_layout;
   chunk_mipmap_pipeline_layout_create_info.pPushConstantRanges = s_renderer_chunk_mipmap_push_constant_ranges;
-  chunk_mipmap_pipeline_layout_create_info.pushConstantRangeCount = CORE_ARRAY_COUNT(s_renderer_chunk_mipmap_push_constant_ranges);
+  chunk_mipmap_pipeline_layout_create_info.pushConstantRangeCount = ARRAY_COUNT(s_renderer_chunk_mipmap_push_constant_ranges);
 
   VULKAN_CHECK(vkCreatePipelineLayout(g_context_device, &chunk_mipmap_pipeline_layout_create_info, 0, &s_renderer_chunk_mipmap_pipeline_layout));
 
@@ -901,7 +901,7 @@ static void renderer_create_chunk_editor_pipeline(void) {
 
   uint64_t compute_shader_size = 0;
 
-  core_filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_editor_shader_file_path);
+  filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_editor_shader_file_path);
 
   VkShaderModule compute_module = 0;
 
@@ -929,14 +929,14 @@ static void renderer_create_chunk_editor_pipeline(void) {
 
   vkDestroyShaderModule(g_context_device, compute_module, 0);
 
-  core_heap_free(compute_shader_bytes);
+  heap_free(compute_shader_bytes);
 }
 static void renderer_create_chunk_generator_pipeline(void) {
   uint8_t *compute_shader_bytes = 0;
 
   uint64_t compute_shader_size = 0;
 
-  core_filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_generator_shader_file_path);
+  filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_generator_shader_file_path);
 
   VkShaderModule compute_module = 0;
 
@@ -964,14 +964,14 @@ static void renderer_create_chunk_generator_pipeline(void) {
 
   vkDestroyShaderModule(g_context_device, compute_module, 0);
 
-  core_heap_free(compute_shader_bytes);
+  heap_free(compute_shader_bytes);
 }
 static void renderer_create_chunk_mipmap_pipeline(void) {
   uint8_t *compute_shader_bytes = 0;
 
   uint64_t compute_shader_size = 0;
 
-  core_filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_mipmap_shader_file_path);
+  filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_mipmap_shader_file_path);
 
   VkShaderModule compute_module = 0;
 
@@ -999,7 +999,7 @@ static void renderer_create_chunk_mipmap_pipeline(void) {
 
   vkDestroyShaderModule(g_context_device, compute_module, 0);
 
-  core_heap_free(compute_shader_bytes);
+  heap_free(compute_shader_bytes);
 }
 static void renderer_create_chunk_renderer_pipeline(void) {
   uint8_t *vertex_shader_bytes = 0;
@@ -1008,8 +1008,8 @@ static void renderer_create_chunk_renderer_pipeline(void) {
   uint64_t vertex_shader_size = 0;
   uint64_t fragment_shader_size = 0;
 
-  core_filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_chunk_renderer_vertex_shader_file_path);
-  core_filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_chunk_renderer_fragment_shader_file_path);
+  filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_chunk_renderer_vertex_shader_file_path);
+  filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_chunk_renderer_fragment_shader_file_path);
 
   VkShaderModule vertex_module = 0;
   VkShaderModule fragment_module = 0;
@@ -1049,9 +1049,9 @@ static void renderer_create_chunk_renderer_pipeline(void) {
   VkPipelineVertexInputStateCreateInfo vertex_input_create_info = {0};
   vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertex_input_create_info.pVertexBindingDescriptions = s_renderer_chunk_renderer_vertex_input_binding_descriptions;
-  vertex_input_create_info.vertexBindingDescriptionCount = CORE_ARRAY_COUNT(s_renderer_chunk_renderer_vertex_input_binding_descriptions);
+  vertex_input_create_info.vertexBindingDescriptionCount = ARRAY_COUNT(s_renderer_chunk_renderer_vertex_input_binding_descriptions);
   vertex_input_create_info.pVertexAttributeDescriptions = s_renderer_chunk_renderer_vertex_input_attribute_descriptions;
-  vertex_input_create_info.vertexAttributeDescriptionCount = CORE_ARRAY_COUNT(s_renderer_chunk_renderer_vertex_input_attribute_descriptions);
+  vertex_input_create_info.vertexAttributeDescriptionCount = ARRAY_COUNT(s_renderer_chunk_renderer_vertex_input_attribute_descriptions);
 
   VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info = {0};
   input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1135,12 +1135,12 @@ static void renderer_create_chunk_renderer_pipeline(void) {
   VkPipelineDynamicStateCreateInfo dynamic_state_create_info = {0};
   dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamic_state_create_info.pDynamicStates = dynamic_states;
-  dynamic_state_create_info.dynamicStateCount = CORE_ARRAY_COUNT(dynamic_states);
+  dynamic_state_create_info.dynamicStateCount = ARRAY_COUNT(dynamic_states);
 
   VkGraphicsPipelineCreateInfo graphics_pipeline_create_info = {0};
   graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   graphics_pipeline_create_info.pStages = shader_stages;
-  graphics_pipeline_create_info.stageCount = CORE_ARRAY_COUNT(shader_stages);
+  graphics_pipeline_create_info.stageCount = ARRAY_COUNT(shader_stages);
   graphics_pipeline_create_info.pVertexInputState = &vertex_input_create_info;
   graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_create_info;
   graphics_pipeline_create_info.pViewportState = &viewport_state_create_info;
@@ -1159,8 +1159,8 @@ static void renderer_create_chunk_renderer_pipeline(void) {
   vkDestroyShaderModule(g_context_device, vertex_module, 0);
   vkDestroyShaderModule(g_context_device, fragment_module, 0);
 
-  core_heap_free(vertex_shader_bytes);
-  core_heap_free(fragment_shader_bytes);
+  heap_free(vertex_shader_bytes);
+  heap_free(fragment_shader_bytes);
 }
 static void renderer_create_debug_line_pipeline(void) {
   uint8_t *vertex_shader_bytes = 0;
@@ -1169,8 +1169,8 @@ static void renderer_create_debug_line_pipeline(void) {
   uint64_t vertex_shader_size = 0;
   uint64_t fragment_shader_size = 0;
 
-  core_filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_debug_line_vertex_shader_file_path);
-  core_filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_debug_line_fragment_shader_file_path);
+  filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_debug_line_vertex_shader_file_path);
+  filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_debug_line_fragment_shader_file_path);
 
   VkShaderModule vertex_module = 0;
   VkShaderModule fragment_module = 0;
@@ -1210,9 +1210,9 @@ static void renderer_create_debug_line_pipeline(void) {
   VkPipelineVertexInputStateCreateInfo vertex_input_create_info = {0};
   vertex_input_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertex_input_create_info.pVertexBindingDescriptions = s_renderer_debug_line_vertex_input_binding_descriptions;
-  vertex_input_create_info.vertexBindingDescriptionCount = CORE_ARRAY_COUNT(s_renderer_debug_line_vertex_input_binding_descriptions);
+  vertex_input_create_info.vertexBindingDescriptionCount = ARRAY_COUNT(s_renderer_debug_line_vertex_input_binding_descriptions);
   vertex_input_create_info.pVertexAttributeDescriptions = s_renderer_debug_line_vertex_input_attribute_descriptions;
-  vertex_input_create_info.vertexAttributeDescriptionCount = CORE_ARRAY_COUNT(s_renderer_debug_line_vertex_input_attribute_descriptions);
+  vertex_input_create_info.vertexAttributeDescriptionCount = ARRAY_COUNT(s_renderer_debug_line_vertex_input_attribute_descriptions);
 
   VkPipelineInputAssemblyStateCreateInfo input_assembly_create_info = {0};
   input_assembly_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1296,12 +1296,12 @@ static void renderer_create_debug_line_pipeline(void) {
   VkPipelineDynamicStateCreateInfo dynamic_state_create_info = {0};
   dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamic_state_create_info.pDynamicStates = dynamic_states;
-  dynamic_state_create_info.dynamicStateCount = CORE_ARRAY_COUNT(dynamic_states);
+  dynamic_state_create_info.dynamicStateCount = ARRAY_COUNT(dynamic_states);
 
   VkGraphicsPipelineCreateInfo graphics_pipeline_create_info = {0};
   graphics_pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   graphics_pipeline_create_info.pStages = shader_stages;
-  graphics_pipeline_create_info.stageCount = CORE_ARRAY_COUNT(shader_stages);
+  graphics_pipeline_create_info.stageCount = ARRAY_COUNT(shader_stages);
   graphics_pipeline_create_info.pVertexInputState = &vertex_input_create_info;
   graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_create_info;
   graphics_pipeline_create_info.pViewportState = &viewport_state_create_info;
@@ -1320,14 +1320,14 @@ static void renderer_create_debug_line_pipeline(void) {
   vkDestroyShaderModule(g_context_device, vertex_module, 0);
   vkDestroyShaderModule(g_context_device, fragment_module, 0);
 
-  core_heap_free(vertex_shader_bytes);
-  core_heap_free(fragment_shader_bytes);
+  heap_free(vertex_shader_bytes);
+  heap_free(fragment_shader_bytes);
 }
 
 static void renderer_create_time_buffer(void) {
-  s_renderer_time_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_time_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_time = (renderer_time_t **)core_heap_alloc(sizeof(renderer_time_t *) * s_renderer_frames_in_flight);
+  s_renderer_time_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_time_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_time = (renderer_time_t **)heap_alloc(sizeof(renderer_time_t *) * s_renderer_frames_in_flight);
 
   int32_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1358,9 +1358,9 @@ static void renderer_create_time_buffer(void) {
   }
 }
 static void renderer_create_screen_buffer(void) {
-  s_renderer_screen_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_screen_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_screen = (renderer_screen_t **)core_heap_alloc(sizeof(renderer_screen_t *) * s_renderer_frames_in_flight);
+  s_renderer_screen_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_screen_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_screen = (renderer_screen_t **)heap_alloc(sizeof(renderer_screen_t *) * s_renderer_frames_in_flight);
 
   int32_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1391,9 +1391,9 @@ static void renderer_create_screen_buffer(void) {
   }
 }
 static void renderer_create_camera_buffer(void) {
-  s_renderer_camera_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_camera_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_camera = (renderer_camera_t **)core_heap_alloc(sizeof(renderer_camera_t *) * s_renderer_frames_in_flight);
+  s_renderer_camera_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_camera_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_camera = (renderer_camera_t **)heap_alloc(sizeof(renderer_camera_t *) * s_renderer_frames_in_flight);
 
   int32_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1424,9 +1424,9 @@ static void renderer_create_camera_buffer(void) {
   }
 }
 static void renderer_create_cluster_buffer(void) {
-  s_renderer_cluster_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_cluster_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_cluster = (renderer_cluster_t **)core_heap_alloc(sizeof(renderer_cluster_t *) * s_renderer_frames_in_flight);
+  s_renderer_cluster_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_cluster_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_cluster = (renderer_cluster_t **)heap_alloc(sizeof(renderer_cluster_t *) * s_renderer_frames_in_flight);
 
   int32_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1457,9 +1457,9 @@ static void renderer_create_cluster_buffer(void) {
   }
 }
 static void renderer_create_cluster_vertex_buffer(void) {
-  s_renderer_cluster_vertex_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_cluster_vertex_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_cluster_vertex = (renderer_cluster_vertex_t **)core_heap_alloc(sizeof(renderer_cluster_vertex_t *) * s_renderer_frames_in_flight);
+  s_renderer_cluster_vertex_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_cluster_vertex_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_cluster_vertex = (renderer_cluster_vertex_t **)heap_alloc(sizeof(renderer_cluster_vertex_t *) * s_renderer_frames_in_flight);
 
   uint64_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1490,9 +1490,9 @@ static void renderer_create_cluster_vertex_buffer(void) {
   }
 }
 static void renderer_create_cluster_index_buffer(void) {
-  s_renderer_cluster_index_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_cluster_index_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_cluster_index = (renderer_cluster_index_t **)core_heap_alloc(sizeof(renderer_cluster_index_t *) * s_renderer_frames_in_flight);
+  s_renderer_cluster_index_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_cluster_index_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_cluster_index = (renderer_cluster_index_t **)heap_alloc(sizeof(renderer_cluster_index_t *) * s_renderer_frames_in_flight);
 
   uint64_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1523,9 +1523,9 @@ static void renderer_create_cluster_index_buffer(void) {
   }
 }
 static void renderer_create_debug_line_vertex_buffer(void) {
-  s_renderer_debug_line_vertex_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_vertex_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_vertex = (renderer_debug_line_vertex_t **)core_heap_alloc(sizeof(renderer_debug_line_vertex_t *) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_vertex_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_vertex_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_vertex = (renderer_debug_line_vertex_t **)heap_alloc(sizeof(renderer_debug_line_vertex_t *) * s_renderer_frames_in_flight);
 
   uint64_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1556,9 +1556,9 @@ static void renderer_create_debug_line_vertex_buffer(void) {
   }
 }
 static void renderer_create_debug_line_index_buffer(void) {
-  s_renderer_debug_line_index_buffer = (VkBuffer *)core_heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_index_buffer_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_index = (renderer_debug_line_index_t **)core_heap_alloc(sizeof(renderer_debug_line_index_t *) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_index_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_index_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
+  s_renderer_debug_line_index = (renderer_debug_line_index_t **)heap_alloc(sizeof(renderer_debug_line_index_t *) * s_renderer_frames_in_flight);
 
   uint64_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
@@ -1590,17 +1590,17 @@ static void renderer_create_debug_line_index_buffer(void) {
 }
 
 static void renderer_create_chunk_images(void) {
-  s_renderer_chunk_image = (VkImage **)core_heap_alloc(sizeof(VkImage *) * s_renderer_frames_in_flight);
-  s_renderer_chunk_image_device_memory = (VkDeviceMemory **)core_heap_alloc(sizeof(VkDeviceMemory *) * s_renderer_frames_in_flight);
-  s_renderer_chunk_image_view = (VkImageView ***)core_heap_alloc(sizeof(VkImageView **) * s_renderer_frames_in_flight);
-  s_renderer_chunk_sampler = (VkSampler ***)core_heap_alloc(sizeof(VkSampler **) * s_renderer_frames_in_flight);
+  s_renderer_chunk_image = (VkImage **)heap_alloc(sizeof(VkImage *) * s_renderer_frames_in_flight);
+  s_renderer_chunk_image_device_memory = (VkDeviceMemory **)heap_alloc(sizeof(VkDeviceMemory *) * s_renderer_frames_in_flight);
+  s_renderer_chunk_image_view = (VkImageView ***)heap_alloc(sizeof(VkImageView **) * s_renderer_frames_in_flight);
+  s_renderer_chunk_sampler = (VkSampler ***)heap_alloc(sizeof(VkSampler **) * s_renderer_frames_in_flight);
 
   int32_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
-    s_renderer_chunk_image[frame_index] = (VkImage *)core_heap_alloc(sizeof(VkImage) * s_renderer_chunk_count);
-    s_renderer_chunk_image_device_memory[frame_index] = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_renderer_chunk_count);
-    s_renderer_chunk_image_view[frame_index] = (VkImageView **)core_heap_alloc(sizeof(VkImageView *) * s_renderer_chunk_count);
-    s_renderer_chunk_sampler[frame_index] = (VkSampler **)core_heap_alloc(sizeof(VkSampler *) * s_renderer_chunk_count);
+    s_renderer_chunk_image[frame_index] = (VkImage *)heap_alloc(sizeof(VkImage) * s_renderer_chunk_count);
+    s_renderer_chunk_image_device_memory[frame_index] = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_chunk_count);
+    s_renderer_chunk_image_view[frame_index] = (VkImageView **)heap_alloc(sizeof(VkImageView *) * s_renderer_chunk_count);
+    s_renderer_chunk_sampler[frame_index] = (VkSampler **)heap_alloc(sizeof(VkSampler *) * s_renderer_chunk_count);
 
     int32_t chunk_index = 0;
     while (chunk_index < s_renderer_chunk_count) {
@@ -1635,8 +1635,8 @@ static void renderer_create_chunk_images(void) {
       VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &s_renderer_chunk_image_device_memory[frame_index][chunk_index]));
       VULKAN_CHECK(vkBindImageMemory(g_context_device, s_renderer_chunk_image[frame_index][chunk_index], s_renderer_chunk_image_device_memory[frame_index][chunk_index], 0));
 
-      s_renderer_chunk_image_view[frame_index][chunk_index] = (VkImageView *)core_heap_alloc(sizeof(VkImageView) * s_renderer_chunk_lod_levels);
-      s_renderer_chunk_sampler[frame_index][chunk_index] = (VkSampler *)core_heap_alloc(sizeof(VkSampler) * s_renderer_chunk_lod_levels);
+      s_renderer_chunk_image_view[frame_index][chunk_index] = (VkImageView *)heap_alloc(sizeof(VkImageView) * s_renderer_chunk_lod_levels);
+      s_renderer_chunk_sampler[frame_index][chunk_index] = (VkSampler *)heap_alloc(sizeof(VkSampler) * s_renderer_chunk_lod_levels);
 
       int32_t lod = 0;
       while (lod < s_renderer_chunk_lod_levels) {
@@ -1715,14 +1715,14 @@ static void renderer_create_cluster_vertices(void) {
 
   int32_t frame_index = 0;
   while (frame_index < s_renderer_frames_in_flight) {
-    s_renderer_cluster_vertex[frame_index][0].position = (math_ivector3_t){0, 0, 0};
-    s_renderer_cluster_vertex[frame_index][1].position = (math_ivector3_t){0, cluster_size_y, 0};
-    s_renderer_cluster_vertex[frame_index][2].position = (math_ivector3_t){cluster_size_x, 0, 0};
-    s_renderer_cluster_vertex[frame_index][3].position = (math_ivector3_t){cluster_size_x, cluster_size_y, 0};
-    s_renderer_cluster_vertex[frame_index][4].position = (math_ivector3_t){0, 0, cluster_size_z};
-    s_renderer_cluster_vertex[frame_index][5].position = (math_ivector3_t){0, cluster_size_y, cluster_size_z};
-    s_renderer_cluster_vertex[frame_index][6].position = (math_ivector3_t){cluster_size_x, 0, cluster_size_z};
-    s_renderer_cluster_vertex[frame_index][7].position = (math_ivector3_t){cluster_size_x, cluster_size_y, cluster_size_z};
+    s_renderer_cluster_vertex[frame_index][0].position = (ivector3_t){0, 0, 0};
+    s_renderer_cluster_vertex[frame_index][1].position = (ivector3_t){0, cluster_size_y, 0};
+    s_renderer_cluster_vertex[frame_index][2].position = (ivector3_t){cluster_size_x, 0, 0};
+    s_renderer_cluster_vertex[frame_index][3].position = (ivector3_t){cluster_size_x, cluster_size_y, 0};
+    s_renderer_cluster_vertex[frame_index][4].position = (ivector3_t){0, 0, cluster_size_z};
+    s_renderer_cluster_vertex[frame_index][5].position = (ivector3_t){0, cluster_size_y, cluster_size_z};
+    s_renderer_cluster_vertex[frame_index][6].position = (ivector3_t){cluster_size_x, 0, cluster_size_z};
+    s_renderer_cluster_vertex[frame_index][7].position = (ivector3_t){cluster_size_x, cluster_size_y, cluster_size_z};
 
     frame_index++;
   }
@@ -1780,7 +1780,7 @@ static void renderer_update_chunk_editor_descriptor_sets(void) {
     cluster_descriptor_buffer_infos[0].buffer = s_renderer_cluster_buffer[frame_index];
     cluster_descriptor_buffer_infos[0].range = VK_WHOLE_SIZE;
 
-    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)core_heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
+    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
 
     for (int32_t z = 0; z < s_renderer_chunk_count_z; z++) {
       for (int32_t y = 0; y < s_renderer_chunk_count_y; y++) {
@@ -1805,7 +1805,7 @@ static void renderer_update_chunk_editor_descriptor_sets(void) {
     write_descriptor_sets[0].dstBinding = 0;
     write_descriptor_sets[0].dstArrayElement = 0;
     write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[0].descriptorCount = CORE_ARRAY_COUNT(cluster_descriptor_buffer_infos);
+    write_descriptor_sets[0].descriptorCount = ARRAY_COUNT(cluster_descriptor_buffer_infos);
     write_descriptor_sets[0].pImageInfo = 0;
     write_descriptor_sets[0].pBufferInfo = cluster_descriptor_buffer_infos;
     write_descriptor_sets[0].pTexelBufferView = 0;
@@ -1821,9 +1821,9 @@ static void renderer_update_chunk_editor_descriptor_sets(void) {
     write_descriptor_sets[1].pBufferInfo = 0;
     write_descriptor_sets[1].pTexelBufferView = 0;
 
-    vkUpdateDescriptorSets(g_context_device, CORE_ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
+    vkUpdateDescriptorSets(g_context_device, ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
 
-    core_heap_free(chunk_descriptor_image_infos);
+    heap_free(chunk_descriptor_image_infos);
 
     frame_index++;
   }
@@ -1837,7 +1837,7 @@ static void renderer_update_chunk_generator_descriptor_sets(void) {
     cluster_descriptor_buffer_infos[0].buffer = s_renderer_cluster_buffer[frame_index];
     cluster_descriptor_buffer_infos[0].range = VK_WHOLE_SIZE;
 
-    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)core_heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
+    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
 
     for (int32_t z = 0; z < s_renderer_chunk_count_z; z++) {
       for (int32_t y = 0; y < s_renderer_chunk_count_y; y++) {
@@ -1862,7 +1862,7 @@ static void renderer_update_chunk_generator_descriptor_sets(void) {
     write_descriptor_sets[0].dstBinding = 0;
     write_descriptor_sets[0].dstArrayElement = 0;
     write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[0].descriptorCount = CORE_ARRAY_COUNT(cluster_descriptor_buffer_infos);
+    write_descriptor_sets[0].descriptorCount = ARRAY_COUNT(cluster_descriptor_buffer_infos);
     write_descriptor_sets[0].pImageInfo = 0;
     write_descriptor_sets[0].pBufferInfo = cluster_descriptor_buffer_infos;
     write_descriptor_sets[0].pTexelBufferView = 0;
@@ -1878,9 +1878,9 @@ static void renderer_update_chunk_generator_descriptor_sets(void) {
     write_descriptor_sets[1].pBufferInfo = 0;
     write_descriptor_sets[1].pTexelBufferView = 0;
 
-    vkUpdateDescriptorSets(g_context_device, CORE_ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
+    vkUpdateDescriptorSets(g_context_device, ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
 
-    core_heap_free(chunk_descriptor_image_infos);
+    heap_free(chunk_descriptor_image_infos);
 
     frame_index++;
   }
@@ -1894,7 +1894,7 @@ static void renderer_update_chunk_mipmap_descriptor_sets(void) {
     cluster_descriptor_buffer_infos[0].buffer = s_renderer_cluster_buffer[frame_index];
     cluster_descriptor_buffer_infos[0].range = VK_WHOLE_SIZE;
 
-    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)core_heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
+    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
 
     for (int32_t z = 0; z < s_renderer_chunk_count_z; z++) {
       for (int32_t y = 0; y < s_renderer_chunk_count_y; y++) {
@@ -1919,7 +1919,7 @@ static void renderer_update_chunk_mipmap_descriptor_sets(void) {
     write_descriptor_sets[0].dstBinding = 0;
     write_descriptor_sets[0].dstArrayElement = 0;
     write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[0].descriptorCount = CORE_ARRAY_COUNT(cluster_descriptor_buffer_infos);
+    write_descriptor_sets[0].descriptorCount = ARRAY_COUNT(cluster_descriptor_buffer_infos);
     write_descriptor_sets[0].pImageInfo = 0;
     write_descriptor_sets[0].pBufferInfo = cluster_descriptor_buffer_infos;
     write_descriptor_sets[0].pTexelBufferView = 0;
@@ -1935,9 +1935,9 @@ static void renderer_update_chunk_mipmap_descriptor_sets(void) {
     write_descriptor_sets[1].pBufferInfo = 0;
     write_descriptor_sets[1].pTexelBufferView = 0;
 
-    vkUpdateDescriptorSets(g_context_device, CORE_ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
+    vkUpdateDescriptorSets(g_context_device, ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
 
-    core_heap_free(chunk_descriptor_image_infos);
+    heap_free(chunk_descriptor_image_infos);
 
     frame_index++;
   }
@@ -1969,7 +1969,7 @@ static void renderer_update_chunk_renderer_descriptor_sets(void) {
     cluster_descriptor_buffer_infos[0].buffer = s_renderer_cluster_buffer[frame_index];
     cluster_descriptor_buffer_infos[0].range = VK_WHOLE_SIZE;
 
-    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)core_heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
+    VkDescriptorImageInfo *chunk_descriptor_image_infos = (VkDescriptorImageInfo *)heap_alloc(sizeof(VkDescriptorImageInfo) * s_renderer_chunk_count * s_renderer_chunk_lod_levels);
 
     for (int32_t z = 0; z < s_renderer_chunk_count_z; z++) {
       for (int32_t y = 0; y < s_renderer_chunk_count_y; y++) {
@@ -1994,7 +1994,7 @@ static void renderer_update_chunk_renderer_descriptor_sets(void) {
     write_descriptor_sets[0].dstBinding = 0;
     write_descriptor_sets[0].dstArrayElement = 0;
     write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[0].descriptorCount = CORE_ARRAY_COUNT(time_descriptor_buffer_infos);
+    write_descriptor_sets[0].descriptorCount = ARRAY_COUNT(time_descriptor_buffer_infos);
     write_descriptor_sets[0].pImageInfo = 0;
     write_descriptor_sets[0].pBufferInfo = time_descriptor_buffer_infos;
     write_descriptor_sets[0].pTexelBufferView = 0;
@@ -2005,7 +2005,7 @@ static void renderer_update_chunk_renderer_descriptor_sets(void) {
     write_descriptor_sets[1].dstBinding = 1;
     write_descriptor_sets[1].dstArrayElement = 0;
     write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[1].descriptorCount = CORE_ARRAY_COUNT(screen_descriptor_buffer_infos);
+    write_descriptor_sets[1].descriptorCount = ARRAY_COUNT(screen_descriptor_buffer_infos);
     write_descriptor_sets[1].pImageInfo = 0;
     write_descriptor_sets[1].pBufferInfo = screen_descriptor_buffer_infos;
     write_descriptor_sets[1].pTexelBufferView = 0;
@@ -2016,7 +2016,7 @@ static void renderer_update_chunk_renderer_descriptor_sets(void) {
     write_descriptor_sets[2].dstBinding = 2;
     write_descriptor_sets[2].dstArrayElement = 0;
     write_descriptor_sets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[2].descriptorCount = CORE_ARRAY_COUNT(camera_descriptor_buffer_infos);
+    write_descriptor_sets[2].descriptorCount = ARRAY_COUNT(camera_descriptor_buffer_infos);
     write_descriptor_sets[2].pImageInfo = 0;
     write_descriptor_sets[2].pBufferInfo = camera_descriptor_buffer_infos;
     write_descriptor_sets[2].pTexelBufferView = 0;
@@ -2027,7 +2027,7 @@ static void renderer_update_chunk_renderer_descriptor_sets(void) {
     write_descriptor_sets[3].dstBinding = 3;
     write_descriptor_sets[3].dstArrayElement = 0;
     write_descriptor_sets[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[3].descriptorCount = CORE_ARRAY_COUNT(cluster_descriptor_buffer_infos);
+    write_descriptor_sets[3].descriptorCount = ARRAY_COUNT(cluster_descriptor_buffer_infos);
     write_descriptor_sets[3].pImageInfo = 0;
     write_descriptor_sets[3].pBufferInfo = cluster_descriptor_buffer_infos;
     write_descriptor_sets[3].pTexelBufferView = 0;
@@ -2043,9 +2043,9 @@ static void renderer_update_chunk_renderer_descriptor_sets(void) {
     write_descriptor_sets[4].pBufferInfo = 0;
     write_descriptor_sets[4].pTexelBufferView = 0;
 
-    vkUpdateDescriptorSets(g_context_device, CORE_ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
+    vkUpdateDescriptorSets(g_context_device, ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
 
-    core_heap_free(chunk_descriptor_image_infos);
+    heap_free(chunk_descriptor_image_infos);
 
     frame_index++;
   }
@@ -2079,7 +2079,7 @@ static void renderer_update_debug_line_descriptor_sets(void) {
     write_descriptor_sets[0].dstBinding = 0;
     write_descriptor_sets[0].dstArrayElement = 0;
     write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[0].descriptorCount = CORE_ARRAY_COUNT(time_descriptor_buffer_infos);
+    write_descriptor_sets[0].descriptorCount = ARRAY_COUNT(time_descriptor_buffer_infos);
     write_descriptor_sets[0].pImageInfo = 0;
     write_descriptor_sets[0].pBufferInfo = time_descriptor_buffer_infos;
     write_descriptor_sets[0].pTexelBufferView = 0;
@@ -2090,7 +2090,7 @@ static void renderer_update_debug_line_descriptor_sets(void) {
     write_descriptor_sets[1].dstBinding = 1;
     write_descriptor_sets[1].dstArrayElement = 0;
     write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[1].descriptorCount = CORE_ARRAY_COUNT(screen_descriptor_buffer_infos);
+    write_descriptor_sets[1].descriptorCount = ARRAY_COUNT(screen_descriptor_buffer_infos);
     write_descriptor_sets[1].pImageInfo = 0;
     write_descriptor_sets[1].pBufferInfo = screen_descriptor_buffer_infos;
     write_descriptor_sets[1].pTexelBufferView = 0;
@@ -2101,12 +2101,12 @@ static void renderer_update_debug_line_descriptor_sets(void) {
     write_descriptor_sets[2].dstBinding = 2;
     write_descriptor_sets[2].dstArrayElement = 0;
     write_descriptor_sets[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write_descriptor_sets[2].descriptorCount = CORE_ARRAY_COUNT(camera_descriptor_buffer_infos);
+    write_descriptor_sets[2].descriptorCount = ARRAY_COUNT(camera_descriptor_buffer_infos);
     write_descriptor_sets[2].pImageInfo = 0;
     write_descriptor_sets[2].pBufferInfo = camera_descriptor_buffer_infos;
     write_descriptor_sets[2].pTexelBufferView = 0;
 
-    vkUpdateDescriptorSets(g_context_device, CORE_ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
+    vkUpdateDescriptorSets(g_context_device, ARRAY_COUNT(write_descriptor_sets), write_descriptor_sets, 0, 0);
 
     frame_index++;
   }
@@ -2116,21 +2116,21 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
   s_renderer_time[s_renderer_frame_index]->time = (float)g_context_time;
   s_renderer_time[s_renderer_frame_index]->delta_time = (float)g_context_delta_time;
 
-  s_renderer_screen[s_renderer_frame_index]->resolution = math_vector2_xy((float)g_context_surface_width, (float)g_context_surface_height);
+  s_renderer_screen[s_renderer_frame_index]->resolution = vector2_xy((float)g_context_surface_width, (float)g_context_surface_height);
 
-  math_vector3_t eye = transform->world_position;
-  math_vector3_t center = math_vector3_add(transform->world_position, transform->local_front);
-  math_vector3_t up = math_vector3_down();
+  vector3_t eye = transform->world_position;
+  vector3_t center = vector3_add(transform->world_position, transform->local_front);
+  vector3_t up = vector3_down();
 
-  float fov = math_utility_deg_to_rad(camera->fov);
+  float fov = math_deg_to_rad(camera->fov);
   float aspect_ratio = (float)g_context_surface_width / (float)g_context_surface_height;
   float near_z = camera->near_z;
   float far_z = camera->far_z;
 
-  math_matrix4_t view = math_matrix4_look_at(eye, center, up);
-  math_matrix4_t projection = math_matrix4_persp(fov, aspect_ratio, near_z, far_z);
-  math_matrix4_t view_projection = math_matrix4_mul(view, projection);
-  math_matrix4_t view_projection_inv = math_matrix4_inverse(view_projection);
+  matrix4_t view = matrix4_look_at(eye, center, up);
+  matrix4_t projection = matrix4_persp(fov, aspect_ratio, near_z, far_z);
+  matrix4_t view_projection = matrix4_mul(view, projection);
+  matrix4_t view_projection_inv = matrix4_inverse(view_projection);
 
   s_renderer_camera[s_renderer_frame_index]->world_position = transform->world_position;
   s_renderer_camera[s_renderer_frame_index]->view = view;
@@ -2139,7 +2139,7 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
   s_renderer_camera[s_renderer_frame_index]->view_projection_inv = view_projection_inv;
   s_renderer_camera[s_renderer_frame_index]->max_ray_steps = camera->ray_steps;
 
-  s_renderer_cluster[s_renderer_frame_index]->chunk_count = math_ivector3_xyz(s_renderer_chunk_count_x, s_renderer_chunk_count_y, s_renderer_chunk_count_z);
+  s_renderer_cluster[s_renderer_frame_index]->chunk_count = ivector3_xyz(s_renderer_chunk_count_x, s_renderer_chunk_count_y, s_renderer_chunk_count_z);
   s_renderer_cluster[s_renderer_frame_index]->chunk_size = g_renderer_chunk_size;
   s_renderer_cluster[s_renderer_frame_index]->max_lod_levels = s_renderer_chunk_lod_levels;
 }
@@ -2275,7 +2275,7 @@ static void renderer_record_graphics_commands(void) {
   render_pass_create_info.renderArea.extent.width = g_context_surface_width;
   render_pass_create_info.renderArea.extent.height = g_context_surface_height;
   render_pass_create_info.pClearValues = clear_values;
-  render_pass_create_info.clearValueCount = CORE_ARRAY_COUNT(clear_values);
+  render_pass_create_info.clearValueCount = ARRAY_COUNT(clear_values);
 
   vkCmdBeginRenderPass(s_renderer_graphics_command_buffers[s_renderer_frame_index], &render_pass_create_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -2302,7 +2302,7 @@ static void renderer_record_graphics_commands(void) {
     uint64_t vertex_offsets[] = {0, 0};
 
     vkCmdBindPipeline(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline);
-    vkCmdBindVertexBuffers(s_renderer_graphics_command_buffers[s_renderer_frame_index], 0, CORE_ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
+    vkCmdBindVertexBuffers(s_renderer_graphics_command_buffers[s_renderer_frame_index], 0, ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
     vkCmdBindIndexBuffer(s_renderer_graphics_command_buffers[s_renderer_frame_index], s_renderer_cluster_index_buffer[s_renderer_frame_index], 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline_layout, 0, 1, &s_renderer_chunk_renderer_descriptor_sets[s_renderer_frame_index], 0, 0);
     vkCmdDrawIndexed(s_renderer_graphics_command_buffers[s_renderer_frame_index], RENDERER_CLUSTER_INDEX_COUNT, 1, 0, 0, 0);
@@ -2314,7 +2314,7 @@ static void renderer_record_graphics_commands(void) {
       uint64_t vertex_offsets[] = {0};
 
       vkCmdBindPipeline(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_debug_line_pipeline);
-      vkCmdBindVertexBuffers(s_renderer_graphics_command_buffers[s_renderer_frame_index], 0, CORE_ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
+      vkCmdBindVertexBuffers(s_renderer_graphics_command_buffers[s_renderer_frame_index], 0, ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
       vkCmdBindIndexBuffer(s_renderer_graphics_command_buffers[s_renderer_frame_index], s_renderer_debug_line_index_buffer[s_renderer_frame_index], 0, VK_INDEX_TYPE_UINT32);
       vkCmdBindDescriptorSets(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_debug_line_pipeline_layout, 0, 1, &s_renderer_debug_line_descriptor_sets[s_renderer_frame_index], 0, 0);
       vkCmdDrawIndexed(s_renderer_graphics_command_buffers[s_renderer_frame_index], s_renderer_debug_line_index_offset[s_renderer_frame_index], 1, 0, 0, 0);
@@ -2330,7 +2330,7 @@ static void renderer_record_graphics_commands(void) {
 static void renderer_destroy_command_buffer(void) {
   vkFreeCommandBuffers(g_context_device, g_context_command_pool, s_renderer_frames_in_flight, s_renderer_graphics_command_buffers);
 
-  core_heap_free(s_renderer_graphics_command_buffers);
+  heap_free(s_renderer_graphics_command_buffers);
 }
 static void renderer_destroy_sync_objects(void) {
   int32_t frame_index = 0;
@@ -2343,9 +2343,9 @@ static void renderer_destroy_sync_objects(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_graphics_complete_semaphores);
-  core_heap_free(s_renderer_present_complete_semaphores);
-  core_heap_free(s_renderer_frame_fences);
+  heap_free(s_renderer_graphics_complete_semaphores);
+  heap_free(s_renderer_present_complete_semaphores);
+  heap_free(s_renderer_frame_fences);
 }
 static void renderer_destroy_descriptor_pools(void) {
   vkDestroyDescriptorPool(g_context_device, s_renderer_chunk_editor_descriptor_pool, 0);
@@ -2362,11 +2362,11 @@ static void renderer_destroy_descriptor_set_layouts(void) {
   vkDestroyDescriptorSetLayout(g_context_device, s_renderer_debug_line_descriptor_set_layout, 0);
 }
 static void renderer_destroy_descriptor_sets(void) {
-  core_heap_free(s_renderer_chunk_editor_descriptor_sets);
-  core_heap_free(s_renderer_chunk_generator_descriptor_sets);
-  core_heap_free(s_renderer_chunk_mipmap_descriptor_sets);
-  core_heap_free(s_renderer_chunk_renderer_descriptor_sets);
-  core_heap_free(s_renderer_debug_line_descriptor_sets);
+  heap_free(s_renderer_chunk_editor_descriptor_sets);
+  heap_free(s_renderer_chunk_generator_descriptor_sets);
+  heap_free(s_renderer_chunk_mipmap_descriptor_sets);
+  heap_free(s_renderer_chunk_renderer_descriptor_sets);
+  heap_free(s_renderer_debug_line_descriptor_sets);
 }
 static void renderer_destroy_pipeline_layouts(void) {
   vkDestroyPipelineLayout(g_context_device, s_renderer_chunk_editor_pipeline_layout, 0);
@@ -2393,9 +2393,9 @@ static void renderer_destroy_time_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_time_buffer);
-  core_heap_free(s_renderer_time_buffer_device_memory);
-  core_heap_free(s_renderer_time);
+  heap_free(s_renderer_time_buffer);
+  heap_free(s_renderer_time_buffer_device_memory);
+  heap_free(s_renderer_time);
 }
 static void renderer_destroy_screen_buffer(void) {
   int32_t frame_index = 0;
@@ -2407,9 +2407,9 @@ static void renderer_destroy_screen_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_screen_buffer);
-  core_heap_free(s_renderer_screen_buffer_device_memory);
-  core_heap_free(s_renderer_screen);
+  heap_free(s_renderer_screen_buffer);
+  heap_free(s_renderer_screen_buffer_device_memory);
+  heap_free(s_renderer_screen);
 }
 static void renderer_destroy_camera_buffer(void) {
   int32_t frame_index = 0;
@@ -2421,9 +2421,9 @@ static void renderer_destroy_camera_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_camera_buffer);
-  core_heap_free(s_renderer_camera_buffer_device_memory);
-  core_heap_free(s_renderer_camera);
+  heap_free(s_renderer_camera_buffer);
+  heap_free(s_renderer_camera_buffer_device_memory);
+  heap_free(s_renderer_camera);
 }
 static void renderer_destroy_cluster_buffer(void) {
   int32_t frame_index = 0;
@@ -2435,9 +2435,9 @@ static void renderer_destroy_cluster_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_cluster_buffer);
-  core_heap_free(s_renderer_cluster_buffer_device_memory);
-  core_heap_free(s_renderer_cluster);
+  heap_free(s_renderer_cluster_buffer);
+  heap_free(s_renderer_cluster_buffer_device_memory);
+  heap_free(s_renderer_cluster);
 }
 static void renderer_destroy_cluster_vertex_buffer(void) {
   int32_t frame_index = 0;
@@ -2449,9 +2449,9 @@ static void renderer_destroy_cluster_vertex_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_cluster_vertex_buffer);
-  core_heap_free(s_renderer_cluster_vertex_buffer_device_memory);
-  core_heap_free(s_renderer_cluster_vertex);
+  heap_free(s_renderer_cluster_vertex_buffer);
+  heap_free(s_renderer_cluster_vertex_buffer_device_memory);
+  heap_free(s_renderer_cluster_vertex);
 }
 static void renderer_destroy_cluster_index_buffer(void) {
   int32_t frame_index = 0;
@@ -2463,9 +2463,9 @@ static void renderer_destroy_cluster_index_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_cluster_index_buffer);
-  core_heap_free(s_renderer_cluster_index_buffer_device_memory);
-  core_heap_free(s_renderer_cluster_index);
+  heap_free(s_renderer_cluster_index_buffer);
+  heap_free(s_renderer_cluster_index_buffer_device_memory);
+  heap_free(s_renderer_cluster_index);
 }
 static void renderer_destroy_debug_line_vertex_buffer(void) {
   uint64_t frame_index = 0;
@@ -2477,9 +2477,9 @@ static void renderer_destroy_debug_line_vertex_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_debug_line_vertex_buffer);
-  core_heap_free(s_renderer_debug_line_vertex_buffer_device_memory);
-  core_heap_free(s_renderer_debug_line_vertex);
+  heap_free(s_renderer_debug_line_vertex_buffer);
+  heap_free(s_renderer_debug_line_vertex_buffer_device_memory);
+  heap_free(s_renderer_debug_line_vertex);
 }
 static void renderer_destroy_debug_line_index_buffer(void) {
   uint64_t frame_index = 0;
@@ -2491,9 +2491,9 @@ static void renderer_destroy_debug_line_index_buffer(void) {
     frame_index++;
   }
 
-  core_heap_free(s_renderer_debug_line_index_buffer);
-  core_heap_free(s_renderer_debug_line_index_buffer_device_memory);
-  core_heap_free(s_renderer_debug_line_index);
+  heap_free(s_renderer_debug_line_index_buffer);
+  heap_free(s_renderer_debug_line_index_buffer_device_memory);
+  heap_free(s_renderer_debug_line_index);
 }
 
 static void renderer_destroy_chunk_images(void) {
@@ -2512,24 +2512,24 @@ static void renderer_destroy_chunk_images(void) {
       vkFreeMemory(g_context_device, s_renderer_chunk_image_device_memory[frame_index][chunk_index], 0);
       vkDestroyImage(g_context_device, s_renderer_chunk_image[frame_index][chunk_index], 0);
 
-      core_heap_free(s_renderer_chunk_image_view[frame_index][chunk_index]);
-      core_heap_free(s_renderer_chunk_sampler[frame_index][chunk_index]);
+      heap_free(s_renderer_chunk_image_view[frame_index][chunk_index]);
+      heap_free(s_renderer_chunk_sampler[frame_index][chunk_index]);
 
       chunk_index++;
     }
 
-    core_heap_free(s_renderer_chunk_image[frame_index]);
-    core_heap_free(s_renderer_chunk_image_device_memory[frame_index]);
-    core_heap_free(s_renderer_chunk_image_view[frame_index]);
-    core_heap_free(s_renderer_chunk_sampler[frame_index]);
+    heap_free(s_renderer_chunk_image[frame_index]);
+    heap_free(s_renderer_chunk_image_device_memory[frame_index]);
+    heap_free(s_renderer_chunk_image_view[frame_index]);
+    heap_free(s_renderer_chunk_sampler[frame_index]);
 
     frame_index++;
   }
 
-  core_heap_free(s_renderer_chunk_image);
-  core_heap_free(s_renderer_chunk_image_device_memory);
-  core_heap_free(s_renderer_chunk_image_view);
-  core_heap_free(s_renderer_chunk_sampler);
+  heap_free(s_renderer_chunk_image);
+  heap_free(s_renderer_chunk_image_device_memory);
+  heap_free(s_renderer_chunk_image_view);
+  heap_free(s_renderer_chunk_sampler);
 }
 
 static LRESULT WINAPI renderer_cluster_worker_thread(PVOID user_param) {

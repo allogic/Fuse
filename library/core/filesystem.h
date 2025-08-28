@@ -9,11 +9,11 @@
 extern "C" {
 #endif // __cplusplus
 
-uint8_t core_filesystem_read_text(uint8_t **buffer, uint64_t *buffer_size, char const *file_path);
-uint8_t core_filesystem_read_binary(uint8_t **buffer, uint64_t *buffer_size, char const *file_path);
+uint8_t filesystem_read_text(uint8_t **buffer, uint64_t *buffer_size, char const *file_path);
+uint8_t filesystem_read_binary(uint8_t **buffer, uint64_t *buffer_size, char const *file_path);
 
-uint8_t core_filesystem_write_text(uint8_t *buffer, uint64_t buffer_size, char const *file_path);
-uint8_t core_filesystem_write_binary(uint8_t *buffer, uint64_t buffer_size, char const *file_path);
+uint8_t filesystem_write_text(uint8_t *buffer, uint64_t buffer_size, char const *file_path);
+uint8_t filesystem_write_binary(uint8_t *buffer, uint64_t buffer_size, char const *file_path);
 
 #ifdef __cplusplus
 }

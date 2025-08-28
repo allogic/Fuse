@@ -1,6 +1,6 @@
 #include <engine/physics/ray.h>
 
-physics_ray_t physics_ray_from(math_vector3_t origin, math_vector3_t direction) {
+physics_ray_t physics_ray_from(vector3_t origin, vector3_t direction) {
   physics_ray_t r = {
     origin,
     direction,
@@ -14,14 +14,14 @@ void physics_ray_cast(physics_ray_t ray, int32_t max_steps) {
 
   int32_t step_index = 0;
 
-  math_vector3_t ray_direction_inv = math_vector3_div_scalar_inv(1.0F, ray_direction);
-  math_vector3_t ray_direction_sign = math_vector3_sign(ray_direction);
+  vector3_t ray_direction_inv = math_vector3_div_scalar_inv(1.0F, ray_direction);
+  vector3_t ray_direction_sign = math_vector3_sign(ray_direction);
 
-  math_vector3_t mask = { 0.0F, 0.0F, 0.0F };
+  vector3_t mask = { 0.0F, 0.0F, 0.0F };
 
-  math_vector3_t world_position = ray_origin;
-  math_vector3_t sample_position = math_vector3_floor(world_position);
-  math_vector3_t side_distance = (sample_position - world_position + 0.5F + ray_direction_sign * 0.5F) * ray_direction_inv;
+  vector3_t world_position = ray_origin;
+  vector3_t sample_position = math_vector3_floor(world_position);
+  vector3_t side_distance = (sample_position - world_position + 0.5F + ray_direction_sign * 0.5F) * ray_direction_inv;
 
   while (step_index < max_steps)
   {
@@ -44,7 +44,7 @@ void physics_ray_cast(physics_ray_t ray, int32_t max_steps) {
           step_index++;
   }
 
-  math_vector3_t mini = (sample_position - ray_origin + 0.5F - 0.5F * ray_direction_sign) * ray_direction_inv;
+  vector3_t mini = (sample_position - ray_origin + 0.5F - 0.5F * ray_direction_sign) * ray_direction_inv;
 
   float t = max(mini.x, max(mini.y, mini.z));
 

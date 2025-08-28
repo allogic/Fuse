@@ -8,8 +8,6 @@
 player_t *g_player_0 = {0};
 
 int main(int argc, char **argv, char **envp) {
-  core_heap_prologue();
-
   context_create(1920, 1080);
 
   g_player_0 = player_create();
@@ -31,7 +29,7 @@ int main(int argc, char **argv, char **envp) {
 
   context_destroy();
 
-  core_heap_epilogue();
+  heap_reset();
 
   return 0;
 }

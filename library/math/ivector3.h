@@ -11,28 +11,28 @@
 extern "C" {
 #endif // __cplusplus
 
-__forceinline math_ivector3_t math_ivector3_zero(void);
-__forceinline math_ivector3_t math_ivector3_one(void);
-__forceinline math_ivector3_t math_ivector3_right(void);
-__forceinline math_ivector3_t math_ivector3_up(void);
-__forceinline math_ivector3_t math_ivector3_front(void);
-__forceinline math_ivector3_t math_ivector3_left(void);
-__forceinline math_ivector3_t math_ivector3_down(void);
-__forceinline math_ivector3_t math_ivector3_back(void);
-__forceinline math_ivector3_t math_ivector3_xyz(int32_t x, int32_t y, int32_t z);
-__forceinline math_ivector3_t math_ivector3_negate(math_ivector3_t a);
-__forceinline math_ivector3_t math_ivector3_add(math_ivector3_t a, math_ivector3_t b);
-__forceinline math_ivector3_t math_ivector3_sub(math_ivector3_t a, math_ivector3_t b);
-__forceinline math_ivector3_t math_ivector3_mul(math_ivector3_t a, math_ivector3_t b);
-__forceinline math_ivector3_t math_ivector3_div(math_ivector3_t a, math_ivector3_t b);
-__forceinline math_ivector3_t math_ivector3_add_scalar(math_ivector3_t a, int32_t b);
-__forceinline math_ivector3_t math_ivector3_sub_scalar(math_ivector3_t a, int32_t b);
-__forceinline math_ivector3_t math_ivector3_mul_scalar(math_ivector3_t a, int32_t b);
-__forceinline math_ivector3_t math_ivector3_div_scalar(math_ivector3_t a, int32_t b);
-__forceinline float math_ivector3_dot(math_ivector3_t a, math_ivector3_t b);
-__forceinline float math_ivector3_length(math_ivector3_t a);
-__forceinline float math_ivector3_length2(math_ivector3_t a);
-__forceinline void math_ivector3_print(math_ivector3_t a);
+__forceinline ivector3_t ivector3_zero(void);
+__forceinline ivector3_t ivector3_one(void);
+__forceinline ivector3_t ivector3_right(void);
+__forceinline ivector3_t ivector3_up(void);
+__forceinline ivector3_t ivector3_front(void);
+__forceinline ivector3_t ivector3_left(void);
+__forceinline ivector3_t ivector3_down(void);
+__forceinline ivector3_t ivector3_back(void);
+__forceinline ivector3_t ivector3_xyz(int32_t x, int32_t y, int32_t z);
+__forceinline ivector3_t ivector3_negate(ivector3_t a);
+__forceinline ivector3_t ivector3_add(ivector3_t a, ivector3_t b);
+__forceinline ivector3_t ivector3_sub(ivector3_t a, ivector3_t b);
+__forceinline ivector3_t ivector3_mul(ivector3_t a, ivector3_t b);
+__forceinline ivector3_t ivector3_div(ivector3_t a, ivector3_t b);
+__forceinline ivector3_t ivector3_adds(ivector3_t a, int32_t b);
+__forceinline ivector3_t ivector3_subs(ivector3_t a, int32_t b);
+__forceinline ivector3_t ivector3_muls(ivector3_t a, int32_t b);
+__forceinline ivector3_t ivector3_divs(ivector3_t a, int32_t b);
+__forceinline float ivector3_dot(ivector3_t a, ivector3_t b);
+__forceinline float ivector3_length(ivector3_t a);
+__forceinline float ivector3_length2(ivector3_t a);
+__forceinline void ivector3_print(ivector3_t a);
 
 #ifdef __cplusplus
 }

@@ -1,149 +1,149 @@
-__forceinline math_vector2_t math_vector2_zero(void) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_zero(void) {
+  vector2_t v = {
     0.0F,
     0.0F,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_one(void) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_one(void) {
+  vector2_t v = {
     1.0F,
     1.0F,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_right(void) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_right(void) {
+  vector2_t v = {
     1.0F,
     0.0F,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_up(void) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_up(void) {
+  vector2_t v = {
     0.0F,
     1.0F,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_left(void) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_left(void) {
+  vector2_t v = {
     -1.0F,
     0.0F,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_down(void) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_down(void) {
+  vector2_t v = {
     0.0F,
     -1.0F,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_xy(float x, float y) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_xy(float x, float y) {
+  vector2_t v = {
     x,
     y,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_negate(math_vector2_t a) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_negate(vector2_t a) {
+  vector2_t v = {
     -a.x,
     -a.y,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_add(math_vector2_t a, math_vector2_t b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_add(vector2_t a, vector2_t b) {
+  vector2_t v = {
     a.x + b.x,
     a.y + b.y,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_sub(math_vector2_t a, math_vector2_t b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_sub(vector2_t a, vector2_t b) {
+  vector2_t v = {
     a.x - b.x,
     a.y - b.y,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_mul(math_vector2_t a, math_vector2_t b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_mul(vector2_t a, vector2_t b) {
+  vector2_t v = {
     a.x * b.x,
     a.y * b.y,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_div(math_vector2_t a, math_vector2_t b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_div(vector2_t a, vector2_t b) {
+  vector2_t v = {
     a.x / b.x,
     a.y / b.y,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_add_scalar(math_vector2_t a, float b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_adds(vector2_t a, float b) {
+  vector2_t v = {
     a.x + b,
     a.y + b,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_sub_scalar(math_vector2_t a, float b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_subs(vector2_t a, float b) {
+  vector2_t v = {
     a.x - b,
     a.y - b,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_mul_scalar(math_vector2_t a, float b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_muls(vector2_t a, float b) {
+  vector2_t v = {
     a.x * b,
     a.y * b,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_div_scalar(math_vector2_t a, float b) {
-  math_vector2_t v = {
+__forceinline vector2_t vector2_divs(vector2_t a, float b) {
+  vector2_t v = {
     a.x / b,
     a.y / b,
   };
 
   return v;
 }
-__forceinline math_vector2_t math_vector2_norm(math_vector2_t a) {
-  float l = math_vector2_length(a);
+__forceinline vector2_t vector2_norm(vector2_t a) {
+  float l = vector2_length(a);
 
   if (l > 0.0F) {
-    return math_vector2_mul_scalar(a, 1.0F / l);
+    return vector2_muls(a, 1.0F / l);
   } else {
-    return math_vector2_zero();
+    return vector2_zero();
   }
 }
-__forceinline float math_vector2_dot(math_vector2_t a, math_vector2_t b) {
+__forceinline float vector2_dot(vector2_t a, vector2_t b) {
   return (a.x * b.x) + (a.y * b.y);
 }
-__forceinline float math_vector2_length(math_vector2_t a) {
-  return sqrtf(math_vector2_dot(a, a));
+__forceinline float vector2_length(vector2_t a) {
+  return sqrtf(vector2_dot(a, a));
 }
-__forceinline float math_vector2_length2(math_vector2_t a) {
-  return math_vector2_dot(a, a);
+__forceinline float vector2_length2(vector2_t a) {
+  return vector2_dot(a, a);
 }
-__forceinline void math_vector2_print(math_vector2_t a) {
+__forceinline void vector2_print(vector2_t a) {
   printf("[%f, %f]\n", a.x, a.y);
 }

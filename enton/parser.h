@@ -109,8 +109,8 @@ union YYSTYPE
 {
 #line 33 "parser.y"
 
-	core_string_t string;
-	core_vector_t vector;
+	string_t string;
+	vector_t vector;
 	int64_t number;
 	expression_t expression;
 	primitive_type_t primitive_type;

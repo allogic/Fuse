@@ -6,7 +6,7 @@
 #include <library/core/constants.h>
 #include <library/core/forward.h>
 
-#include <library/math/utility.h>
+#include <library/math/math.h>
 #include <library/math/vector2.h>
 #include <library/math/vector3.h>
 #include <library/math/vector4.h>

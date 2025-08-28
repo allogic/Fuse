@@ -10,10 +10,10 @@ extern "C" {
 #endif // __cplusplus
 
 expression_t expression_none(void);
-expression_t expression_vector(core_vector_t vector);
-expression_t expression_identifier(core_string_t identifier);
-expression_t expression_custom_type(core_string_t identifier);
-expression_t expression_string(core_string_t string);
+expression_t expression_vector(vector_t vector);
+expression_t expression_identifier(string_t identifier);
+expression_t expression_custom_type(string_t identifier);
+expression_t expression_string(string_t string);
 expression_t expression_number(int64_t number);
 expression_t expression_primitive_type(primitive_type_t primitive_type);
 

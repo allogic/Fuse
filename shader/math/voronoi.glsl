@@ -18,7 +18,7 @@ float voronoi(vec2 position, float angle_offset, float radius, float density)
 			vec2 g = vec2(i, j);
 			vec2 o = urandom2(n + g);
 
-			o = 0.5 + 0.41 * sin(angle_offset + MATH_TAU * o);
+			o = 0.5 + 0.41 * sin(angle_offset + TAU * o);
 
 			vec2 r = (g - f + o) * radius;
 
@@ -50,7 +50,7 @@ float voronoi(vec3 position, float angle_offset, float radius, float density)
 				vec3 g = vec3(i, j, k);
 				vec3 o = urandom3(n + g);
 
-				o = 0.5 + 0.41 * sin(angle_offset + MATH_TAU * o);
+				o = 0.5 + 0.41 * sin(angle_offset + TAU * o);
 
 				vec3 r = (g - f + o) * radius;
 

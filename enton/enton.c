@@ -2,26 +2,47 @@
 #include "enton/parser.h"
 
 int32_t main(int32_t argc, char **argv) {
-  core_heap_prologue();
+  context_alloc();
 
-  yyfilename = "C:\\Users\\burm\\Downloads\\Fuse\\shader\\test.glsl";
+  if (strcmp("render", argv[1]) == 0) {
+    FILE *vertex_shader_file = fopen(argv[2], "r");
+    FILE *fragment_shader_file = fopen(argv[3], "r");
 
-  FILE *file = fopen("C:\\Users\\burm\\Downloads\\Fuse\\shader\\test.glsl", "r");
+    if (vertex_shader_file) {
+      yyfilename = argv[2];
 
-  if (file) {
-    context_alloc();
+      yyrestart(vertex_shader_file);
+      yyparse();
 
-    yyrestart(file);
-    yyparse();
+      fclose(vertex_shader_file);
+    }
 
-    context_build();
-    context_print();
-    context_free();
+    if (fragment_shader_file) {
+      yyfilename = argv[3];
 
-    fclose(file);
+      yyrestart(fragment_shader_file);
+      yyparse();
+
+      fclose(fragment_shader_file);
+    }
+  } else if (strcmp("compute", argv[1]) == 0) {
+    FILE *compute_shader_file = fopen(argv[2], "r");
+
+    if (compute_shader_file) {
+      yyfilename = argv[2];
+
+      yyrestart(compute_shader_file);
+      yyparse();
+
+      fclose(compute_shader_file);
+    }
   }
 
-  core_heap_epilogue();
+  context_build();
+  context_print();
+  context_free();
+
+  heap_reset();
 
   return 0;
 }

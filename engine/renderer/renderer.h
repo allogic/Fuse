@@ -31,8 +31,8 @@ void renderer_update(void);
 void renderer_draw(transform_t *transform, camera_t *camera);
 void renderer_destroy(void);
 
-void renderer_draw_debug_line(math_vector3_t from, math_vector3_t to, math_vector4_t color);
-void renderer_draw_debug_box(math_vector3_t position, math_vector3_t size, math_vector4_t color);
+void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color);
+void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color);
 
 #ifdef __cplusplus
 }

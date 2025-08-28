@@ -9,7 +9,7 @@ expression_t expression_none(void) {
 
   return none_expression;
 }
-expression_t expression_vector(core_vector_t vector) {
+expression_t expression_vector(vector_t vector) {
   expression_t pack_expression = {0};
 
   pack_expression.expression_type = EXPRESSION_TYPE_VECTOR;
@@ -18,7 +18,7 @@ expression_t expression_vector(core_vector_t vector) {
 
   return pack_expression;
 }
-expression_t expression_identifier(core_string_t identifier) {
+expression_t expression_identifier(string_t identifier) {
   expression_t identifier_expression = {0};
 
   identifier_expression.expression_type = EXPRESSION_TYPE_IDENTIFIER;
@@ -27,7 +27,7 @@ expression_t expression_identifier(core_string_t identifier) {
 
   return identifier_expression;
 }
-expression_t expression_custom_type(core_string_t identifier) {
+expression_t expression_custom_type(string_t identifier) {
   expression_t type_expression = {0};
 
   type_expression.expression_type = EXPRESSION_TYPE_CUSTOM_TYPE;
@@ -36,7 +36,7 @@ expression_t expression_custom_type(core_string_t identifier) {
 
   return type_expression;
 }
-expression_t expression_string(core_string_t string) {
+expression_t expression_string(string_t string) {
   expression_t string_expression = {0};
 
   string_expression.expression_type = EXPRESSION_TYPE_STRING;
@@ -69,10 +69,10 @@ expression_t expression_assignment(expression_t left_expression, expression_t ri
 
   assignment_expression.expression_type = EXPRESSION_TYPE_ASSIGNMENT;
   assignment_expression.allocation_type = ALLOCATION_TYPE_VECTOR;
-  assignment_expression.vector = core_vector_alloc(sizeof(expression_t));
+  assignment_expression.vector = vector_alloc(sizeof(expression_t));
 
-  core_vector_push(&assignment_expression.vector, &left_expression);
-  core_vector_push(&assignment_expression.vector, &right_expression);
+  vector_push(&assignment_expression.vector, &left_expression);
+  vector_push(&assignment_expression.vector, &right_expression);
 
   return assignment_expression;
 }
@@ -81,11 +81,11 @@ expression_t expression_layout_input(expression_t type_expression, expression_t 
 
   input_expression.expression_type = EXPRESSION_TYPE_LAYOUT_INPUT;
   input_expression.allocation_type = ALLOCATION_TYPE_VECTOR;
-  input_expression.vector = core_vector_alloc(sizeof(expression_t));
+  input_expression.vector = vector_alloc(sizeof(expression_t));
 
-  core_vector_push(&input_expression.vector, &type_expression);
-  core_vector_push(&input_expression.vector, &identifier_expression);
-  core_vector_push(&input_expression.vector, &modifier_expression);
+  vector_push(&input_expression.vector, &type_expression);
+  vector_push(&input_expression.vector, &identifier_expression);
+  vector_push(&input_expression.vector, &modifier_expression);
 
   return input_expression;
 }
@@ -94,11 +94,11 @@ expression_t expression_layout_uniform(expression_t type_expression, expression_
 
   uniform_expression.expression_type = EXPRESSION_TYPE_LAYOUT_UNIFORM;
   uniform_expression.allocation_type = ALLOCATION_TYPE_VECTOR;
-  uniform_expression.vector = core_vector_alloc(sizeof(expression_t));
+  uniform_expression.vector = vector_alloc(sizeof(expression_t));
 
-  core_vector_push(&uniform_expression.vector, &type_expression);
-  core_vector_push(&uniform_expression.vector, &identifier_expression);
-  core_vector_push(&uniform_expression.vector, &modifier_expression);
+  vector_push(&uniform_expression.vector, &type_expression);
+  vector_push(&uniform_expression.vector, &identifier_expression);
+  vector_push(&uniform_expression.vector, &modifier_expression);
 
   return uniform_expression;
 }
@@ -107,10 +107,10 @@ expression_t expression_struct(expression_t identifier_expression, expression_t 
 
   struct_expression.expression_type = EXPRESSION_TYPE_STRUCT;
   struct_expression.allocation_type = ALLOCATION_TYPE_VECTOR;
-  struct_expression.vector = core_vector_alloc(sizeof(expression_t));
+  struct_expression.vector = vector_alloc(sizeof(expression_t));
 
-  core_vector_push(&struct_expression.vector, &identifier_expression);
-  core_vector_push(&struct_expression.vector, &struct_member_expressions);
+  vector_push(&struct_expression.vector, &identifier_expression);
+  vector_push(&struct_expression.vector, &struct_member_expressions);
 
   return struct_expression;
 }
@@ -119,10 +119,10 @@ expression_t expression_struct_member(expression_t primitive_type_expression, ex
 
   struct_member_expression.expression_type = EXPRESSION_TYPE_STRUCT_MEMBER;
   struct_member_expression.allocation_type = ALLOCATION_TYPE_VECTOR;
-  struct_member_expression.vector = core_vector_alloc(sizeof(expression_t));
+  struct_member_expression.vector = vector_alloc(sizeof(expression_t));
 
-  core_vector_push(&struct_member_expression.vector, &primitive_type_expression);
-  core_vector_push(&struct_member_expression.vector, &identifier_expression);
+  vector_push(&struct_member_expression.vector, &primitive_type_expression);
+  vector_push(&struct_member_expression.vector, &identifier_expression);
 
   return struct_member_expression;
 }
@@ -145,13 +145,13 @@ void expression_print(expression_t expression, uint64_t indent_count, uint64_t i
       printf("vector\n");
       break;
     case EXPRESSION_TYPE_IDENTIFIER:
-      printf("identifier: %s\n", core_string_buffer(&expression.string));
+      printf("identifier: %s\n", string_buffer(&expression.string));
       break;
     case EXPRESSION_TYPE_CUSTOM_TYPE:
-      printf("custom type: %s\n", core_string_buffer(&expression.string));
+      printf("custom type: %s\n", string_buffer(&expression.string));
       break;
     case EXPRESSION_TYPE_STRING:
-      printf("string: %s\n", core_string_buffer(&expression.string));
+      printf("string: %s\n", string_buffer(&expression.string));
       break;
     case EXPRESSION_TYPE_NUMBER:
       printf("number: %lld\n", expression.number);
@@ -199,9 +199,9 @@ void expression_print(expression_t expression, uint64_t indent_count, uint64_t i
   }
 
   uint64_t expression_index = 0;
-  uint64_t expression_count = core_vector_count(&expression.vector);
+  uint64_t expression_count = vector_count(&expression.vector);
   while (expression_index < expression_count) {
-    expression_t sub_expr = *(expression_t *)core_vector_at(&expression.vector, expression_index);
+    expression_t sub_expr = *(expression_t *)vector_at(&expression.vector, expression_index);
 
     expression_print(sub_expr, indent_count + indent_increment, indent_increment, 0, expression_index == 0, expression_index == (expression_count - 1));
 
@@ -214,20 +214,20 @@ void expression_print(expression_t expression, uint64_t indent_count, uint64_t i
 }
 void expression_free(expression_t expr) {
   if (expr.allocation_type & ALLOCATION_TYPE_STRING) {
-    core_string_free(&expr.string);
+    string_free(&expr.string);
   }
 
   if (expr.allocation_type & ALLOCATION_TYPE_VECTOR) {
     uint64_t expression_index = 0;
-    uint64_t expression_count = core_vector_count(&expr.vector);
+    uint64_t expression_count = vector_count(&expr.vector);
     while (expression_index < expression_count) {
-      expression_t sub_expressions = *(expression_t *)core_vector_at(&expr.vector, expression_index);
+      expression_t sub_expressions = *(expression_t *)vector_at(&expr.vector, expression_index);
 
       expression_free(sub_expressions);
 
       expression_index++;
     }
 
-    core_vector_free(&expr.vector);
+    vector_free(&expr.vector);
   }
 }

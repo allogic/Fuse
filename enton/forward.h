@@ -39,8 +39,8 @@ typedef struct expression_t {
   expression_type_t expression_type;
   allocation_type_t allocation_type;
   primitive_type_t primitive_type;
-  core_string_t string;
-  core_vector_t vector;
+  string_t string;
+  vector_t vector;
   int64_t number;
 } expression_t;
 

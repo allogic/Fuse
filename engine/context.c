@@ -483,7 +483,7 @@ static void context_create_instance(void) {
   VkInstanceCreateInfo instance_create_info = {0};
   instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   instance_create_info.pApplicationInfo = &app_info;
-  instance_create_info.enabledExtensionCount = CORE_ARRAY_COUNT(s_context_layer_extensions);
+  instance_create_info.enabledExtensionCount = ARRAY_COUNT(s_context_layer_extensions);
   instance_create_info.ppEnabledExtensionNames = s_context_layer_extensions;
 
 #ifdef BUILD_DEBUG
@@ -494,7 +494,7 @@ static void context_create_instance(void) {
   debug_create_info.pfnUserCallback = context_vulkan_message_proc;
 
   instance_create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debug_create_info;
-  instance_create_info.enabledLayerCount = CORE_ARRAY_COUNT(s_context_validation_layers);
+  instance_create_info.enabledLayerCount = ARRAY_COUNT(s_context_validation_layers);
   instance_create_info.ppEnabledLayerNames = s_context_validation_layers;
 #endif // BUILD_DEBUG
 
@@ -546,15 +546,15 @@ static void context_create_device(void) {
   VkDeviceCreateInfo device_create_info = {0};
   device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   device_create_info.pQueueCreateInfos = device_queue_create_infos;
-  device_create_info.queueCreateInfoCount = CORE_ARRAY_COUNT(device_queue_create_infos);
+  device_create_info.queueCreateInfoCount = ARRAY_COUNT(device_queue_create_infos);
   device_create_info.pEnabledFeatures = 0;
   device_create_info.pNext = &physical_device_features_2;
   device_create_info.ppEnabledExtensionNames = s_context_device_extensions;
-  device_create_info.enabledExtensionCount = CORE_ARRAY_COUNT(s_context_device_extensions);
+  device_create_info.enabledExtensionCount = ARRAY_COUNT(s_context_device_extensions);
 
 #ifdef BUILD_DEBUG
   device_create_info.ppEnabledLayerNames = s_context_validation_layers;
-  device_create_info.enabledLayerCount = CORE_ARRAY_COUNT(s_context_validation_layers);
+  device_create_info.enabledLayerCount = ARRAY_COUNT(s_context_validation_layers);
 #endif // BUILD_DEBUG
 
   VULKAN_CHECK(vkCreateDevice(g_context_physical_device, &device_create_info, 0, &g_context_device));
@@ -592,13 +592,13 @@ static void context_check_surface_capabilities(void) {
   int32_t surface_format_count = 0;
   VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(g_context_physical_device, g_context_surface, &surface_format_count, 0));
 
-  VkSurfaceFormatKHR *surface_formats = (VkSurfaceFormatKHR *)core_heap_alloc(sizeof(VkSurfaceFormatKHR) * surface_format_count);
+  VkSurfaceFormatKHR *surface_formats = (VkSurfaceFormatKHR *)heap_alloc(sizeof(VkSurfaceFormatKHR) * surface_format_count);
   VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(g_context_physical_device, g_context_surface, &surface_format_count, surface_formats));
 
   int32_t present_mode_count = 0;
   VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(g_context_physical_device, g_context_surface, &present_mode_count, 0));
 
-  VkPresentModeKHR *present_modes = (VkPresentModeKHR *)core_heap_alloc(sizeof(VkPresentModeKHR) * present_mode_count);
+  VkPresentModeKHR *present_modes = (VkPresentModeKHR *)heap_alloc(sizeof(VkPresentModeKHR) * present_mode_count);
   VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(g_context_physical_device, g_context_surface, &present_mode_count, present_modes));
 
   uint64_t surface_format_index = 0;
@@ -627,20 +627,20 @@ static void context_check_surface_capabilities(void) {
     present_mode_index++;
   }
 
-  core_heap_free(surface_formats);
-  core_heap_free(present_modes);
+  heap_free(surface_formats);
+  heap_free(present_modes);
 }
 static void context_check_physical_device_extensions(void) {
   int32_t available_device_extension_count = 0;
   VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(g_context_physical_device, 0, &available_device_extension_count, 0));
 
-  VkExtensionProperties *available_device_extensions = (VkExtensionProperties *)core_heap_alloc(sizeof(VkExtensionProperties) * available_device_extension_count);
+  VkExtensionProperties *available_device_extensions = (VkExtensionProperties *)heap_alloc(sizeof(VkExtensionProperties) * available_device_extension_count);
   VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(g_context_physical_device, 0, &available_device_extension_count, available_device_extensions));
 
   printf("Device Extensions\n");
 
   uint64_t device_extension_index = 0;
-  uint64_t device_extension_count = CORE_ARRAY_COUNT(s_context_device_extensions);
+  uint64_t device_extension_count = ARRAY_COUNT(s_context_device_extensions);
   while (device_extension_index < device_extension_count) {
     uint8_t device_extensions_available = 0;
 
@@ -670,7 +670,7 @@ static void context_check_physical_device_extensions(void) {
 
   printf("\n");
 
-  core_heap_free(available_device_extensions);
+  heap_free(available_device_extensions);
 }
 
 static void context_resize_surface(void) {
@@ -684,7 +684,7 @@ static void context_find_physical_device(void) {
   int32_t physical_device_count = 0;
   VULKAN_CHECK(vkEnumeratePhysicalDevices(g_context_instance, &physical_device_count, 0));
 
-  VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)core_heap_alloc(sizeof(VkPhysicalDevice) * physical_device_count);
+  VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)heap_alloc(sizeof(VkPhysicalDevice) * physical_device_count);
   VULKAN_CHECK(vkEnumeratePhysicalDevices(g_context_instance, &physical_device_count, physical_devices));
 
   uint64_t physical_device_index = 0;
@@ -708,13 +708,13 @@ static void context_find_physical_device(void) {
     physical_device_index++;
   }
 
-  core_heap_free(physical_devices);
+  heap_free(physical_devices);
 }
 static void context_find_physical_device_queue_families(void) {
   int32_t queue_family_property_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(g_context_physical_device, &queue_family_property_count, 0);
 
-  VkQueueFamilyProperties *queue_family_properties = (VkQueueFamilyProperties *)core_heap_alloc(sizeof(VkQueueFamilyProperties) * queue_family_property_count);
+  VkQueueFamilyProperties *queue_family_properties = (VkQueueFamilyProperties *)heap_alloc(sizeof(VkQueueFamilyProperties) * queue_family_property_count);
   vkGetPhysicalDeviceQueueFamilyProperties(g_context_physical_device, &queue_family_property_count, queue_family_properties);
 
   uint64_t physical_device_queue_family_property_index = 0;
@@ -743,7 +743,7 @@ static void context_find_physical_device_queue_families(void) {
     physical_device_queue_family_property_index++;
   }
 
-  core_heap_free(queue_family_properties);
+  heap_free(queue_family_properties);
 
   printf("Queue Indices\n");
   printf("\tGraphics Queue Index %d\n", g_context_graphics_queue_index);

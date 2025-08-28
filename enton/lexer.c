@@ -386,18 +386,18 @@ struct yy_trans_info
 static const flex_int16_t yy_accept[124] =
     {   0,
         0,    0,    0,    0,    0,    0,    0,    0,   42,    6,
-        4,    2,    3,    5,    6,   28,   26,   24,   25,   27,
-       28,   28,   14,   15,   11,   28,   28,   12,   13,   18,
-       28,   28,   28,   28,   28,   28,   28,   16,   17,   32,
-       31,   32,   41,   37,   41,    0,    0,   39,    0,   30,
-       29,   40,   38,    9,   38,   38,   38,   38,   38,   38,
-       38,   33,    0,   37,    0,   36,    0,    0,   29,   20,
-       38,   38,   38,   38,   38,   38,   38,    0,    0,   38,
-       38,   23,   38,   38,   21,   19,    0,    0,   22,   38,
-       38,   38,    0,    0,    8,    7,   38,    0,    0,   10,
+        4,    2,    3,    5,    6,   40,   26,   24,   25,   27,
+       40,   34,   14,   15,   11,   40,   39,   12,   13,   18,
+       37,   37,   37,   37,   37,   37,   37,   16,   17,   31,
+       30,   31,   41,   36,   41,    0,    0,   38,    0,   29,
+       28,   39,   37,    9,   37,   37,   37,   37,   37,   37,
+       37,   32,    0,   36,    0,   35,    0,    0,   28,   20,
+       37,   37,   37,   37,   37,   37,   37,    0,    0,   37,
+       37,   23,   37,   37,   21,   19,    0,    0,   22,   37,
+       37,   37,    0,    0,    8,    7,   37,    0,    0,   10,
 
         0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-        0,    0,    0,    0,    0,    0,    0,    0,    0,   34,
+        0,    0,    0,    0,    0,    0,    0,    0,    0,   33,
         0,    1,    0
     } ;
 
@@ -538,7 +538,7 @@ static const flex_int16_t yy_chk[219] =
 static const flex_int32_t yy_rule_can_match_eol[42] =
     {   0,
 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 
+    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 
     0, 0,     };
 
 static yy_state_type yy_last_accepting_state;
@@ -993,21 +993,21 @@ YY_RULE_SETUP
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 54 "lexer.l"
+#line 55 "lexer.l"
 {  }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
 #line 56 "lexer.l"
-{  }
-	YY_BREAK
-case 30:
-YY_RULE_SETUP
-#line 57 "lexer.l"
 { BEGIN(MULTI_LINE_COMMENT); }
 	YY_BREAK
+case 30:
+/* rule 30 can match eol */
+YY_RULE_SETUP
+#line 57 "lexer.l"
+{  }
+	YY_BREAK
 case 31:
-/* rule 31 can match eol */
 YY_RULE_SETUP
 #line 58 "lexer.l"
 {  }
@@ -1015,54 +1015,54 @@ YY_RULE_SETUP
 case 32:
 YY_RULE_SETUP
 #line 59 "lexer.l"
-{  }
+{ BEGIN(ACTIVE_MODE); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 60 "lexer.l"
-{ BEGIN(ACTIVE_MODE); }
+#line 61 "lexer.l"
+{ BEGIN(INITIAL); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
 #line 62 "lexer.l"
-{ BEGIN(INITIAL); }
+{ BEGIN(PRE_PROCESSOR_DIRECTIVE); }
 	YY_BREAK
 case 35:
+/* rule 35 can match eol */
 YY_RULE_SETUP
 #line 63 "lexer.l"
-{ BEGIN(PRE_PROCESSOR_DIRECTIVE); }
+{  }
 	YY_BREAK
 case 36:
 /* rule 36 can match eol */
 YY_RULE_SETUP
 #line 64 "lexer.l"
-{  }
-	YY_BREAK
-case 37:
-/* rule 37 can match eol */
-YY_RULE_SETUP
-#line 65 "lexer.l"
 { BEGIN(ACTIVE_MODE); }
 	YY_BREAK
+case 37:
+YY_RULE_SETUP
+#line 66 "lexer.l"
+{ yylval.string = string_from(yytext, yyleng); return IDENTIFIER; }
+	YY_BREAK
 case 38:
+/* rule 38 can match eol */
 YY_RULE_SETUP
 #line 67 "lexer.l"
-{ yylval.string = core_string_from(yytext, yyleng); return IDENTIFIER; }
+{ yylval.string = string_from(yytext + 1, yyleng - 2); return STRING; }
 	YY_BREAK
 case 39:
-/* rule 39 can match eol */
 YY_RULE_SETUP
 #line 68 "lexer.l"
-{ yylval.string = core_string_from(yytext + 1, yyleng - 2); return STRING; }
+{ yylval.number = atoll(yytext + 1); return NUMBER; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 69 "lexer.l"
-{ yylval.number = atoll(yytext + 1); return NUMBER; }
+#line 70 "lexer.l"
+{  }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 70 "lexer.l"
+#line 71 "lexer.l"
 ECHO;
 	YY_BREAK
 #line 1069 "lexer.c"
@@ -2085,5 +2085,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 70 "lexer.l"
+#line 71 "lexer.l"
 

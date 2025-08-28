@@ -7,7 +7,7 @@
 #include <library/math/api.h>
 
 camera_t *camera_create(void) {
-  camera_t *camera = (camera_t *)core_heap_alloc(sizeof(camera_t));
+  camera_t *camera = (camera_t *)heap_alloc(sizeof(camera_t));
   camera->fov = 45.0F;
   camera->near_z = 1.0F;
   camera->far_z = 1.0E+6F;
@@ -16,5 +16,5 @@ camera_t *camera_create(void) {
   return camera;
 }
 void camera_destroy(camera_t *camera) {
-  core_heap_free(camera);
+  heap_free(camera);
 }

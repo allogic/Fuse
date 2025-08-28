@@ -11,10 +11,10 @@
 typedef struct player_t {
   camera_t *camera;
   transform_t *transform;
-  math_vector3_t velocity;
-  math_vector3_t mouse_begin;
-  math_vector3_t mouse_end;
-  math_vector3_t mouse_delta;
+  vector3_t velocity;
+  vector3_t mouse_begin;
+  vector3_t mouse_end;
+  vector3_t mouse_delta;
   float keyboard_move_speed_fast;
   float keyboard_move_speed_normal;
   float mouse_move_speed_fast;

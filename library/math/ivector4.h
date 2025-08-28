@@ -11,22 +11,22 @@
 extern "C" {
 #endif // __cplusplus
 
-__forceinline math_ivector4_t math_ivector4_zero(void);
-__forceinline math_ivector4_t math_ivector4_one(void);
-__forceinline math_ivector4_t math_ivector4_xyzw(int32_t x, int32_t y, int32_t z, int32_t w);
-__forceinline math_ivector4_t math_ivector4_negate(math_ivector4_t a);
-__forceinline math_ivector4_t math_ivector4_add(math_ivector4_t a, math_ivector4_t b);
-__forceinline math_ivector4_t math_ivector4_sub(math_ivector4_t a, math_ivector4_t b);
-__forceinline math_ivector4_t math_ivector4_mul(math_ivector4_t a, math_ivector4_t b);
-__forceinline math_ivector4_t math_ivector4_div(math_ivector4_t a, math_ivector4_t b);
-__forceinline math_ivector4_t math_ivector4_add_scalar(math_ivector4_t a, int32_t b);
-__forceinline math_ivector4_t math_ivector4_sub_scalar(math_ivector4_t a, int32_t b);
-__forceinline math_ivector4_t math_ivector4_mul_scalar(math_ivector4_t a, int32_t b);
-__forceinline math_ivector4_t math_ivector4_div_scalar(math_ivector4_t a, int32_t b);
-__forceinline float math_ivector4_dot(math_ivector4_t a, math_ivector4_t b);
-__forceinline float math_ivector4_length(math_ivector4_t a);
-__forceinline float math_ivector4_length2(math_ivector4_t a);
-__forceinline void math_ivector4_print(math_ivector4_t a);
+__forceinline ivector4_t ivector4_zero(void);
+__forceinline ivector4_t ivector4_one(void);
+__forceinline ivector4_t ivector4_xyzw(int32_t x, int32_t y, int32_t z, int32_t w);
+__forceinline ivector4_t ivector4_negate(ivector4_t a);
+__forceinline ivector4_t ivector4_add(ivector4_t a, ivector4_t b);
+__forceinline ivector4_t ivector4_sub(ivector4_t a, ivector4_t b);
+__forceinline ivector4_t ivector4_mul(ivector4_t a, ivector4_t b);
+__forceinline ivector4_t ivector4_div(ivector4_t a, ivector4_t b);
+__forceinline ivector4_t ivector4_adds(ivector4_t a, int32_t b);
+__forceinline ivector4_t ivector4_subs(ivector4_t a, int32_t b);
+__forceinline ivector4_t ivector4_muls(ivector4_t a, int32_t b);
+__forceinline ivector4_t ivector4_divs(ivector4_t a, int32_t b);
+__forceinline float ivector4_dot(ivector4_t a, ivector4_t b);
+__forceinline float ivector4_length(ivector4_t a);
+__forceinline float ivector4_length2(ivector4_t a);
+__forceinline void ivector4_print(ivector4_t a);
 
 #ifdef __cplusplus
 }

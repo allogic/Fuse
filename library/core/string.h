@@ -9,22 +9,22 @@
 extern "C" {
 #endif // __cplusplus
 
-core_string_t core_string_alloc(void);
-core_string_t core_string_from(char const *value, uint64_t size);
-core_string_t core_string_copy(core_string_t *reference);
-uint8_t core_string_equal(core_string_t *string, core_string_t *reference);
-void core_string_fill(core_string_t *string, char value);
-void core_string_append(core_string_t *string, char const *value, uint64_t size);
-void core_string_resize(core_string_t *string, uint64_t size);
-void core_string_expand(core_string_t *string);
-void core_string_clear(core_string_t *string);
-char core_string_at(core_string_t *string, uint64_t index);
-char *core_string_buffer(core_string_t *string);
-void core_string_set(core_string_t *string, char const *value);
-uint8_t core_string_empty(core_string_t *string);
-uint64_t core_string_size(core_string_t *string);
-uint64_t core_string_capacity(core_string_t *string);
-void core_string_free(core_string_t *string);
+string_t string_alloc(void);
+string_t string_from(char const *value, uint64_t size);
+string_t string_copy(string_t *reference);
+uint8_t string_equal(string_t *string, string_t *reference);
+void string_fill(string_t *string, char value);
+void string_append(string_t *string, char const *value, uint64_t size);
+void string_resize(string_t *string, uint64_t size);
+void string_expand(string_t *string);
+void string_clear(string_t *string);
+char string_at(string_t *string, uint64_t index);
+char *string_buffer(string_t *string);
+void string_set(string_t *string, char const *value);
+uint8_t string_empty(string_t *string);
+uint64_t string_size(string_t *string);
+uint64_t string_capacity(string_t *string);
+void string_free(string_t *string);
 
 #ifdef __cplusplus
 }

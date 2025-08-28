@@ -66,7 +66,7 @@ void swapchain_create(void) {
   } else {
     swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     swapchain_create_info.pQueueFamilyIndices = queue_families;
-    swapchain_create_info.queueFamilyIndexCount = CORE_ARRAY_COUNT(queue_families);
+    swapchain_create_info.queueFamilyIndexCount = ARRAY_COUNT(queue_families);
   }
 
   VULKAN_CHECK(vkCreateSwapchainKHR(g_context_device, &swapchain_create_info, 0, &g_swapchain));
@@ -87,8 +87,8 @@ void swapchain_destroy(void) {
 
 static void swapchain_compute_local_variables(void) {
   s_swapchain_image_count = g_swapchain_image_count;
-  s_swapchain_image_count = CORE_MAX(s_swapchain_image_count, (int32_t)g_context_surface_capabilities.minImageCount);
-  s_swapchain_image_count = CORE_MIN(s_swapchain_image_count, (int32_t)g_context_surface_capabilities.maxImageCount);
+  s_swapchain_image_count = MAX(s_swapchain_image_count, (int32_t)g_context_surface_capabilities.minImageCount);
+  s_swapchain_image_count = MIN(s_swapchain_image_count, (int32_t)g_context_surface_capabilities.maxImageCount);
   g_swapchain_image_count = s_swapchain_image_count;
 
   s_swapchain_depth_format = VK_FORMAT_D32_SFLOAT;
@@ -142,7 +142,7 @@ static void swapchain_create_render_pass(void) {
   VkRenderPassCreateInfo render_pass_create_info = {0};
   render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   render_pass_create_info.pAttachments = attachment_descriptions;
-  render_pass_create_info.attachmentCount = CORE_ARRAY_COUNT(attachment_descriptions);
+  render_pass_create_info.attachmentCount = ARRAY_COUNT(attachment_descriptions);
   render_pass_create_info.pSubpasses = &subpass_description;
   render_pass_create_info.subpassCount = 1;
   render_pass_create_info.pDependencies = &subpass_dependency;
@@ -151,8 +151,8 @@ static void swapchain_create_render_pass(void) {
   VULKAN_CHECK(vkCreateRenderPass(g_context_device, &render_pass_create_info, 0, &g_swapchain_render_pass));
 }
 static void swapchain_create_color_images(void) {
-  s_swapchain_color_image = (VkImage *)core_heap_alloc(sizeof(VkImage) * s_swapchain_image_count);
-  s_swapchain_color_image_view = (VkImageView *)core_heap_alloc(sizeof(VkImageView) * s_swapchain_image_count);
+  s_swapchain_color_image = (VkImage *)heap_alloc(sizeof(VkImage) * s_swapchain_image_count);
+  s_swapchain_color_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * s_swapchain_image_count);
 
   VULKAN_CHECK(vkGetSwapchainImagesKHR(g_context_device, g_swapchain, &s_swapchain_image_count, s_swapchain_color_image));
 
@@ -175,9 +175,9 @@ static void swapchain_create_color_images(void) {
   }
 }
 static void swapchain_create_depth_images(void) {
-  s_swapchain_depth_image = (VkImage *)core_heap_alloc(sizeof(VkImage) * s_swapchain_image_count);
-  s_swapchain_depth_image_device_memory = (VkDeviceMemory *)core_heap_alloc(sizeof(VkDeviceMemory) * s_swapchain_image_count);
-  s_swapchain_depth_image_view = (VkImageView *)core_heap_alloc(sizeof(VkImageView) * s_swapchain_image_count);
+  s_swapchain_depth_image = (VkImage *)heap_alloc(sizeof(VkImage) * s_swapchain_image_count);
+  s_swapchain_depth_image_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_swapchain_image_count);
+  s_swapchain_depth_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * s_swapchain_image_count);
 
   int32_t image_index = 0;
   while (image_index < s_swapchain_image_count) {
@@ -229,7 +229,7 @@ static void swapchain_create_depth_images(void) {
   }
 }
 static void swapchain_create_frame_buffer(void) {
-  g_swapchain_frame_buffers = (VkFramebuffer *)core_heap_alloc(sizeof(VkFramebuffer) * s_swapchain_image_count);
+  g_swapchain_frame_buffers = (VkFramebuffer *)heap_alloc(sizeof(VkFramebuffer) * s_swapchain_image_count);
 
   int32_t image_index = 0;
   while (image_index < s_swapchain_image_count) {
@@ -239,7 +239,7 @@ static void swapchain_create_frame_buffer(void) {
     frame_buffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frame_buffer_create_info.renderPass = g_swapchain_render_pass;
     frame_buffer_create_info.pAttachments = image_attachments;
-    frame_buffer_create_info.attachmentCount = CORE_ARRAY_COUNT(image_attachments);
+    frame_buffer_create_info.attachmentCount = ARRAY_COUNT(image_attachments);
     frame_buffer_create_info.width = g_context_surface_width;
     frame_buffer_create_info.height = g_context_surface_height;
     frame_buffer_create_info.layers = 1;
@@ -261,8 +261,8 @@ static void swapchain_destroy_color_images(void) {
     image_index++;
   }
 
-  core_heap_free(s_swapchain_color_image);
-  core_heap_free(s_swapchain_color_image_view);
+  heap_free(s_swapchain_color_image);
+  heap_free(s_swapchain_color_image_view);
 }
 static void swapchain_destroy_depth_images(void) {
   int32_t image_index = 0;
@@ -274,9 +274,9 @@ static void swapchain_destroy_depth_images(void) {
     image_index++;
   }
 
-  core_heap_free(s_swapchain_depth_image);
-  core_heap_free(s_swapchain_depth_image_device_memory);
-  core_heap_free(s_swapchain_depth_image_view);
+  heap_free(s_swapchain_depth_image);
+  heap_free(s_swapchain_depth_image_device_memory);
+  heap_free(s_swapchain_depth_image_view);
 }
 static void swapchain_destroy_frame_buffer(void) {
   int32_t image_index = 0;
@@ -286,5 +286,5 @@ static void swapchain_destroy_frame_buffer(void) {
     image_index++;
   }
 
-  core_heap_free(g_swapchain_frame_buffers);
+  heap_free(g_swapchain_frame_buffers);
 }
