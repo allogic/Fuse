@@ -17,7 +17,57 @@ void context_alloc(void) {
 
   s_context_expression_stack = vector_alloc(sizeof(vector_t));
 }
-void context_build(void) {
+void context_build_pipeline_layouts(const char *output_file) {
+  string_t pipeline_layouts = string_from_file(output_file);
+
+  string_append(&pipeline_layouts, "-- Tha pipeline layouts representation\n");
+
+  uint64_t layout_expression_index = 0;
+  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
+  while (layout_expression_index < layout_expression_count) {
+    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
+
+    switch (layout_expression.expression_type) {
+      case EXPRESSION_TYPE_LAYOUT_INPUT: {
+        string_append(&pipeline_layouts, "Hello, Input World\n");
+      } break;
+      case EXPRESSION_TYPE_LAYOUT_UNIFORM: {
+        string_append(&pipeline_layouts, "Hello, Uniform World\n");
+      } break;
+      default: {
+      } break;
+    }
+
+    layout_expression_index++;
+  }
+
+  string_free(&pipeline_layouts);
+}
+void context_build_pipelines(const char *output_file) {
+  string_t pipeline_layouts = string_from_file(output_file);
+
+  string_append(&pipeline_layouts, "-- Tha pipeline representation\n");
+
+  uint64_t layout_expression_index = 0;
+  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
+  while (layout_expression_index < layout_expression_count) {
+    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
+
+    switch (layout_expression.expression_type) {
+      case EXPRESSION_TYPE_LAYOUT_INPUT: {
+        string_append(&pipeline_layouts, "Hello, Input World\n");
+      } break;
+      case EXPRESSION_TYPE_LAYOUT_UNIFORM: {
+        string_append(&pipeline_layouts, "Hello, Uniform World\n");
+      } break;
+      default: {
+      } break;
+    }
+
+    layout_expression_index++;
+  }
+
+  string_free(&pipeline_layouts);
 }
 void context_print(void) {
   uint64_t layout_expression_index = 0;
@@ -39,6 +89,32 @@ void context_print(void) {
 
     struct_expression_index++;
   }
+}
+void context_reset(void) {
+  uint64_t layout_expression_index = 0;
+  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
+  while (layout_expression_index < layout_expression_count) {
+    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
+
+    expression_free(layout_expression);
+
+    layout_expression_index++;
+  }
+
+  uint64_t struct_expression_index = 0;
+  uint64_t struct_expression_count = vector_count(&s_context_struct_decls);
+  while (struct_expression_index < struct_expression_count) {
+    expression_t struct_expression = *(expression_t *)vector_at(&s_context_struct_decls, struct_expression_index);
+
+    expression_free(struct_expression);
+
+    struct_expression_index++;
+  }
+
+  vector_clear(&s_context_layout_decls);
+  vector_clear(&s_context_struct_decls);
+
+  vector_clear(&s_context_expression_stack);
 }
 void context_free(void) {
   uint64_t layout_expression_index = 0;

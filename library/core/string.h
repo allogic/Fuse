@@ -11,10 +11,13 @@ extern "C" {
 
 string_t string_alloc(void);
 string_t string_from(char const *value, uint64_t size);
+string_t string_from_file(char const *input_file);
+void string_append_file(char const *output_file, string_t *string);
 string_t string_copy(string_t *reference);
 uint8_t string_equal(string_t *string, string_t *reference);
-void string_fill(string_t *string, char value);
-void string_append(string_t *string, char const *value, uint64_t size);
+void string_fill(string_t *string, char const *value);
+void string_append(string_t *string, char const *value);
+void string_appends(string_t *string, char const *value, uint64_t size);
 void string_resize(string_t *string, uint64_t size);
 void string_expand(string_t *string);
 void string_clear(string_t *string);

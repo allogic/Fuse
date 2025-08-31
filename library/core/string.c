@@ -5,6 +5,7 @@
 #include "library/core/macros.h"
 #include "library/core/heap.h"
 #include "library/core/string.h"
+#include "library/core/file.h"
 
 string_t string_alloc(void) {
   string_t string = {0};
@@ -29,28 +30,62 @@ string_t string_copy(string_t *reference) {
 string_t string_from(char const *value, uint64_t size) {
   string_t string = string_alloc();
 
-  if (value) {
-    string_append(&string, value, size);
-  }
+  string_resize(&string, size);
+  string_fill(&string, value);
 
   return string;
+}
+string_t string_from_file(char const *input_file) {
+  string_t string = string_alloc();
+  file_t file = file_load_text(input_file);
+
+  string_resize(&string, file_size(&file));
+  string_fill(&string, file_buffer(&file));
+
+  file_free(&file);
+
+  return string;
+}
+void string_append_file(string_t *string, char const *output_file) {
+  file_t file = file_load_text(output_file);
+
+  string_append(&string, file_buffer(&file));
+
+  file_save_text(&file, output_file);
+
+  file_free(&file);
 }
 uint8_t string_equal(string_t *string, string_t *reference) {
   uint8_t not_equal = 0;
 
   not_equal |= string->buffer_size != reference->buffer_size;
-  not_equal |= memcmp(string->buffer, reference->buffer, MIN(string->buffer_size, string->buffer_size));
+  not_equal |= memcmp(string->buffer, reference->buffer, MIN(string->buffer_size, reference->buffer_size));
 
   return not_equal == 0;
 }
-void string_fill(string_t *string, char value) {
+void string_fill(string_t *string, char const *value) {
   if (value) {
     memset(string->buffer, value, string->buffer_size);
 
     string->buffer[string->buffer_size] = 0;
   }
 }
-void string_append(string_t *string, char const *value, uint64_t size) {
+void string_append(string_t *string, char const *value) {
+  uint64_t value_length = strlen(value);
+
+  if (value) {
+    string->buffer_size += value_length;
+
+    while (string->buffer_size >= string->buffer_capacity) {
+      string_expand(string);
+    }
+
+    memcpy(string->buffer + string->buffer_size - value_length, value, value_length);
+
+    string->buffer[string->buffer_size] = 0;
+  }
+}
+void string_appends(string_t *string, char const *value, uint64_t size) {
   if (value) {
     string->buffer_size += size;
 

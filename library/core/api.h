@@ -6,7 +6,7 @@
 #include <library/core/constants.h>
 #include <library/core/forward.h>
 
-#include <library/core/filesystem.h>
+#include <library/core/file.h>
 #include <library/core/heap.h>
 #include <library/core/random.h>
 #include <library/core/string.h>

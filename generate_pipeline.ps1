@@ -1,1 +1,1 @@
-& "out/build/x64-debug/enton/enton.exe" "shader/test.glsl" "engine/renderer/chunk_render_pipeline.h" "engine/renderer/chunk_render_pipeline.c"
+& "out/build/x64-debug/enton/enton.exe" "render" "shader/chunk/renderer.vert" "shader/chunk/renderer.frag" "engine/renderer/pipeline_layouts.c" "engine/renderer/pipelines.c"

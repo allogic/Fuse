@@ -14,6 +14,8 @@ int32_t main(int32_t argc, char **argv) {
       yyrestart(vertex_shader_file);
       yyparse();
 
+      context_print();
+
       fclose(vertex_shader_file);
     }
 
@@ -23,8 +25,13 @@ int32_t main(int32_t argc, char **argv) {
       yyrestart(fragment_shader_file);
       yyparse();
 
+      context_print();
+
       fclose(fragment_shader_file);
     }
+
+    context_build_pipeline_layouts(argv[4]);
+    context_build_pipelines(argv[5]);
   } else if (strcmp("compute", argv[1]) == 0) {
     FILE *compute_shader_file = fopen(argv[2], "r");
 
@@ -34,12 +41,14 @@ int32_t main(int32_t argc, char **argv) {
       yyrestart(compute_shader_file);
       yyparse();
 
+      context_print();
+
       fclose(compute_shader_file);
     }
+
+    context_build(argv[3]);
   }
 
-  context_build();
-  context_print();
   context_free();
 
   heap_reset();

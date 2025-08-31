@@ -10,8 +10,10 @@ extern "C" {
 #endif // __cplusplus
 
 void context_alloc(void);
-void context_build(void);
+void context_build_pipeline_layouts(const char *output_file);
+void context_build_pipelines(const char *output_file);
 void context_print(void);
+void context_reset(void);
 void context_free(void);
 
 void context_push_layout_decl(expression_t layout_expression);

@@ -220,24 +220,25 @@ void renderer_create(void) {
 
   s_renderer_cluster_is_dirty = (int32_t *)heap_alloc(sizeof(int32_t) * g_renderer_frames_in_flight);
 
-  int32_t frame_index = 0;
-  while (frame_index < g_renderer_frames_in_flight) {
-    s_renderer_cluster_is_dirty[frame_index] = 1;
-
-    frame_index++;
-  }
+  memset(s_renderer_cluster_is_dirty, 1, sizeof(int32_t) * g_renderer_frames_in_flight);
 
   renderer_create_command_buffer();
   renderer_create_sync_objects();
+
   renderer_create_descriptor_pools();
   renderer_create_descriptor_set_layouts();
   renderer_create_descriptor_sets();
-  renderer_create_pipeline_layouts();
-  renderer_create_chunk_editor_pipeline();
-  renderer_create_chunk_generator_pipeline();
-  renderer_create_chunk_mipmap_pipeline();
-  renderer_create_chunk_renderer_pipeline();
-  renderer_create_debug_line_pipeline();
+
+  // renderer_create_pipeline_layouts();
+
+  // renderer_create_chunk_editor_pipeline();
+  // renderer_create_chunk_generator_pipeline();
+  // renderer_create_chunk_mipmap_pipeline();
+  // renderer_create_chunk_renderer_pipeline();
+  // renderer_create_debug_line_pipeline();
+
+#include "engine/renderer/pipelines_layouts.h"
+#include "engine/renderer/pipelines.h"
 
   renderer_create_time_buffer();
   renderer_create_screen_buffer();

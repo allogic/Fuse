@@ -3,6 +3,12 @@
 
 #include <stdint.h>
 
+typedef struct file_t {
+  char const *file_path;
+  uint8_t *buffer;
+  uint64_t buffer_size;
+} file_t;
+
 typedef struct string_t {
   char *buffer;
   uint64_t buffer_capacity;
