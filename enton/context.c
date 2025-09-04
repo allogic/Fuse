@@ -1,169 +1,81 @@
 #include "stdio.h"
 #include "string.h"
 
-#include "library/core/api.h"
+#include <spirv_reflect/spirv_reflect.h>
 
-#include "enton/context.h"
-#include "enton/expression.h"
+#include <library/core/api.h>
 
-static vector_t s_context_layout_decls = {0};
-static vector_t s_context_struct_decls = {0};
+#include <enton/context.h>
+#include <enton/macros.h>
 
-static vector_t s_context_expression_stack = {0};
+static void context_append_input_variables(string_t *pipeline, SpvReflectShaderModule *shader_module, const char *pipeline_name);
 
-void context_alloc(void) {
-  s_context_layout_decls = vector_alloc(sizeof(expression_t));
-  s_context_struct_decls = vector_alloc(sizeof(expression_t));
+void context_build_render_pipeline(SpvReflectShaderModule *vertex_shader_module, SpvReflectShaderModule *fragment_shader_module, const char *pipeline_name) {
+  string_t pipeline_name_upper = string_from(pipeline_name);
 
-  s_context_expression_stack = vector_alloc(sizeof(vector_t));
+  string_upper(&pipeline_name_upper);
+
+  string_t pipeline_header_name = string_from(pipeline_name);
+  string_t pipeline_source_name = string_from(pipeline_name);
+
+  string_append(&pipeline_header_name, ".h");
+  string_append(&pipeline_source_name, ".c");
+
+  string_t pipeline_header = string_alloc();
+  string_t pipeline_source = string_alloc();
+
+  string_appendv(&pipeline_header, 3, "#ifndef ", string_buffer(&pipeline_name_upper), "_H\n");
+  string_appendv(&pipeline_header, 3, "#define ", string_buffer(&pipeline_name_upper), "_H\n");
+  string_append(&pipeline_header, "\n");
+
+  // context_append_input_variables(&pipeline_header, vertex_shader_module);
+
+  string_append(&pipeline_header, "\n");
+  string_appendv(&pipeline_header, 3, "#endif // ", string_buffer(&pipeline_name_upper), "_H\n");
+
+  string_appendv(&pipeline_source, 3, "#include <engine/renderer/", string_buffer(&pipeline_name_upper), ".h>\n");
+  string_append(&pipeline_source, "\n");
+
+  context_append_input_variables(&pipeline_header, vertex_shader_module, pipeline_name);
+
+  string_append(&pipeline_source, "\n");
+
+  string_to_file(&pipeline_header, string_buffer(&pipeline_header_name));
+  string_to_file(&pipeline_source, string_buffer(&pipeline_source_name));
+
+  string_free(&pipeline_name_upper);
+
+  string_free(&pipeline_header_name);
+  string_free(&pipeline_source_name);
+
+  string_free(&pipeline_header);
+  string_free(&pipeline_source);
 }
-void context_build_pipeline_layouts(const char *output_file) {
-  string_t pipeline_layouts = string_from_file(output_file);
+void context_build_compute_pipeline(SpvReflectShaderModule *compute_shader_module, const char *pipeline_name) {
+}
 
-  string_append(&pipeline_layouts, "-- Tha pipeline layouts representation\n");
+static void context_append_input_variables(string_t *pipeline, SpvReflectShaderModule *shader_module, const char *pipeline_name) {
+  uint32_t input_variable_count = 0;
+  SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, 0));
 
-  uint64_t layout_expression_index = 0;
-  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
-  while (layout_expression_index < layout_expression_count) {
-    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
+  SpvReflectInterfaceVariable **input_variables = (SpvReflectInterfaceVariable **)heap_alloc(sizeof(SpvReflectInterfaceVariable *) * input_variable_count);
+  SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, input_variables));
 
-    switch (layout_expression.expression_type) {
-      case EXPRESSION_TYPE_LAYOUT_INPUT: {
-        string_append(&pipeline_layouts, "Hello, Input World\n");
-      } break;
-      case EXPRESSION_TYPE_LAYOUT_UNIFORM: {
-        string_append(&pipeline_layouts, "Hello, Uniform World\n");
-      } break;
-      default: {
-      } break;
-    }
+  string_appendv(pipeline, 3, "static VkVertexInputBindingDescription const s_", pipeline_name, "_vertex_input_binding_descriptions[] = {\n");
 
-    layout_expression_index++;
+  uint32_t input_variable_index = 0;
+  while (input_variable_index < input_variable_count) {
+    string_appendv(pipeline, 1, "{0, sizeof(", ")");
+
+    printf("Input %s at location %u\n",
+           input_variables[input_variable_index]->name,
+           input_variables[input_variable_index]->location);
+
+    input_variable_index++;
   }
 
-  string_free(&pipeline_layouts);
-}
-void context_build_pipelines(const char *output_file) {
-  string_t pipeline_layouts = string_from_file(output_file);
+  string_append(pipeline, "};\n");
+  string_append(pipeline, "\n");
 
-  string_append(&pipeline_layouts, "-- Tha pipeline representation\n");
-
-  uint64_t layout_expression_index = 0;
-  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
-  while (layout_expression_index < layout_expression_count) {
-    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
-
-    switch (layout_expression.expression_type) {
-      case EXPRESSION_TYPE_LAYOUT_INPUT: {
-        string_append(&pipeline_layouts, "Hello, Input World\n");
-      } break;
-      case EXPRESSION_TYPE_LAYOUT_UNIFORM: {
-        string_append(&pipeline_layouts, "Hello, Uniform World\n");
-      } break;
-      default: {
-      } break;
-    }
-
-    layout_expression_index++;
-  }
-
-  string_free(&pipeline_layouts);
-}
-void context_print(void) {
-  uint64_t layout_expression_index = 0;
-  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
-  while (layout_expression_index < layout_expression_count) {
-    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
-
-    expression_print(layout_expression, 0, 2, 1, layout_expression_index == 0, layout_expression_index == (layout_expression_count - 1));
-
-    layout_expression_index++;
-  }
-
-  uint64_t struct_expression_index = 0;
-  uint64_t struct_expression_count = vector_count(&s_context_struct_decls);
-  while (struct_expression_index < struct_expression_count) {
-    expression_t struct_expression = *(expression_t *)vector_at(&s_context_struct_decls, struct_expression_index);
-
-    expression_print(struct_expression, 0, 2, 1, struct_expression_index == 0, struct_expression_index == (struct_expression_count - 1));
-
-    struct_expression_index++;
-  }
-}
-void context_reset(void) {
-  uint64_t layout_expression_index = 0;
-  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
-  while (layout_expression_index < layout_expression_count) {
-    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
-
-    expression_free(layout_expression);
-
-    layout_expression_index++;
-  }
-
-  uint64_t struct_expression_index = 0;
-  uint64_t struct_expression_count = vector_count(&s_context_struct_decls);
-  while (struct_expression_index < struct_expression_count) {
-    expression_t struct_expression = *(expression_t *)vector_at(&s_context_struct_decls, struct_expression_index);
-
-    expression_free(struct_expression);
-
-    struct_expression_index++;
-  }
-
-  vector_clear(&s_context_layout_decls);
-  vector_clear(&s_context_struct_decls);
-
-  vector_clear(&s_context_expression_stack);
-}
-void context_free(void) {
-  uint64_t layout_expression_index = 0;
-  uint64_t layout_expression_count = vector_count(&s_context_layout_decls);
-  while (layout_expression_index < layout_expression_count) {
-    expression_t layout_expression = *(expression_t *)vector_at(&s_context_layout_decls, layout_expression_index);
-
-    expression_free(layout_expression);
-
-    layout_expression_index++;
-  }
-
-  uint64_t struct_expression_index = 0;
-  uint64_t struct_expression_count = vector_count(&s_context_struct_decls);
-  while (struct_expression_index < struct_expression_count) {
-    expression_t struct_expression = *(expression_t *)vector_at(&s_context_struct_decls, struct_expression_index);
-
-    expression_free(struct_expression);
-
-    struct_expression_index++;
-  }
-
-  vector_free(&s_context_layout_decls);
-  vector_free(&s_context_struct_decls);
-
-  vector_free(&s_context_expression_stack);
-}
-
-void context_push_layout_decl(expression_t layout_expression) {
-  vector_push(&s_context_layout_decls, &layout_expression);
-}
-void context_push_struct_decl(expression_t struct_expression) {
-  vector_push(&s_context_struct_decls, &struct_expression);
-}
-
-void context_push_expression_vector(void) {
-  vector_t expressions = vector_alloc(sizeof(expression_t));
-
-  vector_push(&s_context_expression_stack, &expressions);
-}
-void context_push_expression(expression_t expression) {
-  vector_t *expressions = (vector_t *)vector_back(&s_context_expression_stack);
-
-  vector_push(expressions, &expression);
-}
-vector_t context_pop_expression_vector(void) {
-  vector_t expressions = {0};
-
-  vector_pop(&s_context_expression_stack, &expressions);
-
-  return expressions;
+  heap_free(input_variables);
 }

@@ -9,7 +9,9 @@
 extern "C" {
 #endif // __cplusplus
 
+#ifdef BUILD_DEBUG
 extern uint64_t g_heap_allocated_bytes;
+#endif // BUILD_DEBUG
 
 void *heap_alloc(uint64_t size);
 void *heap_realloc(void *block, uint64_t size);

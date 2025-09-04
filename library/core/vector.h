@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "library/core/forward.h"
+#include <library/core/forward.h>
 
 #ifdef __cplusplus
 extern "C" {

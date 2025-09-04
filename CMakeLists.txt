@@ -6,7 +6,8 @@ set (CMAKE_C_STANDARD 11)
 set (CMAKE_C_STANDARD_REQUIRED ON)
 set (CMAKE_C_EXTENSIONS OFF)
 
-set (VULKAN_SDK_DIR "C:/VulkanSDK/1.4.304.0")
+set (VULKAN_SDK_DIR "C:/VulkanSDK/1.3.290.0")
+set (SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/shader")
 
 if (NOT CMAKE_BUILD_TYPE)
 
@@ -14,11 +15,11 @@ if (NOT CMAKE_BUILD_TYPE)
 
 endif ()
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (CMAKE_BUILD_TYPE STREQUAL "debug")
 
 	add_compile_definitions (BUILD_DEBUG)
 
-elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+elseif (CMAKE_BUILD_TYPE STREQUAL "release")
 	
 else ()
 
@@ -67,5 +68,5 @@ else ()
 endif ()
 
 add_subdirectory (library)
-add_subdirectory (engine)
 add_subdirectory (enton)
+add_subdirectory (engine)

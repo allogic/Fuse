@@ -10,11 +10,13 @@ uint64_t g_heap_allocated_bytes = 0;
 void *heap_alloc(uint64_t size) {
 #ifdef BUILD_DEBUG
   uint64_t new_size = sizeof(uint64_t) + size;
+
   uint64_t *new_block = (uint64_t *)malloc(new_size);
 
   g_heap_allocated_bytes += new_size;
 
   *new_block = new_size;
+
   new_block++;
 
   return new_block;
@@ -39,6 +41,7 @@ void *heap_realloc(void *block, uint64_t size) {
     g_heap_allocated_bytes += new_size;
 
     *new_block = new_size;
+
     new_block++;
 
     return new_block;

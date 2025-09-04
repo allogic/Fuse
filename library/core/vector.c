@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "library/core/config.h"
-#include "library/core/macros.h"
-#include "library/core/heap.h"
-#include "library/core/vector.h"
+#include <library/core/config.h>
+#include <library/core/macros.h>
+#include <library/core/heap.h>
+#include <library/core/vector.h>
 
 vector_t vector_alloc(uint64_t value_size) {
   vector_t vector = {0};

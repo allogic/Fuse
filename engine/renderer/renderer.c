@@ -237,8 +237,8 @@ void renderer_create(void) {
   // renderer_create_chunk_renderer_pipeline();
   // renderer_create_debug_line_pipeline();
 
-#include "engine/renderer/pipelines_layouts.h"
-#include "engine/renderer/pipelines.h"
+#include <engine/renderer/pipeline_layouts.h>
+#include <engine/renderer/pipelines.h>
 
   renderer_create_time_buffer();
   renderer_create_screen_buffer();
@@ -902,7 +902,7 @@ static void renderer_create_chunk_editor_pipeline(void) {
 
   uint64_t compute_shader_size = 0;
 
-  filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_editor_shader_file_path);
+  // TODO: filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_editor_shader_file_path);
 
   VkShaderModule compute_module = 0;
 
@@ -937,7 +937,7 @@ static void renderer_create_chunk_generator_pipeline(void) {
 
   uint64_t compute_shader_size = 0;
 
-  filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_generator_shader_file_path);
+  // TODO: filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_generator_shader_file_path);
 
   VkShaderModule compute_module = 0;
 
@@ -972,7 +972,7 @@ static void renderer_create_chunk_mipmap_pipeline(void) {
 
   uint64_t compute_shader_size = 0;
 
-  filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_mipmap_shader_file_path);
+  // TODO: filesystem_read_binary(&compute_shader_bytes, &compute_shader_size, s_renderer_chunk_mipmap_shader_file_path);
 
   VkShaderModule compute_module = 0;
 
@@ -1009,8 +1009,8 @@ static void renderer_create_chunk_renderer_pipeline(void) {
   uint64_t vertex_shader_size = 0;
   uint64_t fragment_shader_size = 0;
 
-  filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_chunk_renderer_vertex_shader_file_path);
-  filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_chunk_renderer_fragment_shader_file_path);
+  // TODO: filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_chunk_renderer_vertex_shader_file_path);
+  // TODO: filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_chunk_renderer_fragment_shader_file_path);
 
   VkShaderModule vertex_module = 0;
   VkShaderModule fragment_module = 0;
@@ -1170,8 +1170,8 @@ static void renderer_create_debug_line_pipeline(void) {
   uint64_t vertex_shader_size = 0;
   uint64_t fragment_shader_size = 0;
 
-  filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_debug_line_vertex_shader_file_path);
-  filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_debug_line_fragment_shader_file_path);
+  // TODO: filesystem_read_binary(&vertex_shader_bytes, &vertex_shader_size, s_renderer_debug_line_vertex_shader_file_path);
+  // TODO: filesystem_read_binary(&fragment_shader_bytes, &fragment_shader_size, s_renderer_debug_line_fragment_shader_file_path);
 
   VkShaderModule vertex_module = 0;
   VkShaderModule fragment_module = 0;

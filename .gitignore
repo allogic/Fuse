@@ -13,5 +13,6 @@ CMakeUserPresets.json
 
 .vs
 out
+output
 
 *.spv

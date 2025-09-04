@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
-#include "library/core/config.h"
-#include "library/core/macros.h"
-#include "library/core/heap.h"
-#include "library/core/string.h"
-#include "library/core/file.h"
+#include <library/core/config.h>
+#include <library/core/macros.h>
+#include <library/core/heap.h>
+#include <library/core/string.h>
+#include <library/core/filesys.h>
 
 string_t string_alloc(void) {
   string_t string = {0};
@@ -27,33 +28,37 @@ string_t string_copy(string_t *reference) {
 
   return string;
 }
-string_t string_from(char const *value, uint64_t size) {
+string_t string_from(char const *value) {
   string_t string = string_alloc();
 
-  string_resize(&string, size);
-  string_fill(&string, value);
+  uint64_t value_size = strlen(value);
+
+  string_resize(&string, value_size);
+
+  memcpy(string.buffer, value, value_size);
+
+  string.buffer[string.buffer_size] = 0;
 
   return string;
 }
 string_t string_from_file(char const *input_file) {
   string_t string = string_alloc();
-  file_t file = file_load_text(input_file);
 
-  string_resize(&string, file_size(&file));
-  string_fill(&string, file_buffer(&file));
+  uint8_t *buffer = 0;
+  uint64_t buffer_size = 0;
 
-  file_free(&file);
+  filesys_load_text(&buffer, &buffer_size, input_file);
+
+  string_resize(&string, buffer_size);
+
+  memcpy(string.buffer, buffer, buffer_size);
+
+  string.buffer[string.buffer_size] = 0;
 
   return string;
 }
-void string_append_file(string_t *string, char const *output_file) {
-  file_t file = file_load_text(output_file);
-
-  string_append(&string, file_buffer(&file));
-
-  file_save_text(&file, output_file);
-
-  file_free(&file);
+void string_to_file(string_t *string, char const *output_file) {
+  filesys_save_text(string->buffer, string->buffer_size, output_file);
 }
 uint8_t string_equal(string_t *string, string_t *reference) {
   uint8_t not_equal = 0;
@@ -65,9 +70,31 @@ uint8_t string_equal(string_t *string, string_t *reference) {
 }
 void string_fill(string_t *string, char const *value) {
   if (value) {
-    memset(string->buffer, value, string->buffer_size);
+    memcpy(string->buffer, value, string->buffer_size);
 
     string->buffer[string->buffer_size] = 0;
+  }
+}
+void string_upper(string_t *string) {
+  char *ptr = string->buffer;
+
+  while (*ptr) {
+    if (*ptr >= 'a' && *ptr <= 'z') {
+      *ptr -= 32;
+    }
+
+    ptr++;
+  }
+}
+void string_lower(string_t *string) {
+  char *ptr = string->buffer;
+
+  while (*ptr) {
+    if (*ptr >= 'A' && *ptr <= 'Z') {
+      *ptr += 32;
+    }
+
+    ptr++;
   }
 }
 void string_append(string_t *string, char const *value) {
@@ -97,6 +124,51 @@ void string_appends(string_t *string, char const *value, uint64_t size) {
 
     string->buffer[string->buffer_size] = 0;
   }
+}
+void string_appendv(string_t *string, uint64_t arg_count, ...) {
+  uint64_t arg_index = 0;
+
+  va_list args;
+  va_start(args, arg_count);
+  while (arg_index < arg_count) {
+    char const *value = va_arg(args, char const *);
+
+    uint64_t value_length = strlen(value);
+
+    if (value) {
+      string->buffer_size += value_length;
+
+      while (string->buffer_size >= string->buffer_capacity) {
+        string_expand(string);
+      }
+
+      memcpy(string->buffer + string->buffer_size - value_length, value, value_length);
+
+      string->buffer[string->buffer_size] = 0;
+    }
+
+    arg_index++;
+  }
+  va_end(args);
+}
+void string_appendf(string_t *string, char const *format, ...) {
+  // va_list args;
+  //
+  // va_start(args, format);
+  // int needed = vsnprintf(NULL, 0, format, args);
+  // va_end(args);
+  //
+  // if (needed < 0) {
+  //   return;
+  // }
+  //
+  // string_reserve(s, (size_t)needed);
+  //
+  // va_start(args, format);
+  // vsnprintf(s->data + s->length, needed + 1, format, args);
+  // va_end(args);
+  //
+  // s->length += (size_t)needed;
 }
 void string_resize(string_t *string, uint64_t size) {
   uint64_t buffer_size = size;

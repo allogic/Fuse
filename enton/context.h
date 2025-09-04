@@ -3,25 +3,16 @@
 
 #include <stdint.h>
 
-#include "enton/forward.h"
+#include <enton/forward.h>
+
+#include <spirv_reflect/spirv_reflect.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-void context_alloc(void);
-void context_build_pipeline_layouts(const char *output_file);
-void context_build_pipelines(const char *output_file);
-void context_print(void);
-void context_reset(void);
-void context_free(void);
-
-void context_push_layout_decl(expression_t layout_expression);
-void context_push_struct_decl(expression_t struct_expression);
-
-void context_push_expression_vector(void);
-void context_push_expression(expression_t expression);
-vector_t context_pop_expression_vector(void);
+void context_build_render_pipeline(SpvReflectShaderModule *vertex_shader_module, SpvReflectShaderModule *fragment_shader_module, const char *pipeline_name);
+void context_build_compute_pipeline(SpvReflectShaderModule *compute_shader_module, const char *pipeline_name);
 
 #ifdef __cplusplus
 }
