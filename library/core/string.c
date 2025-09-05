@@ -152,23 +152,21 @@ void string_appendv(string_t *string, uint64_t arg_count, ...) {
   va_end(args);
 }
 void string_appendf(string_t *string, char const *format, ...) {
-  // va_list args;
-  //
-  // va_start(args, format);
-  // int needed = vsnprintf(NULL, 0, format, args);
-  // va_end(args);
-  //
-  // if (needed < 0) {
-  //   return;
-  // }
-  //
-  // string_reserve(s, (size_t)needed);
-  //
-  // va_start(args, format);
-  // vsnprintf(s->data + s->length, needed + 1, format, args);
-  // va_end(args);
-  //
-  // s->length += (size_t)needed;
+  va_list args;
+
+  va_start(args, format);
+  uint64_t value_length = (uint64_t)vsnprintf(0, 0, format, args);
+  va_end(args);
+
+  while ((string->buffer_size + value_length) >= string->buffer_capacity) {
+    string_expand(string);
+  }
+
+  va_start(args, format);
+  vsnprintf(string->buffer + string->buffer_size, value_length, format, args);
+  va_end(args);
+
+  string->buffer[string->buffer_size] = 0;
 }
 void string_resize(string_t *string, uint64_t size) {
   uint64_t buffer_size = size;
@@ -186,7 +184,7 @@ void string_resize(string_t *string, uint64_t size) {
   string->buffer[string->buffer_size] = 0;
 }
 void string_expand(string_t *string) {
-  uint64_t buffer_capacity = ALIGN_UP_BY(string->buffer_size + 1, STRING_BUFFER_ALIGNMENT);
+  uint64_t buffer_capacity = ALIGN_UP_BY(string->buffer_size * 2, STRING_BUFFER_ALIGNMENT);
 
   string->buffer = (char *)heap_realloc(string->buffer, buffer_capacity);
   string->buffer_capacity = buffer_capacity;
