@@ -10,6 +10,8 @@
 #include <library/core/heap.h>
 #include <library/core/random.h>
 #include <library/core/string.h>
+#include <library/core/set.h>
+#include <library/core/map.h>
 #include <library/core/vector.h>
 
 #endif // CORE_API_H

@@ -3,6 +3,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <spirv_reflect/spirv_reflect.h>
+
 #include <library/core/api.h>
 
 #include <engine/context.h>
@@ -13,10 +15,15 @@
 #include <engine/renderer/forward.h>
 #include <engine/renderer/macros.h>
 #include <engine/renderer/renderer.h>
+#include <engine/renderer/pipeline.h>
 
 // TODO: implement sparse textures..
 
 static void renderer_compute_local_variables(void);
+
+static void renderer_print_pipelines(void);
+
+// NEW STUFF
 
 static void renderer_create_command_buffer(void);
 static void renderer_create_sync_objects(void);
@@ -88,6 +95,8 @@ int32_t g_renderer_chunk_count_y = RENDERER_CHUNK_COUNT_Y;
 int32_t g_renderer_chunk_count_z = RENDERER_CHUNK_COUNT_Z;
 
 int32_t g_renderer_chunk_size = RENDERER_CHUNK_SIZE;
+
+static vector_t s_renderer_pipelines = {0};
 
 static VkVertexInputBindingDescription const s_renderer_chunk_renderer_vertex_input_binding_descriptions[] = {
   {0, sizeof(renderer_cluster_vertex_t), VK_VERTEX_INPUT_RATE_VERTEX},
@@ -229,6 +238,13 @@ void renderer_create(void) {
   renderer_create_descriptor_set_layouts();
   renderer_create_descriptor_sets();
 
+  s_renderer_pipelines = vector_alloc(sizeof(pipeline_t)); // TODO: Free this..
+
+  // renderer_load_graphics_pipeline("chunk_renderer", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
+  renderer_load_graphics_pipeline("debug_line", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
+
+  renderer_print_pipelines();
+
   // renderer_create_pipeline_layouts();
 
   // renderer_create_chunk_editor_pipeline();
@@ -236,9 +252,6 @@ void renderer_create(void) {
   // renderer_create_chunk_mipmap_pipeline();
   // renderer_create_chunk_renderer_pipeline();
   // renderer_create_debug_line_pipeline();
-
-#include <engine/renderer/pipeline_layouts.h>
-#include <engine/renderer/pipelines.h>
 
   renderer_create_time_buffer();
   renderer_create_screen_buffer();
@@ -551,6 +564,68 @@ void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color
 
     s_renderer_debug_line_vertex_offset[s_renderer_frame_index] += 8;
     s_renderer_debug_line_index_offset[s_renderer_frame_index] += 24;
+  }
+}
+
+void renderer_load_graphics_pipeline(char const *pipeline_name, char const *vertex_shader_file_path, char const *fragment_shader_file_path) {
+  pipeline_t pipeline = pipeline_alloc(pipeline_name);
+
+  uint8_t *vertex_buffer = 0;
+  uint8_t *fragment_buffer = 0;
+
+  uint64_t vertex_buffer_size = 0;
+  uint64_t fragment_buffer_size = 0;
+
+  filesys_load_binary(&vertex_buffer, &vertex_buffer_size, vertex_shader_file_path);
+  filesys_load_binary(&fragment_buffer, &fragment_buffer_size, fragment_shader_file_path);
+
+  SpvReflectShaderModule vertex_shader_module = {0};
+  SpvReflectShaderModule fragment_shader_module = {0};
+
+  SPIRV_CHECK(spvReflectCreateShaderModule(vertex_buffer_size, vertex_buffer, &vertex_shader_module));
+  SPIRV_CHECK(spvReflectCreateShaderModule(fragment_buffer_size, fragment_buffer, &fragment_shader_module));
+
+  pipeline_push_input_binding_descriptions(&pipeline, &vertex_shader_module);
+  pipeline_push_input_attribute_descriptions(&pipeline, &vertex_shader_module);
+
+  vector_push(&s_renderer_pipelines, &pipeline);
+
+  spvReflectDestroyShaderModule(&vertex_shader_module);
+  spvReflectDestroyShaderModule(&fragment_shader_module);
+
+  heap_free(vertex_buffer);
+  heap_free(fragment_buffer);
+}
+void renderer_load_compute_pipeline(char const *pipeline_name, char const *compute_shader_file_path) {
+  pipeline_t pipeline = pipeline_alloc(pipeline_name);
+
+  uint8_t *compute_buffer = 0;
+
+  uint64_t compute_buffer_size = 0;
+
+  filesys_load_binary(&compute_buffer, &compute_buffer_size, compute_shader_file_path);
+
+  SpvReflectShaderModule compute_shader_module = {0};
+
+  SPIRV_CHECK(spvReflectCreateShaderModule(compute_buffer_size, compute_buffer, &compute_shader_module));
+
+  vector_push(&s_renderer_pipelines, &pipeline);
+
+  spvReflectDestroyShaderModule(&compute_shader_module);
+
+  heap_free(compute_buffer);
+}
+
+static void renderer_print_pipelines(void) {
+  uint64_t pipeline_index = 0;
+  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
+
+  while (pipeline_index < pipeline_count) {
+    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
+
+    pipeline_print(pipeline);
+
+    pipeline_index++;
   }
 }
 
