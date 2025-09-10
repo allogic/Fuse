@@ -92,7 +92,6 @@ static char const *s_context_layer_extensions[] = {
 
 static char const *s_context_device_extensions[] = {
   "VK_KHR_swapchain",
-  "VK_EXT_descriptor_indexing",
 };
 
 static key_state_t s_context_event_keyboard_key_states[0xFF] = {0};
@@ -534,21 +533,12 @@ static void context_create_device(void) {
   physical_device_descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
   physical_device_descriptor_indexing_features.pNext = 0;
 
-  VkPhysicalDeviceFeatures2 physical_device_features_2 = {0};
-  physical_device_features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-  physical_device_features_2.pNext = &physical_device_descriptor_indexing_features;
-
-  vkGetPhysicalDeviceFeatures2(g_context_physical_device, &physical_device_features_2);
-
-  physical_device_features_2.features.samplerAnisotropy = 1;
-  physical_device_features_2.features.shaderFloat64 = 1;
-
   VkDeviceCreateInfo device_create_info = {0};
   device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   device_create_info.pQueueCreateInfos = device_queue_create_infos;
   device_create_info.queueCreateInfoCount = ARRAY_COUNT(device_queue_create_infos);
   device_create_info.pEnabledFeatures = 0;
-  device_create_info.pNext = &physical_device_features_2;
+  device_create_info.pNext = 0;
   device_create_info.ppEnabledExtensionNames = s_context_device_extensions;
   device_create_info.enabledExtensionCount = ARRAY_COUNT(s_context_device_extensions);
 

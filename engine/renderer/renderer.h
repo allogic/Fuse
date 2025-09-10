@@ -20,12 +20,6 @@ extern uint8_t g_renderer_enable_debug;
 
 extern int32_t g_renderer_frames_in_flight;
 
-extern int32_t g_renderer_chunk_count_x;
-extern int32_t g_renderer_chunk_count_y;
-extern int32_t g_renderer_chunk_count_z;
-
-extern int32_t g_renderer_chunk_size;
-
 void renderer_create(void);
 void renderer_update(void);
 void renderer_draw(transform_t *transform, camera_t *camera);
@@ -33,9 +27,6 @@ void renderer_destroy(void);
 
 void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color);
 void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color);
-
-void renderer_load_graphics_pipeline(char const *pipeline_name, char const *vertex_shader_file_path, char const *fragment_shader_file_path);
-void renderer_load_compute_pipeline(char const *pipeline_name, char const *compute_shader_file_path);
 
 #ifdef __cplusplus
 }

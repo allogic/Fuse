@@ -3,8 +3,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include <spirv_reflect/spirv_reflect.h>
-
 #include <library/core/api.h>
 
 #include <engine/context.h>
@@ -27,8 +25,6 @@ static void renderer_print_pipelines(void);
 
 static void renderer_create_command_buffer(void);
 static void renderer_create_sync_objects(void);
-static void renderer_create_descriptor_pools(void);
-static void renderer_create_descriptor_set_layouts(void);
 static void renderer_create_descriptor_sets(void);
 static void renderer_create_pipeline_layouts(void);
 
@@ -90,47 +86,6 @@ uint8_t g_renderer_enable_debug = 0;
 
 int32_t g_renderer_frames_in_flight = 0;
 
-int32_t g_renderer_chunk_count_x = RENDERER_CHUNK_COUNT_X;
-int32_t g_renderer_chunk_count_y = RENDERER_CHUNK_COUNT_Y;
-int32_t g_renderer_chunk_count_z = RENDERER_CHUNK_COUNT_Z;
-
-int32_t g_renderer_chunk_size = RENDERER_CHUNK_SIZE;
-
-static vector_t s_renderer_pipelines = {0};
-
-static VkVertexInputBindingDescription const s_renderer_chunk_renderer_vertex_input_binding_descriptions[] = {
-  {0, sizeof(renderer_cluster_vertex_t), VK_VERTEX_INPUT_RATE_VERTEX},
-};
-static VkVertexInputBindingDescription const s_renderer_debug_line_vertex_input_binding_descriptions[] = {
-  {0, sizeof(renderer_debug_line_vertex_t), VK_VERTEX_INPUT_RATE_VERTEX},
-};
-
-static VkVertexInputAttributeDescription const s_renderer_chunk_renderer_vertex_input_attribute_descriptions[] = {
-  {0, 0, VK_FORMAT_R32G32B32_SINT, 0},
-};
-static VkVertexInputAttributeDescription const s_renderer_debug_line_vertex_input_attribute_descriptions[] = {
-  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-  {1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, OFFSET_OF(renderer_debug_line_vertex_t, color)},
-};
-
-static VkPushConstantRange const s_renderer_chunk_editor_push_constant_ranges[] = {
-  {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(renderer_chunk_editor_push_constant_t)},
-};
-static VkPushConstantRange const s_renderer_chunk_generator_push_constant_ranges[] = {
-  {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(renderer_chunk_generator_push_constant_t)},
-};
-static VkPushConstantRange const s_renderer_chunk_mipmap_push_constant_ranges[] = {
-  {VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(renderer_chunk_mipmap_push_constant_t)},
-};
-
-static char const *s_renderer_chunk_editor_shader_file_path = ROOT_DIR "/shader/chunk/editor.comp.spv";
-static char const *s_renderer_chunk_generator_shader_file_path = ROOT_DIR "/shader/chunk/generator.comp.spv";
-static char const *s_renderer_chunk_mipmap_shader_file_path = ROOT_DIR "/shader/chunk/mipmap.comp.spv";
-static char const *s_renderer_chunk_renderer_vertex_shader_file_path = ROOT_DIR "/shader/chunk/renderer.vert.spv";
-static char const *s_renderer_chunk_renderer_fragment_shader_file_path = ROOT_DIR "/shader/chunk/renderer.frag.spv";
-static char const *s_renderer_debug_line_vertex_shader_file_path = ROOT_DIR "/shader/debug/line.vert.spv";
-static char const *s_renderer_debug_line_fragment_shader_file_path = ROOT_DIR "/shader/debug/line.frag.spv";
-
 static VkCommandBuffer *s_renderer_graphics_command_buffers = 0;
 
 static VkSemaphore *s_renderer_graphics_complete_semaphores = 0;
@@ -140,41 +95,13 @@ static VkFence *s_renderer_frame_fences = 0;
 
 static int32_t s_renderer_frames_in_flight = 0;
 
-static int32_t *s_renderer_cluster_is_dirty = 0;
-
-static int32_t s_renderer_chunk_count_x = 0;
-static int32_t s_renderer_chunk_count_y = 0;
-static int32_t s_renderer_chunk_count_z = 0;
-static int32_t s_renderer_chunk_count = 0;
-
 static int32_t s_renderer_frame_index = 0;
 static int32_t s_renderer_image_index = 0;
 
-static int32_t s_renderer_chunk_lod_levels = 0;
+static vector_t s_renderer_graphic_pipelines = {0};
+static vector_t s_renderer_compute_pipelines = {0};
 
-static VkDescriptorPool s_renderer_chunk_editor_descriptor_pool = 0;
-static VkDescriptorPool s_renderer_chunk_generator_descriptor_pool = 0;
-static VkDescriptorPool s_renderer_chunk_mipmap_descriptor_pool = 0;
-static VkDescriptorPool s_renderer_chunk_renderer_descriptor_pool = 0;
-static VkDescriptorPool s_renderer_debug_line_descriptor_pool = 0;
-
-static VkDescriptorSetLayout s_renderer_chunk_editor_descriptor_set_layout = 0;
-static VkDescriptorSetLayout s_renderer_chunk_generator_descriptor_set_layout = 0;
-static VkDescriptorSetLayout s_renderer_chunk_mipmap_descriptor_set_layout = 0;
-static VkDescriptorSetLayout s_renderer_chunk_renderer_descriptor_set_layout = 0;
-static VkDescriptorSetLayout s_renderer_debug_line_descriptor_set_layout = 0;
-
-static VkPipelineLayout s_renderer_chunk_editor_pipeline_layout = 0;
-static VkPipelineLayout s_renderer_chunk_generator_pipeline_layout = 0;
-static VkPipelineLayout s_renderer_chunk_mipmap_pipeline_layout = 0;
-static VkPipelineLayout s_renderer_chunk_renderer_pipeline_layout = 0;
-static VkPipelineLayout s_renderer_debug_line_pipeline_layout = 0;
-
-static VkPipeline s_renderer_chunk_editor_pipeline = 0;
-static VkPipeline s_renderer_chunk_generator_pipeline = 0;
-static VkPipeline s_renderer_chunk_mipmap_pipeline = 0;
-static VkPipeline s_renderer_chunk_renderer_pipeline = 0;
-static VkPipeline s_renderer_debug_line_pipeline = 0;
+// TODO
 
 static VkDescriptorSet *s_renderer_chunk_editor_descriptor_sets = 0;
 static VkDescriptorSet *s_renderer_chunk_generator_descriptor_sets = 0;
@@ -227,10 +154,6 @@ static uint8_t s_renderer_cluster_worker_should_stop = 0;
 void renderer_create(void) {
   renderer_compute_local_variables();
 
-  s_renderer_cluster_is_dirty = (int32_t *)heap_alloc(sizeof(int32_t) * g_renderer_frames_in_flight);
-
-  memset(s_renderer_cluster_is_dirty, 1, sizeof(int32_t) * g_renderer_frames_in_flight);
-
   renderer_create_command_buffer();
   renderer_create_sync_objects();
 
@@ -238,20 +161,16 @@ void renderer_create(void) {
   renderer_create_descriptor_set_layouts();
   renderer_create_descriptor_sets();
 
-  s_renderer_pipelines = vector_alloc(sizeof(pipeline_t)); // TODO: Free this..
+  s_renderer_graphic_pipelines = vector_alloc(sizeof(graphic_pipeline_t));
+  s_renderer_compute_pipelines = vector_alloc(sizeof(compute_pipeline_t));
 
-  // renderer_load_graphics_pipeline("chunk_renderer", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
-  renderer_load_graphics_pipeline("debug_line", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
+  graphic_pipeline_t chunk_renderer_pipeline = graphic_pipeline_alloc("chunk_renderer", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
+  graphic_pipeline_t debug_line_pipeline = graphic_pipeline_alloc("debug_line", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
+
+  vector_push(&s_renderer_graphic_pipelines, &chunk_renderer_pipeline);
+  vector_push(&s_renderer_graphic_pipelines, &debug_line_pipeline);
 
   renderer_print_pipelines();
-
-  // renderer_create_pipeline_layouts();
-
-  // renderer_create_chunk_editor_pipeline();
-  // renderer_create_chunk_generator_pipeline();
-  // renderer_create_chunk_mipmap_pipeline();
-  // renderer_create_chunk_renderer_pipeline();
-  // renderer_create_debug_line_pipeline();
 
   renderer_create_time_buffer();
   renderer_create_screen_buffer();
@@ -283,23 +202,23 @@ void renderer_create(void) {
 }
 void renderer_update(void) {
   if (g_renderer_enable_debug) {
-    vector3_t cluster_position = {0.0F, 0.0F, 0.0F};
-    vector3_t cluster_size = {(float)s_renderer_chunk_count_x * (float)g_renderer_chunk_size, (float)s_renderer_chunk_count_y * (float)g_renderer_chunk_size, (float)s_renderer_chunk_count_z * (float)g_renderer_chunk_size};
-    vector4_t cluster_color = {0.2F, 0.5F, 0.8F, 1.0F};
+    vector3_t right_position = {0.0F, 0.0F, 0.0F};
+    vector3_t right_direction = {1.0F, 0.0F, 0.0F};
+    vector4_t right_color = {1.0F, 0.0F, 0.0F, 1.0F};
 
-    renderer_draw_debug_box(cluster_position, cluster_size, cluster_color);
+    renderer_draw_debug_line(right_position, right_direction, right_color);
 
-    vector3_t chunk_position = {0.0F, 0.0F, 0.0F};
-    vector3_t chunk_size = {(float)g_renderer_chunk_size, (float)g_renderer_chunk_size, (float)g_renderer_chunk_size};
-    vector4_t chunk_color = {0.2F, 0.5F, 0.8F, 1.0F};
+    vector3_t up_position = {0.0F, 0.0F, 0.0F};
+    vector3_t up_direction = {0.0F, 1.0F, 0.0F};
+    vector4_t up_color = {0.0F, 1.0F, 0.0F, 1.0F};
 
-    renderer_draw_debug_box(chunk_position, chunk_size, chunk_color);
+    renderer_draw_debug_line(up_position, up_direction, up_color);
 
-    vector3_t voxel_position = {0.0F, 0.0F, 0.0F};
-    vector3_t voxel_size = {1.0F, 1.0F, 1.0F};
-    vector4_t voxel_color = {1.0F, 0.0F, 0.0F, 1.0F};
+    vector3_t front_position = {0.0F, 0.0F, 0.0F};
+    vector3_t front_direction = {0.0F, 0.0F, 1.0F};
+    vector4_t front_color = {0.0F, 0.0F, 1.0F, 1.0F};
 
-    renderer_draw_debug_box(voxel_position, voxel_size, voxel_color);
+    renderer_draw_debug_line(front_position, front_direction, front_color);
   }
 }
 void renderer_draw(transform_t *transform, camera_t *camera) {
@@ -493,13 +412,15 @@ void renderer_destroy(void) {
 
   renderer_destroy_pipelines();
   renderer_destroy_pipeline_layouts();
+
+  vector_free(&s_renderer_compute_pipelines);
+  vector_free(&s_renderer_graphic_pipelines);
+
   renderer_destroy_descriptor_sets();
   renderer_destroy_descriptor_set_layouts();
   renderer_destroy_descriptor_pools();
   renderer_destroy_sync_objects();
   renderer_destroy_command_buffer();
-
-  heap_free(s_renderer_cluster_is_dirty);
 }
 
 void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
@@ -567,83 +488,38 @@ void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color
   }
 }
 
-void renderer_load_graphics_pipeline(char const *pipeline_name, char const *vertex_shader_file_path, char const *fragment_shader_file_path) {
-  pipeline_t pipeline = pipeline_alloc(pipeline_name);
-
-  uint8_t *vertex_buffer = 0;
-  uint8_t *fragment_buffer = 0;
-
-  uint64_t vertex_buffer_size = 0;
-  uint64_t fragment_buffer_size = 0;
-
-  filesys_load_binary(&vertex_buffer, &vertex_buffer_size, vertex_shader_file_path);
-  filesys_load_binary(&fragment_buffer, &fragment_buffer_size, fragment_shader_file_path);
-
-  SpvReflectShaderModule vertex_shader_module = {0};
-  SpvReflectShaderModule fragment_shader_module = {0};
-
-  SPIRV_CHECK(spvReflectCreateShaderModule(vertex_buffer_size, vertex_buffer, &vertex_shader_module));
-  SPIRV_CHECK(spvReflectCreateShaderModule(fragment_buffer_size, fragment_buffer, &fragment_shader_module));
-
-  pipeline_push_input_binding_descriptions(&pipeline, &vertex_shader_module);
-  pipeline_push_input_attribute_descriptions(&pipeline, &vertex_shader_module);
-
-  vector_push(&s_renderer_pipelines, &pipeline);
-
-  spvReflectDestroyShaderModule(&vertex_shader_module);
-  spvReflectDestroyShaderModule(&fragment_shader_module);
-
-  heap_free(vertex_buffer);
-  heap_free(fragment_buffer);
-}
-void renderer_load_compute_pipeline(char const *pipeline_name, char const *compute_shader_file_path) {
-  pipeline_t pipeline = pipeline_alloc(pipeline_name);
-
-  uint8_t *compute_buffer = 0;
-
-  uint64_t compute_buffer_size = 0;
-
-  filesys_load_binary(&compute_buffer, &compute_buffer_size, compute_shader_file_path);
-
-  SpvReflectShaderModule compute_shader_module = {0};
-
-  SPIRV_CHECK(spvReflectCreateShaderModule(compute_buffer_size, compute_buffer, &compute_shader_module));
-
-  vector_push(&s_renderer_pipelines, &pipeline);
-
-  spvReflectDestroyShaderModule(&compute_shader_module);
-
-  heap_free(compute_buffer);
-}
-
-static void renderer_print_pipelines(void) {
-  uint64_t pipeline_index = 0;
-  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
-
-  while (pipeline_index < pipeline_count) {
-    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
-
-    pipeline_print(pipeline);
-
-    pipeline_index++;
-  }
-}
-
 static void renderer_compute_local_variables(void) {
   s_renderer_frames_in_flight = g_renderer_frames_in_flight;
   s_renderer_frames_in_flight = MAX(s_renderer_frames_in_flight, 1);
   s_renderer_frames_in_flight = MIN(s_renderer_frames_in_flight, g_swapchain_image_count);
   g_renderer_frames_in_flight = s_renderer_frames_in_flight;
 
-  s_renderer_chunk_count_x = g_renderer_chunk_count_x;
-  s_renderer_chunk_count_y = g_renderer_chunk_count_y;
-  s_renderer_chunk_count_z = g_renderer_chunk_count_z;
-  s_renderer_chunk_count = g_renderer_chunk_count_x * g_renderer_chunk_count_y * g_renderer_chunk_count_z;
-
   s_renderer_frame_index = 0;
   s_renderer_image_index = 0;
+}
 
-  s_renderer_chunk_lod_levels = 6;
+static void renderer_print_pipelines(void) {
+  uint64_t graphic_pipeline_index = 0;
+  uint64_t graphic_pipeline_count = vector_count(&s_renderer_graphic_pipelines);
+
+  while (graphic_pipeline_index < graphic_pipeline_count) {
+    graphic_pipeline_t *graphic_pipeline = (graphic_pipeline_t *)vector_at(&s_renderer_graphic_pipelines, graphic_pipeline_index);
+
+    graphic_pipeline_print(graphic_pipeline);
+
+    graphic_pipeline_index++;
+  }
+
+  uint64_t compute_pipeline_index = 0;
+  uint64_t compute_pipeline_count = vector_count(&s_renderer_compute_pipelines);
+
+  while (compute_pipeline_index < compute_pipeline_count) {
+    compute_pipeline_t *compute_pipeline = (compute_pipeline_t *)vector_at(&s_renderer_compute_pipelines, compute_pipeline_index);
+
+    compute_pipeline_print(compute_pipeline);
+
+    compute_pipeline_index++;
+  }
 }
 
 static void renderer_create_command_buffer(void) {
@@ -679,151 +555,6 @@ static void renderer_create_sync_objects(void) {
 
     frame_index++;
   }
-}
-static void renderer_create_descriptor_pools(void) {
-  VkDescriptorPoolSize chunk_editor_descriptor_pool_sizes[] =
-    {
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, s_renderer_chunk_count},
-    };
-
-  VkDescriptorPoolCreateInfo chunk_editor_descriptor_pool_create_info = {0};
-  chunk_editor_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  chunk_editor_descriptor_pool_create_info.pPoolSizes = chunk_editor_descriptor_pool_sizes;
-  chunk_editor_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_editor_descriptor_pool_sizes);
-  chunk_editor_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
-
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_editor_descriptor_pool_create_info, 0, &s_renderer_chunk_editor_descriptor_pool));
-
-  VkDescriptorPoolSize chunk_generator_descriptor_pool_sizes[] =
-    {
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, s_renderer_chunk_count},
-    };
-
-  VkDescriptorPoolCreateInfo chunk_generator_descriptor_pool_create_info = {0};
-  chunk_generator_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  chunk_generator_descriptor_pool_create_info.pPoolSizes = chunk_generator_descriptor_pool_sizes;
-  chunk_generator_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_generator_descriptor_pool_sizes);
-  chunk_generator_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
-
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_generator_descriptor_pool_create_info, 0, &s_renderer_chunk_generator_descriptor_pool));
-
-  VkDescriptorPoolSize chunk_mipmap_descriptor_pool_sizes[] =
-    {
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, s_renderer_chunk_count * s_renderer_chunk_lod_levels},
-    };
-
-  VkDescriptorPoolCreateInfo chunk_mipmap_descriptor_pool_create_info = {0};
-  chunk_mipmap_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  chunk_mipmap_descriptor_pool_create_info.pPoolSizes = chunk_mipmap_descriptor_pool_sizes;
-  chunk_mipmap_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_mipmap_descriptor_pool_sizes);
-  chunk_mipmap_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
-
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_mipmap_descriptor_pool_create_info, 0, &s_renderer_chunk_mipmap_descriptor_pool));
-
-  VkDescriptorPoolSize chunk_renderer_descriptor_pool_sizes[] =
-    {
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4},
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, s_renderer_chunk_count * s_renderer_chunk_lod_levels},
-    };
-
-  VkDescriptorPoolCreateInfo chunk_renderer_descriptor_pool_create_info = {0};
-  chunk_renderer_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  chunk_renderer_descriptor_pool_create_info.pPoolSizes = chunk_renderer_descriptor_pool_sizes;
-  chunk_renderer_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(chunk_renderer_descriptor_pool_sizes);
-  chunk_renderer_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
-
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &chunk_renderer_descriptor_pool_create_info, 0, &s_renderer_chunk_renderer_descriptor_pool));
-
-  VkDescriptorPoolSize debug_line_descriptor_pool_sizes[] =
-    {
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
-    };
-
-  VkDescriptorPoolCreateInfo debug_line_descriptor_pool_create_info = {0};
-  debug_line_descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  debug_line_descriptor_pool_create_info.pPoolSizes = debug_line_descriptor_pool_sizes;
-  debug_line_descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(debug_line_descriptor_pool_sizes);
-  debug_line_descriptor_pool_create_info.maxSets = s_renderer_frames_in_flight;
-
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &debug_line_descriptor_pool_create_info, 0, &s_renderer_debug_line_descriptor_pool));
-}
-static void renderer_create_descriptor_set_layouts(void) {
-  VkDescriptorSetLayoutBinding chunk_editor_descriptor_set_layout_bindings[] =
-    {
-      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-      {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, s_renderer_chunk_count * s_renderer_chunk_lod_levels, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-    };
-
-  VkDescriptorSetLayoutCreateInfo chunk_editor_descriptor_set_layout_create_info = {0};
-  chunk_editor_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  chunk_editor_descriptor_set_layout_create_info.pBindings = chunk_editor_descriptor_set_layout_bindings;
-  chunk_editor_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_editor_descriptor_set_layout_bindings);
-  chunk_editor_descriptor_set_layout_create_info.pNext = 0;
-
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_editor_descriptor_set_layout_create_info, 0, &s_renderer_chunk_editor_descriptor_set_layout));
-
-  VkDescriptorSetLayoutBinding chunk_generator_descriptor_set_layout_bindings[] =
-    {
-      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-      {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, s_renderer_chunk_count * s_renderer_chunk_lod_levels, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-    };
-
-  VkDescriptorSetLayoutCreateInfo chunk_generator_descriptor_set_layout_create_info = {0};
-  chunk_generator_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  chunk_generator_descriptor_set_layout_create_info.pBindings = chunk_generator_descriptor_set_layout_bindings;
-  chunk_generator_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_generator_descriptor_set_layout_bindings);
-  chunk_generator_descriptor_set_layout_create_info.pNext = 0;
-
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_generator_descriptor_set_layout_create_info, 0, &s_renderer_chunk_generator_descriptor_set_layout));
-
-  VkDescriptorSetLayoutBinding chunk_mipmap_descriptor_set_layout_bindings[] =
-    {
-      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-      {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, s_renderer_chunk_count * s_renderer_chunk_lod_levels, VK_SHADER_STAGE_COMPUTE_BIT, 0},
-    };
-
-  VkDescriptorSetLayoutCreateInfo chunk_mipmap_descriptor_set_layout_create_info = {0};
-  chunk_mipmap_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  chunk_mipmap_descriptor_set_layout_create_info.pBindings = chunk_mipmap_descriptor_set_layout_bindings;
-  chunk_mipmap_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_mipmap_descriptor_set_layout_bindings);
-  chunk_mipmap_descriptor_set_layout_create_info.pNext = 0;
-
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_mipmap_descriptor_set_layout_create_info, 0, &s_renderer_chunk_mipmap_descriptor_set_layout));
-
-  VkDescriptorSetLayoutBinding chunk_renderer_descriptor_set_layout_bindings[] =
-    {
-      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-      {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-      {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-      {3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-      {4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, s_renderer_chunk_count * s_renderer_chunk_lod_levels, VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-    };
-
-  VkDescriptorSetLayoutCreateInfo chunk_renderer_descriptor_set_layout_create_info = {0};
-  chunk_renderer_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  chunk_renderer_descriptor_set_layout_create_info.pBindings = chunk_renderer_descriptor_set_layout_bindings;
-  chunk_renderer_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(chunk_renderer_descriptor_set_layout_bindings);
-  chunk_renderer_descriptor_set_layout_create_info.pNext = 0;
-
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &chunk_renderer_descriptor_set_layout_create_info, 0, &s_renderer_chunk_renderer_descriptor_set_layout));
-
-  VkDescriptorSetLayoutBinding debug_line_descriptor_set_layout_bindings[] =
-    {
-      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-      {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-      {2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0},
-    };
-
-  VkDescriptorSetLayoutCreateInfo debug_line_descriptor_set_layout_create_info = {0};
-  debug_line_descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  debug_line_descriptor_set_layout_create_info.pBindings = debug_line_descriptor_set_layout_bindings;
-  debug_line_descriptor_set_layout_create_info.bindingCount = ARRAY_COUNT(debug_line_descriptor_set_layout_bindings);
-  debug_line_descriptor_set_layout_create_info.pNext = 0;
-
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &debug_line_descriptor_set_layout_create_info, 0, &s_renderer_debug_line_descriptor_set_layout));
 }
 static void renderer_create_descriptor_sets(void) {
   int32_t chunk_editor_descriptor_set_count = s_renderer_frames_in_flight;
@@ -1736,7 +1467,7 @@ static void renderer_create_chunk_images(void) {
         sampler_create_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        sampler_create_info.anisotropyEnable = 1;
+        sampler_create_info.anisotropyEnable = 0;
         sampler_create_info.maxAnisotropy = g_context_physical_device_properties.limits.maxSamplerAnisotropy;
         sampler_create_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
         sampler_create_info.unnormalizedCoordinates = 0;
