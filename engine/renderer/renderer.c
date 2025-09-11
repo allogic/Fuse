@@ -98,8 +98,7 @@ static int32_t s_renderer_frames_in_flight = 0;
 static int32_t s_renderer_frame_index = 0;
 static int32_t s_renderer_image_index = 0;
 
-static vector_t s_renderer_graphic_pipelines = {0};
-static vector_t s_renderer_compute_pipelines = {0};
+static vector_t s_renderer_pipelines = {0};
 
 // TODO
 
@@ -161,14 +160,13 @@ void renderer_create(void) {
   renderer_create_descriptor_set_layouts();
   renderer_create_descriptor_sets();
 
-  s_renderer_graphic_pipelines = vector_alloc(sizeof(graphic_pipeline_t));
-  s_renderer_compute_pipelines = vector_alloc(sizeof(compute_pipeline_t));
+  s_renderer_pipelines = vector_create(sizeof(pipeline_t));
 
-  graphic_pipeline_t chunk_renderer_pipeline = graphic_pipeline_alloc("chunk_renderer", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
-  graphic_pipeline_t debug_line_pipeline = graphic_pipeline_alloc("debug_line", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
+  pipeline_t chunk_renderer_pipeline = pipeline_create_graphic("chunk_renderer", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
+  pipeline_t debug_line_pipeline = pipeline_create_graphic("debug_line", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
 
-  vector_push(&s_renderer_graphic_pipelines, &chunk_renderer_pipeline);
-  vector_push(&s_renderer_graphic_pipelines, &debug_line_pipeline);
+  vector_push(&s_renderer_pipelines, &chunk_renderer_pipeline);
+  vector_push(&s_renderer_pipelines, &debug_line_pipeline);
 
   renderer_print_pipelines();
 
@@ -413,8 +411,7 @@ void renderer_destroy(void) {
   renderer_destroy_pipelines();
   renderer_destroy_pipeline_layouts();
 
-  vector_free(&s_renderer_compute_pipelines);
-  vector_free(&s_renderer_graphic_pipelines);
+  vector_free(&s_renderer_pipelines);
 
   renderer_destroy_descriptor_sets();
   renderer_destroy_descriptor_set_layouts();
@@ -499,26 +496,15 @@ static void renderer_compute_local_variables(void) {
 }
 
 static void renderer_print_pipelines(void) {
-  uint64_t graphic_pipeline_index = 0;
-  uint64_t graphic_pipeline_count = vector_count(&s_renderer_graphic_pipelines);
+  uint64_t pipeline_index = 0;
+  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
 
-  while (graphic_pipeline_index < graphic_pipeline_count) {
-    graphic_pipeline_t *graphic_pipeline = (graphic_pipeline_t *)vector_at(&s_renderer_graphic_pipelines, graphic_pipeline_index);
+  while (pipeline_index < pipeline_count) {
+    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
 
-    graphic_pipeline_print(graphic_pipeline);
+    pipeline_print(pipeline);
 
-    graphic_pipeline_index++;
-  }
-
-  uint64_t compute_pipeline_index = 0;
-  uint64_t compute_pipeline_count = vector_count(&s_renderer_compute_pipelines);
-
-  while (compute_pipeline_index < compute_pipeline_count) {
-    compute_pipeline_t *compute_pipeline = (compute_pipeline_t *)vector_at(&s_renderer_compute_pipelines, compute_pipeline_index);
-
-    compute_pipeline_print(compute_pipeline);
-
-    compute_pipeline_index++;
+    pipeline_index++;
   }
 }
 

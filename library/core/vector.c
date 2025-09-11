@@ -5,7 +5,7 @@
 #include <library/core/heap.h>
 #include <library/core/vector.h>
 
-vector_t vector_alloc(uint64_t value_size) {
+vector_t vector_create(uint64_t value_size) {
   vector_t vector = {0};
 
   vector.buffer = (uint8_t *)heap_alloc(ALIGN_UP_BY(VECTOR_BUFFER_CAPACITY, VECTOR_BUFFER_ALIGNMENT) * value_size);

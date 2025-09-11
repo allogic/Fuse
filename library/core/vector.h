@@ -9,7 +9,7 @@
 extern "C" {
 #endif // __cplusplus
 
-vector_t vector_alloc(uint64_t value_size);
+vector_t vector_create(uint64_t value_size);
 vector_t vector_copy(vector_t *reference);
 uint8_t vector_equal(vector_t *vector, vector_t *reference);
 void vector_fill(vector_t *vector, void const *value);

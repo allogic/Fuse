@@ -21,7 +21,7 @@ map_pair_t *map_pair_next(map_pair_t *pair) {
   return pair->next;
 }
 
-map_t map_alloc(void) {
+map_t map_create(void) {
   map_t map = {0};
 
   map.table = (map_pair_t **)heap_alloc(MAP_TABLE_COUNT * sizeof(map_pair_t *));
@@ -287,7 +287,7 @@ uint64_t map_hash(map_t *map, void const *key, uint64_t key_size, uint64_t modul
 uint8_t map_load_factor(map_t *map) {
   return (uint8_t)(((map->pair_count + 1) / map->table_count) * 100);
 }
-void map_free(map_t *map) {
+void map_destroy(map_t *map) {
   uint64_t table_index = 0;
   while (table_index < map->table_count) {
     map_pair_t *curr = map->table[table_index];

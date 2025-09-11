@@ -15,7 +15,7 @@ set_entry_t *set_entry_next(set_entry_t *entry) {
   return entry->next;
 }
 
-set_t set_alloc(void) {
+set_t set_create(void) {
   set_t set = {0};
 
   set.table = (set_entry_t **)heap_alloc(SET_TABLE_COUNT * sizeof(set_entry_t *));
@@ -244,7 +244,7 @@ uint64_t set_hash(set_t *set, void const *key, uint64_t key_size, uint64_t modul
 uint8_t set_load_factor(set_t *set) {
   return (uint8_t)(((set->entry_count + 1) / set->table_count) * 100);
 }
-void set_free(set_t *set) {
+void set_destroy(set_t *set) {
   uint64_t table_index = 0;
   while (table_index < set->table_count) {
     set_entry_t *curr = set->table[table_index];

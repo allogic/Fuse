@@ -8,7 +8,7 @@
 #include <library/core/string.h>
 #include <library/core/filesys.h>
 
-string_t string_alloc(void) {
+string_t string_create(void) {
   string_t string = {0};
 
   string.buffer = (char *)heap_alloc(ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT));
@@ -29,7 +29,7 @@ string_t string_copy(string_t *reference) {
   return string;
 }
 string_t string_from(char const *value) {
-  string_t string = string_alloc();
+  string_t string = string_create();
 
   uint64_t value_size = strlen(value);
 
@@ -42,7 +42,7 @@ string_t string_from(char const *value) {
   return string;
 }
 string_t string_from_file(char const *input_file) {
-  string_t string = string_alloc();
+  string_t string = string_create();
 
   uint8_t *buffer = 0;
   uint64_t buffer_size = 0;
@@ -223,6 +223,6 @@ uint64_t string_size(string_t *string) {
 uint64_t string_capacity(string_t *string) {
   return string->buffer_capacity;
 }
-void string_free(string_t *string) {
+void string_destroy(string_t *string) {
   heap_free(string->buffer);
 }

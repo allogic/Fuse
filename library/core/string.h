@@ -9,7 +9,7 @@
 extern "C" {
 #endif // __cplusplus
 
-string_t string_alloc(void);
+string_t string_create(void);
 string_t string_from(char const *value);
 string_t string_from_file(char const *input_file);
 void string_to_file(string_t *string, char const *output_file);
@@ -31,7 +31,7 @@ void string_set(string_t *string, char const *value);
 uint8_t string_empty(string_t *string);
 uint64_t string_size(string_t *string);
 uint64_t string_capacity(string_t *string);
-void string_free(string_t *string);
+void string_destroy(string_t *string);
 
 #ifdef __cplusplus
 }
