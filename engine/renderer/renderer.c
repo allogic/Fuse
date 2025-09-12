@@ -37,16 +37,8 @@ static void renderer_create_debug_line_pipeline(void);
 static void renderer_create_time_buffer(void);
 static void renderer_create_screen_buffer(void);
 static void renderer_create_camera_buffer(void);
-static void renderer_create_cluster_buffer(void);
-static void renderer_create_cluster_vertex_buffer(void);
-static void renderer_create_cluster_index_buffer(void);
 static void renderer_create_debug_line_vertex_buffer(void);
 static void renderer_create_debug_line_index_buffer(void);
-
-static void renderer_create_chunk_images(void);
-
-static void renderer_create_cluster_vertices(void);
-static void renderer_create_cluster_indices(void);
 
 static void renderer_update_chunk_editor_descriptor_sets(void);
 static void renderer_update_chunk_generator_descriptor_sets(void);
@@ -70,9 +62,6 @@ static void renderer_destroy_pipelines(void);
 static void renderer_destroy_time_buffer(void);
 static void renderer_destroy_screen_buffer(void);
 static void renderer_destroy_camera_buffer(void);
-static void renderer_destroy_cluster_buffer(void);
-static void renderer_destroy_cluster_vertex_buffer(void);
-static void renderer_destroy_cluster_index_buffer(void);
 static void renderer_destroy_debug_line_vertex_buffer(void);
 static void renderer_destroy_debug_line_index_buffer(void);
 
@@ -86,9 +75,9 @@ uint8_t g_renderer_enable_debug = 0;
 
 int32_t g_renderer_frames_in_flight = 0;
 
-static VkCommandBuffer *s_renderer_graphics_command_buffers = 0;
+static VkCommandBuffer *s_renderer_graphic_command_buffers = 0;
 
-static VkSemaphore *s_renderer_graphics_complete_semaphores = 0;
+static VkSemaphore *s_renderer_graphic_complete_semaphores = 0;
 static VkSemaphore *s_renderer_present_complete_semaphores = 0;
 
 static VkFence *s_renderer_frame_fences = 0;
@@ -102,45 +91,39 @@ static vector_t s_renderer_pipelines = {0};
 
 // TODO
 
-static VkDescriptorSet *s_renderer_chunk_editor_descriptor_sets = 0;
-static VkDescriptorSet *s_renderer_chunk_generator_descriptor_sets = 0;
-static VkDescriptorSet *s_renderer_chunk_mipmap_descriptor_sets = 0;
-static VkDescriptorSet *s_renderer_chunk_renderer_descriptor_sets = 0;
-static VkDescriptorSet *s_renderer_debug_line_descriptor_sets = 0;
+// static VkDescriptorSet *s_renderer_chunk_editor_descriptor_sets = 0;
+// static VkDescriptorSet *s_renderer_chunk_generator_descriptor_sets = 0;
+// static VkDescriptorSet *s_renderer_chunk_mipmap_descriptor_sets = 0;
+// static VkDescriptorSet *s_renderer_chunk_renderer_descriptor_sets = 0;
+// static VkDescriptorSet *s_renderer_debug_line_descriptor_sets = 0;
 
 static VkBuffer *s_renderer_time_buffer = 0;
 static VkBuffer *s_renderer_screen_buffer = 0;
 static VkBuffer *s_renderer_camera_buffer = 0;
-static VkBuffer *s_renderer_cluster_buffer = 0;
-static VkBuffer *s_renderer_cluster_vertex_buffer = 0;
-static VkBuffer *s_renderer_cluster_index_buffer = 0;
+// static VkBuffer *s_renderer_cluster_buffer = 0;
+// static VkBuffer *s_renderer_cluster_vertex_buffer = 0;
+// static VkBuffer *s_renderer_cluster_index_buffer = 0;
 static VkBuffer *s_renderer_debug_line_vertex_buffer = 0;
 static VkBuffer *s_renderer_debug_line_index_buffer = 0;
 
 static VkDeviceMemory *s_renderer_time_buffer_device_memory = 0;
 static VkDeviceMemory *s_renderer_screen_buffer_device_memory = 0;
 static VkDeviceMemory *s_renderer_camera_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_cluster_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_cluster_vertex_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_cluster_index_buffer_device_memory = 0;
+// static VkDeviceMemory *s_renderer_cluster_buffer_device_memory = 0;
+// static VkDeviceMemory *s_renderer_cluster_vertex_buffer_device_memory = 0;
+// static VkDeviceMemory *s_renderer_cluster_index_buffer_device_memory = 0;
 static VkDeviceMemory *s_renderer_debug_line_vertex_buffer_device_memory = 0;
 static VkDeviceMemory *s_renderer_debug_line_index_buffer_device_memory = 0;
-static VkDeviceMemory **s_renderer_chunk_image_device_memory = 0;
+// static VkDeviceMemory **s_renderer_chunk_image_device_memory = 0;
 
 static renderer_time_t **s_renderer_time = 0;
 static renderer_screen_t **s_renderer_screen = 0;
 static renderer_camera_t **s_renderer_camera = 0;
-static renderer_cluster_t **s_renderer_cluster = 0;
-static renderer_cluster_vertex_t **s_renderer_cluster_vertex = 0;
-static renderer_cluster_index_t **s_renderer_cluster_index = 0;
+// static renderer_cluster_t **s_renderer_cluster = 0;
+// static renderer_cluster_vertex_t **s_renderer_cluster_vertex = 0;
+// static renderer_cluster_index_t **s_renderer_cluster_index = 0;
 static renderer_debug_line_vertex_t **s_renderer_debug_line_vertex = 0;
 static renderer_debug_line_index_t **s_renderer_debug_line_index = 0;
-
-static VkImage **s_renderer_chunk_image = 0;
-
-static VkImageView ***s_renderer_chunk_image_view = 0;
-
-static VkSampler ***s_renderer_chunk_sampler = 0;
 
 static int32_t *s_renderer_debug_line_vertex_offset = 0;
 static int32_t *s_renderer_debug_line_index_offset = 0;
@@ -156,8 +139,6 @@ void renderer_create(void) {
   renderer_create_command_buffer();
   renderer_create_sync_objects();
 
-  renderer_create_descriptor_pools();
-  renderer_create_descriptor_set_layouts();
   renderer_create_descriptor_sets();
 
   s_renderer_pipelines = vector_create(sizeof(pipeline_t));
@@ -173,16 +154,8 @@ void renderer_create(void) {
   renderer_create_time_buffer();
   renderer_create_screen_buffer();
   renderer_create_camera_buffer();
-  renderer_create_cluster_buffer();
-  renderer_create_cluster_vertex_buffer();
-  renderer_create_cluster_index_buffer();
   renderer_create_debug_line_vertex_buffer();
   renderer_create_debug_line_index_buffer();
-
-  renderer_create_chunk_images();
-
-  renderer_create_cluster_vertices();
-  renderer_create_cluster_indices();
 
   renderer_update_chunk_editor_descriptor_sets();
   renderer_update_chunk_generator_descriptor_sets();
@@ -249,7 +222,7 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  VkResult reset_graphics_command_buffer_result = vkResetCommandBuffer(s_renderer_graphics_command_buffers[s_renderer_frame_index], 0);
+  VkResult reset_graphics_command_buffer_result = vkResetCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index], 0);
 
   switch (reset_graphics_command_buffer_result) {
     case VK_SUCCESS: {
