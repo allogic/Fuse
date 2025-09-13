@@ -1,2 +1,0 @@
-& "out/build/x64-debug/enton/enton.exe" "render" "chunk_renderer" "shader/chunk/renderer.vert.spv" "shader/chunk/renderer.frag.spv"
-& "out/build/x64-debug/enton/enton.exe" "render" "debug_line" "shader/debug/line.vert.spv" "shader/debug/line.frag.spv"
