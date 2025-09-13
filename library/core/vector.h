@@ -30,7 +30,7 @@ uint8_t vector_empty(vector_t *vector);
 uint64_t vector_size(vector_t *vector);
 uint64_t vector_count(vector_t *vector);
 uint64_t vector_capacity(vector_t *vector);
-void vector_free(vector_t *vector);
+void vector_destroy(vector_t *vector);
 
 #ifdef __cplusplus
 }

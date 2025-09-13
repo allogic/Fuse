@@ -28,20 +28,27 @@ typedef struct set_t {
   uint64_t entry_count;
 } set_t;
 
-typedef struct map_pair_t {
-  struct map_pair_t *next;
+typedef struct map_record_t {
+  struct map_record_t *next;
   uint8_t *key;
   uint64_t key_size;
   uint8_t *value;
   uint64_t value_size;
-} map_pair_t;
+} map_record_t;
 
 typedef struct map_t {
-  map_pair_t **table;
+  map_record_t **table;
   uint64_t table_size;
   uint64_t table_count;
-  uint64_t pair_count;
+  uint64_t record_count;
 } map_t;
+
+typedef struct map_iter_t {
+  map_record_t **table;
+  map_record_t *table_record;
+  uint64_t table_index;
+  uint64_t table_count;
+} map_iter_t;
 
 typedef struct vector_t {
   uint8_t *buffer;

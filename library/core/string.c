@@ -18,17 +18,7 @@ string_t string_create(void) {
 
   return string;
 }
-string_t string_copy(string_t *reference) {
-  string_t string = {0};
-
-  string.buffer = (char *)heap_alloc(reference->buffer_capacity);
-  string.buffer_capacity = reference->buffer_capacity;
-  string.buffer_size = reference->buffer_size;
-  memcpy(string.buffer, reference->buffer, reference->buffer_size);
-
-  return string;
-}
-string_t string_from(char const *value) {
+string_t string_create_from(char const *value) {
   string_t string = string_create();
 
   uint64_t value_size = strlen(value);
@@ -41,7 +31,7 @@ string_t string_from(char const *value) {
 
   return string;
 }
-string_t string_from_file(char const *input_file) {
+string_t string_create_from_file(char const *input_file) {
   string_t string = string_create();
 
   uint8_t *buffer = 0;
@@ -54,6 +44,16 @@ string_t string_from_file(char const *input_file) {
   memcpy(string.buffer, buffer, buffer_size);
 
   string.buffer[string.buffer_size] = 0;
+
+  return string;
+}
+string_t string_copy(string_t *reference) {
+  string_t string = {0};
+
+  string.buffer = (char *)heap_alloc(reference->buffer_capacity);
+  string.buffer_capacity = reference->buffer_capacity;
+  string.buffer_size = reference->buffer_size;
+  memcpy(string.buffer, reference->buffer, reference->buffer_size);
 
   return string;
 }

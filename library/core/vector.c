@@ -168,7 +168,7 @@ uint64_t vector_count(vector_t *vector) {
 uint64_t vector_capacity(vector_t *vector) {
   return vector->buffer_capacity;
 }
-void vector_free(vector_t *vector) {
+void vector_destroy(vector_t *vector) {
   heap_free(vector->buffer);
   heap_free(vector->swap_buffer);
 }

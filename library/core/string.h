@@ -10,8 +10,8 @@ extern "C" {
 #endif // __cplusplus
 
 string_t string_create(void);
-string_t string_from(char const *value);
-string_t string_from_file(char const *input_file);
+string_t string_create_from(char const *value);
+string_t string_create_from_file(char const *input_file);
 void string_to_file(string_t *string, char const *output_file);
 string_t string_copy(string_t *reference);
 uint8_t string_equal(string_t *string, string_t *reference);
