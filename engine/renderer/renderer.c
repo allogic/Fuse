@@ -41,6 +41,8 @@ static void renderer_destroy_camera_buffer(void);
 static void renderer_destroy_debug_line_vertex_buffer(void);
 static void renderer_destroy_debug_line_index_buffer(void);
 
+static void renderer_destroy_pipelines(void);
+
 uint8_t g_renderer_is_dirty = 0;
 
 uint8_t g_renderer_enable_debug = 0;
@@ -297,17 +299,7 @@ void renderer_destroy(void) {
   renderer_destroy_debug_line_vertex_buffer();
   renderer_destroy_debug_line_index_buffer();
 
-  uint64_t pipeline_index = 0;
-  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
-  while (pipeline_index < pipeline_count) {
-    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
-
-    pipeline_free(pipeline);
-
-    pipeline_index++;
-  }
-
-  vector_destroy(&s_renderer_pipelines);
+  renderer_destroy_pipelines();
 
   renderer_destroy_sync_objects();
   renderer_destroy_command_buffer();
@@ -391,8 +383,8 @@ static void renderer_compute_local_variables(void) {
 static void renderer_build_pipelines(void) {
   s_renderer_pipelines = vector_create(sizeof(pipeline_t));
 
-  pipeline_t chunk_renderer_pipeline = pipeline_create_graphic(s_renderer_frames_in_flight, "chunk_renderer", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
-  pipeline_t debug_line_pipeline = pipeline_create_graphic(s_renderer_frames_in_flight, "debug_line", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\burm\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
+  pipeline_t chunk_renderer_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "chunk_renderer", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
+  pipeline_t debug_line_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "debug_line", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
 
   vector_push(&s_renderer_pipelines, &chunk_renderer_pipeline);
   vector_push(&s_renderer_pipelines, &debug_line_pipeline);
@@ -796,4 +788,19 @@ static void renderer_destroy_debug_line_index_buffer(void) {
   heap_free(s_renderer_debug_line_index_buffer);
   heap_free(s_renderer_debug_line_index_buffer_device_memory);
   heap_free(s_renderer_debug_line_index);
+}
+
+static void renderer_destroy_pipelines(void) {
+  uint64_t pipeline_index = 0;
+  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
+
+  while (pipeline_index < pipeline_count) {
+    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
+
+    pipeline_destroy(pipeline);
+
+    pipeline_index++;
+  }
+
+  vector_destroy(&s_renderer_pipelines);
 }

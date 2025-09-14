@@ -7,15 +7,15 @@
 
 #include <spirv_reflect/spirv_reflect.h>
 
-typedef enum pipline_type_t {
+typedef enum pipeline_type_t {
   PIPELINE_TYPE_NONE = 0,
   PIPELINE_TYPE_GRAPHIC,
   PIPELINE_TYPE_COMPUTE,
-} pipline_type_t;
+} pipeline_type_t;
 
 typedef struct pipeline_t {
+  pipeline_type_t type;
   string_t name;
-  pipline_type_t type;
   uint8_t *raw_vertex_buffer;
   uint8_t *raw_fragment_buffer;
   uint8_t *raw_compute_buffer;
@@ -43,11 +43,10 @@ typedef struct pipeline_t {
 extern "C" {
 #endif // __cplusplus
 
-pipeline_t pipeline_create_graphic(uint32_t frames_in_flight, char const *pipeline_name, char const *vertex_shader_file_path, char const *fragment_shader_file_path);
-pipeline_t pipeline_create_compute(uint32_t frames_in_flight, char const *pipeline_name, char const *compute_shader_file_path);
-void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, uint32_t frames_in_flight);
-void pipeline_update_descriptor_sets(pipeline_t *pipeline, uint32_t frames_in_flight);
-void pipeline_free(pipeline_t *pipeline);
+pipeline_t pipeline_create(pipeline_type_t type, uint32_t frames_in_flight, char const *pipeline_name, ...);
+void pipeline_allocate_descriptor_sets(pipeline_t *pipeline);
+void pipeline_update_descriptor_sets(pipeline_t *pipeline);
+void pipeline_destroy(pipeline_t *pipeline);
 
 #ifdef __cplusplus
 }

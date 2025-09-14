@@ -299,20 +299,44 @@ map_iter_t map_iter_create_from(map_t *map) {
   map_iter_t iter = {0};
 
   iter.table = map->table;
-  iter.table_record = map->table[0];
-  iter.table_index = 0;
   iter.table_count = map->table_count;
+
+  uint64_t table_index = 0;
+  while (table_index < map->table_count) {
+
+    map_record_t *curr = map->table[table_index];
+    if (curr) {
+      iter.table_index = table_index;
+      iter.table_record = curr;
+
+      break;
+    }
+
+    table_index++;
+  }
 
   return iter;
 }
 uint8_t map_iter_valid(map_iter_t *iter) {
   return (iter->table_index < iter->table_count) && iter->table_record;
 }
-void map_iter_next(map_iter_t *iter) {
+void map_iter_advance(map_iter_t *iter) {
   if (iter->table_record) {
     iter->table_record = iter->table_record->next;
-  } else {
-    iter->table_record = iter->table[iter->table_index++];
+  }
+
+  if (iter->table_record == 0) {
+    iter->table_index++;
+
+    while (iter->table_index < iter->table_count) {
+      iter->table_record = iter->table[iter->table_index];
+
+      if (iter->table_record) {
+        break;
+      }
+
+      iter->table_index++;
+    }
   }
 }
 void *map_iter_value(map_iter_t *iter) {

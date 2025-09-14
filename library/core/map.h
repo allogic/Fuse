@@ -21,7 +21,6 @@ void map_expand(map_t *map);
 void map_clear(map_t *map);
 uint64_t map_hash(map_t *map, void const *key, uint64_t key_size, uint64_t modulus);
 uint8_t map_load_factor(map_t *map);
-map_iter_t map_iter(map_t *map);
 void map_destroy(map_t *map);
 
 void *map_record_key(map_record_t *record);
@@ -31,7 +30,7 @@ uint64_t map_record_value_size(map_record_t *record);
 
 map_iter_t map_iter_create_from(map_t *map);
 uint8_t map_iter_valid(map_iter_t *iter);
-void map_iter_next(map_iter_t *iter);
+void map_iter_advance(map_iter_t *iter);
 void *map_iter_value(map_iter_t *iter);
 uint64_t map_iter_value_size(map_iter_t *iter);
 
