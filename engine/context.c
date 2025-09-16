@@ -134,10 +134,10 @@ void context_create(int32_t width, int32_t height) {
 
   INT screen_width = GetSystemMetrics(SM_CXSCREEN);
   INT screen_height = GetSystemMetrics(SM_CYSCREEN);
-  INT position_x = (screen_width - width) / 2;
-  INT position_y = (screen_height - height) / 2;
+  INT window_position_x = (screen_width - width) / 2;
+  INT window_position_y = (screen_height - height) / 2;
 
-  g_context_window = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, position_x, position_y, width, height, 0, 0, g_context_module, 0);
+  g_context_window = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, width, height, 0, 0, g_context_module, 0);
 
   ShowWindow(g_context_window, SW_SHOW);
   UpdateWindow(g_context_window);
@@ -478,7 +478,7 @@ static void context_create_instance(void) {
   app_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
   app_info.pEngineName = "";
   app_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-  app_info.apiVersion = VK_API_VERSION_1_0;
+  app_info.apiVersion = VK_API_VERSION_1_1;
 
   VkInstanceCreateInfo instance_create_info = {0};
   instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -530,7 +530,6 @@ static void context_create_device(void) {
   device_queue_create_infos[1].queueCount = 1;
   device_queue_create_infos[1].pQueuePriorities = &queue_priority;
 
-#ifdef VK_VERSION_1_1
   VkPhysicalDeviceDescriptorIndexingFeatures physical_device_descriptor_indexing_features = {0};
   physical_device_descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
   physical_device_descriptor_indexing_features.pNext = 0;
@@ -545,9 +544,9 @@ static void context_create_device(void) {
     // TODO: properly handle the lack of unsupported features..
   }
 
+  // TODO
   // physical_device_features_2.features.samplerAnisotropy = 1;
   // physical_device_features_2.features.shaderFloat64 = 1;
-#endif // VK_VERSION_1_1
 
   VkDeviceCreateInfo device_create_info = {0};
   device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -556,10 +555,7 @@ static void context_create_device(void) {
   device_create_info.pEnabledFeatures = 0;
   device_create_info.ppEnabledExtensionNames = s_context_device_extensions;
   device_create_info.enabledExtensionCount = ARRAY_COUNT(s_context_device_extensions);
-
-#ifdef VK_VERSION_1_1
   device_create_info.pNext = &physical_device_features_2;
-#endif // VK_VERSION_1_1
 
 #ifdef BUILD_DEBUG
   device_create_info.ppEnabledLayerNames = s_context_validation_layers;

@@ -2,11 +2,12 @@
 
 project (fuse LANGUAGES C)
 
+find_package (Vulkan REQUIRED)
+
 set (CMAKE_C_STANDARD 11)
 set (CMAKE_C_STANDARD_REQUIRED ON)
 set (CMAKE_C_EXTENSIONS OFF)
 
-set (VULKAN_SDK_DIR "C:/VulkanSDK/1.4.304.0")
 set (SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/shader")
 
 if (NOT CMAKE_BUILD_TYPE)

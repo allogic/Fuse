@@ -383,8 +383,8 @@ static void renderer_compute_local_variables(void) {
 static void renderer_build_pipelines(void) {
   s_renderer_pipelines = vector_create(sizeof(pipeline_t));
 
-  pipeline_t chunk_renderer_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "chunk_renderer", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\chunk\\renderer.vert.spv", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\chunk\\renderer.frag.spv");
-  pipeline_t debug_line_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "debug_line", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\debug\\line.vert.spv", "C:\\Users\\mialb\\Downloads\\Fuse\\shader\\debug\\line.frag.spv");
+  pipeline_t chunk_renderer_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "chunk_renderer", ROOT_DIR "/shader/chunk/renderer.vert.spv", ROOT_DIR "/shader/chunk/renderer.frag.spv");
+  pipeline_t debug_line_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "debug_line", ROOT_DIR "/shader/debug/line.vert.spv", ROOT_DIR "/shader/debug//line.frag.spv");
 
   vector_push(&s_renderer_pipelines, &chunk_renderer_pipeline);
   vector_push(&s_renderer_pipelines, &debug_line_pipeline);
