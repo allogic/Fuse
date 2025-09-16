@@ -6,8 +6,7 @@
 #include <engine/context.h>
 #include <engine/macros.h>
 #include <engine/swapchain.h>
-
-#include <engine/renderer/api.h>
+#include <engine/renderer.h>
 
 static LRESULT context_window_message_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -65,10 +64,10 @@ VkPhysicalDeviceMemoryProperties g_context_physical_device_memory_properties = {
 
 VkDevice g_context_device = 0;
 
-int32_t g_context_graphics_queue_index = -1;
+int32_t g_context_graphic_queue_index = -1;
 int32_t g_context_present_queue_index = -1;
 
-VkQueue g_context_graphics_queue = 0;
+VkQueue g_context_graphic_queue = 0;
 VkQueue g_context_present_queue = 0;
 
 VkCommandPool g_context_command_pool = 0;
@@ -305,8 +304,8 @@ void context_end_command_buffer(VkCommandBuffer command_buffer) {
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffer;
 
-  VULKAN_CHECK(vkQueueSubmit(g_context_graphics_queue, 1, &submit_info, 0));
-  VULKAN_CHECK(vkQueueWaitIdle(g_context_graphics_queue));
+  VULKAN_CHECK(vkQueueSubmit(g_context_graphic_queue, 1, &submit_info, 0));
+  VULKAN_CHECK(vkQueueWaitIdle(g_context_graphic_queue));
 
   vkFreeCommandBuffers(g_context_device, g_context_command_pool, 1, &command_buffer);
 }
@@ -521,7 +520,7 @@ static void context_create_device(void) {
   float queue_priority = 1.0F;
 
   device_queue_create_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  device_queue_create_infos[0].queueFamilyIndex = g_context_graphics_queue_index;
+  device_queue_create_infos[0].queueFamilyIndex = g_context_graphic_queue_index;
   device_queue_create_infos[0].queueCount = 1;
   device_queue_create_infos[0].pQueuePriorities = &queue_priority;
 
@@ -564,14 +563,14 @@ static void context_create_device(void) {
 
   VULKAN_CHECK(vkCreateDevice(g_context_physical_device, &device_create_info, 0, &g_context_device));
 
-  vkGetDeviceQueue(g_context_device, g_context_graphics_queue_index, 0, &g_context_graphics_queue);
+  vkGetDeviceQueue(g_context_device, g_context_graphic_queue_index, 0, &g_context_graphics_queue);
   vkGetDeviceQueue(g_context_device, g_context_present_queue_index, 0, &g_context_present_queue);
 }
 static void context_create_command_pool(void) {
   VkCommandPoolCreateInfo command_pool_create_info = {0};
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  command_pool_create_info.queueFamilyIndex = g_context_graphics_queue_index;
+  command_pool_create_info.queueFamilyIndex = g_context_graphic_queue_index;
 
   VULKAN_CHECK(vkCreateCommandPool(g_context_device, &command_pool_create_info, 0, &g_context_command_pool));
 }
@@ -726,22 +725,22 @@ static void context_find_physical_device_queue_families(void) {
   while (physical_device_queue_family_property_index < queue_family_property_count) {
     VkQueueFamilyProperties properties = queue_family_properties[physical_device_queue_family_property_index];
 
-    uint32_t graphics_support = 0;
+    uint32_t graphic_support = 0;
     uint32_t compute_support = 0;
     uint32_t present_support = 0;
 
-    graphics_support = properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+    graphic_support = properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
     compute_support = properties.queueFlags & VK_QUEUE_COMPUTE_BIT;
 
     VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(g_context_physical_device, (uint32_t)physical_device_queue_family_property_index, g_context_surface, &present_support));
 
-    if (graphics_support && compute_support && (g_context_graphics_queue_index == -1)) {
-      g_context_graphics_queue_index = (uint32_t)physical_device_queue_family_property_index;
+    if (graphic_support && compute_support && (g_context_graphic_queue_index == -1)) {
+      g_context_graphic_queue_index = (uint32_t)physical_device_queue_family_property_index;
     } else if (present_support && (g_context_present_queue_index == -1)) {
       g_context_present_queue_index = (uint32_t)physical_device_queue_family_property_index;
     }
 
-    if ((g_context_graphics_queue_index != -1) && (g_context_present_queue_index != -1)) {
+    if ((g_context_graphic_queue_index != -1) && (g_context_present_queue_index != -1)) {
       break;
     }
 
@@ -751,7 +750,7 @@ static void context_find_physical_device_queue_families(void) {
   heap_free(queue_family_properties);
 
   printf("Queue Indices\n");
-  printf("\tGraphics Queue Index %d\n", g_context_graphics_queue_index);
+  printf("\tGraphic Queue Index %d\n", g_context_graphic_queue_index);
   printf("\tPresent Queue Index %d\n", g_context_present_queue_index);
   printf("\n");
 }

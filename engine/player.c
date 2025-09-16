@@ -5,8 +5,6 @@
 #include <engine/context.h>
 #include <engine/player.h>
 
-#include <engine/renderer/api.h>
-
 static void player_handle_position(player_t *player);
 static void player_handle_rotation(player_t *player);
 static void player_handle_raycast(player_t *player); // TODO

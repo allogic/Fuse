@@ -57,9 +57,9 @@ void swapchain_create(void) {
   swapchain_create_info.clipped = 1;
   swapchain_create_info.oldSwapchain = 0;
 
-  int32_t queue_families[2] = {g_context_graphics_queue_index, g_context_present_queue_index};
+  int32_t queue_families[2] = {g_context_graphic_queue_index, g_context_present_queue_index};
 
-  if (g_context_graphics_queue_index == g_context_present_queue_index) {
+  if (g_context_graphic_queue_index == g_context_present_queue_index) {
     swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchain_create_info.queueFamilyIndexCount = 0;
     swapchain_create_info.pQueueFamilyIndices = 0;

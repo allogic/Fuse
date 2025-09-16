@@ -166,10 +166,10 @@ extern VkPhysicalDeviceMemoryProperties g_context_physical_device_memory_propert
 
 extern VkDevice g_context_device;
 
-extern int32_t g_context_graphics_queue_index;
+extern int32_t g_context_graphic_queue_index;
 extern int32_t g_context_present_queue_index;
 
-extern VkQueue g_context_graphics_queue;
+extern VkQueue g_context_graphic_queue;
 extern VkQueue g_context_present_queue;
 
 extern VkCommandPool g_context_command_pool;

@@ -1,5 +1,5 @@
-#ifndef RENDERER_FORWARD_H
-#define RENDERER_FORWARD_H
+#ifndef RENDERER_H
+#define RENDERER_H
 
 #include <stdint.h>
 
@@ -7,11 +7,13 @@
 
 #include <library/math/api.h>
 
-typedef struct renderer_cluster_vertex_t {
-  ivector3_t position;
-} renderer_cluster_vertex_t;
+#include <engine/transform.h>
+#include <engine/camera.h>
 
-typedef uint32_t renderer_cluster_index_t;
+#define RENDERER_DEBUG_LINE_VERTEX_COUNT (1048576LL)
+#define RENDERER_DEBUG_LINE_INDEX_COUNT (1048576LL)
+
+#define RENDERER_MAKE_GROUP_COUNT(GLOBAL_SIZE, LOCAL_SIZE) ((int32_t)ceil((double)(GLOBAL_SIZE) / (LOCAL_SIZE)))
 
 typedef struct renderer_debug_line_vertex_t {
   vector3_t position;
@@ -39,12 +41,6 @@ typedef struct renderer_camera_t {
   int32_t max_ray_steps;
 } renderer_camera_t;
 
-typedef struct renderer_cluster_t {
-  ivector3_t chunk_count;
-  int32_t chunk_size;
-  int32_t max_lod_levels;
-} renderer_cluster_t;
-
 typedef struct renderer_chunk_editor_push_constant_t {
   ivector3_t world_position;
   int32_t lod;
@@ -60,4 +56,26 @@ typedef struct renderer_chunk_mipmap_push_constant_t {
   int32_t lod;
 } renderer_chunk_mipmap_push_constant_t;
 
-#endif // RENDERER_FORWARD_H
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+extern uint8_t g_renderer_is_dirty;
+
+extern uint8_t g_renderer_enable_debug;
+
+extern int32_t g_renderer_frames_in_flight;
+
+void renderer_create(void);
+void renderer_update(void);
+void renderer_draw(transform_t *transform, camera_t *camera);
+void renderer_destroy(void);
+
+void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color);
+void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // RENDERER_H

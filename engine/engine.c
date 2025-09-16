@@ -3,8 +3,6 @@
 #include <engine/context.h>
 #include <engine/engine.h>
 
-#include <engine/renderer/api.h>
-
 player_t *g_player_0 = {0};
 
 int main(int argc, char **argv, char **envp) {

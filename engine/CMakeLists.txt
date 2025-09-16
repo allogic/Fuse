@@ -3,7 +3,6 @@
 add_executable (engine ${SRC_FILES})
 
 add_subdirectory (physics)
-add_subdirectory (renderer)
 
 target_compile_definitions (engine PRIVATE "_CRT_SECURE_NO_WARNINGS")
 target_compile_definitions (engine PRIVATE "ROOT_DIR=\"${CMAKE_SOURCE_DIR}\"")

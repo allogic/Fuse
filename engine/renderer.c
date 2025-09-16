@@ -2,46 +2,33 @@
 
 #include <library/core/api.h>
 
+#include <engine/buffer.h>
 #include <engine/context.h>
 #include <engine/macros.h>
 #include <engine/swapchain.h>
-
-#include <engine/renderer/config.h>
-#include <engine/renderer/forward.h>
-#include <engine/renderer/macros.h>
-#include <engine/renderer/renderer.h>
-#include <engine/renderer/pipeline.h>
+#include <engine/renderer.h>
+#include <engine/pipeline.h>
 
 // TODO: implement sparse textures..
 
 static void renderer_compute_local_variables(void);
 
-static void renderer_build_pipelines(void);
+static void renderer_create_buffers(void);
+static void renderer_create_pipelines(void);
 
 static void renderer_create_command_buffer(void);
 static void renderer_create_sync_objects(void);
 
-static void renderer_create_time_buffer(void);
-static void renderer_create_screen_buffer(void);
-static void renderer_create_camera_buffer(void);
-static void renderer_create_debug_line_vertex_buffer(void);
-static void renderer_create_debug_line_index_buffer(void);
-
 static void renderer_update_uniform_buffers(transform_t *transform, camera_t *camera);
 
 static void renderer_record_compute_commands(void);
-static void renderer_record_graphics_commands(void);
+static void renderer_record_graphic_commands(void);
+
+static void renderer_destroy_buffers(void);
+static void renderer_destroy_pipelines(void);
 
 static void renderer_destroy_command_buffer(void);
 static void renderer_destroy_sync_objects(void);
-
-static void renderer_destroy_time_buffer(void);
-static void renderer_destroy_screen_buffer(void);
-static void renderer_destroy_camera_buffer(void);
-static void renderer_destroy_debug_line_vertex_buffer(void);
-static void renderer_destroy_debug_line_index_buffer(void);
-
-static void renderer_destroy_pipelines(void);
 
 uint8_t g_renderer_is_dirty = 0;
 
@@ -63,23 +50,9 @@ static int32_t s_renderer_image_index = 0;
 
 static vector_t s_renderer_pipelines = {0};
 
-static VkBuffer *s_renderer_time_buffer = 0;
-static VkBuffer *s_renderer_screen_buffer = 0;
-static VkBuffer *s_renderer_camera_buffer = 0;
-static VkBuffer *s_renderer_debug_line_vertex_buffer = 0;
-static VkBuffer *s_renderer_debug_line_index_buffer = 0;
-
-static VkDeviceMemory *s_renderer_time_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_screen_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_camera_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_debug_line_vertex_buffer_device_memory = 0;
-static VkDeviceMemory *s_renderer_debug_line_index_buffer_device_memory = 0;
-
-static renderer_time_t **s_renderer_time = 0;
-static renderer_screen_t **s_renderer_screen = 0;
-static renderer_camera_t **s_renderer_camera = 0;
-static renderer_debug_line_vertex_t **s_renderer_debug_line_vertex = 0;
-static renderer_debug_line_index_t **s_renderer_debug_line_index = 0;
+static buffer_t s_renderer_time_buffer = {0};
+static buffer_t s_renderer_screen_buffer = {0};
+static buffer_t s_renderer_camera_buffer = {0};
 
 static int32_t *s_renderer_debug_line_vertex_offset = 0;
 static int32_t *s_renderer_debug_line_index_offset = 0;
@@ -152,9 +125,9 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  VkResult reset_graphics_command_buffer_result = vkResetCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index], 0);
+  VkResult reset_graphic_command_buffer_result = vkResetCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index], 0);
 
-  switch (reset_graphics_command_buffer_result) {
+  switch (reset_graphic_command_buffer_result) {
     case VK_SUCCESS: {
       break;
     }
@@ -200,9 +173,9 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
   command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   command_buffer_begin_info.pInheritanceInfo = 0;
 
-  VkResult begin_graphics_command_buffer_result = vkBeginCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index], &command_buffer_begin_info);
+  VkResult begin_graphic_command_buffer_result = vkBeginCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index], &command_buffer_begin_info);
 
-  switch (begin_graphics_command_buffer_result) {
+  switch (begin_graphic_command_buffer_result) {
     case VK_SUCCESS: {
       break;
     }
@@ -214,11 +187,11 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
   }
 
   renderer_record_compute_commands();
-  renderer_record_graphics_commands();
+  renderer_record_graphic_commands();
 
-  VkResult end_graphics_command_buffer_result = vkEndCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index]);
+  VkResult end_graphic_command_buffer_result = vkEndCommandBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index]);
 
-  switch (end_graphics_command_buffer_result) {
+  switch (end_graphic_command_buffer_result) {
     case VK_SUCCESS: {
       break;
     }
@@ -229,19 +202,19 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  VkPipelineStageFlags graphics_wait_stages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  VkPipelineStageFlags graphic_wait_stages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
-  VkSubmitInfo graphics_submit_info = {0};
-  graphics_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  graphics_submit_info.pWaitSemaphores = &s_renderer_present_complete_semaphores[s_renderer_frame_index];
-  graphics_submit_info.waitSemaphoreCount = 1;
-  graphics_submit_info.pSignalSemaphores = &s_renderer_graphic_complete_semaphores[s_renderer_frame_index];
-  graphics_submit_info.signalSemaphoreCount = 1;
-  graphics_submit_info.pCommandBuffers = &s_renderer_graphic_command_buffers[s_renderer_frame_index];
-  graphics_submit_info.commandBufferCount = 1;
-  graphics_submit_info.pWaitDstStageMask = graphics_wait_stages;
+  VkSubmitInfo graphic_submit_info = {0};
+  graphic_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  graphic_submit_info.pWaitSemaphores = &s_renderer_present_complete_semaphores[s_renderer_frame_index];
+  graphic_submit_info.waitSemaphoreCount = 1;
+  graphic_submit_info.pSignalSemaphores = &s_renderer_graphic_complete_semaphores[s_renderer_frame_index];
+  graphic_submit_info.signalSemaphoreCount = 1;
+  graphic_submit_info.pCommandBuffers = &s_renderer_graphic_command_buffers[s_renderer_frame_index];
+  graphic_submit_info.commandBufferCount = 1;
+  graphic_submit_info.pWaitDstStageMask = graphic_wait_stages;
 
-  VkResult graphics_queue_submit_result = vkQueueSubmit(g_context_graphics_queue, 1, &graphics_submit_info, s_renderer_frame_fences[s_renderer_frame_index]);
+  VkResult graphics_queue_submit_result = vkQueueSubmit(g_context_graphic_queue, 1, &graphic_submit_info, s_renderer_frame_fences[s_renderer_frame_index]);
 
   switch (graphics_queue_submit_result) {
     case VK_SUCCESS: {
@@ -287,7 +260,7 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
   s_renderer_frame_index = (s_renderer_frame_index + 1) % s_renderer_frames_in_flight;
 }
 void renderer_destroy(void) {
-  VULKAN_CHECK(vkQueueWaitIdle(g_context_graphics_queue));
+  VULKAN_CHECK(vkQueueWaitIdle(g_context_graphic_queue));
   VULKAN_CHECK(vkQueueWaitIdle(g_context_present_queue));
 
   heap_free(s_renderer_debug_line_vertex_offset);
@@ -380,7 +353,10 @@ static void renderer_compute_local_variables(void) {
   s_renderer_image_index = 0;
 }
 
-static void renderer_build_pipelines(void) {
+static void renderer_create_buffers(void) {
+  // TODO
+}
+static void renderer_create_pipelines(void) {
   s_renderer_pipelines = vector_create(sizeof(pipeline_t));
 
   pipeline_t chunk_renderer_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "chunk_renderer", ROOT_DIR "/shader/chunk/renderer.vert.spv", ROOT_DIR "/shader/chunk/renderer.frag.spv");
@@ -425,172 +401,6 @@ static void renderer_create_sync_objects(void) {
   }
 }
 
-static void renderer_create_time_buffer(void) {
-  s_renderer_time_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_time_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_time = (renderer_time_t **)heap_alloc(sizeof(renderer_time_t *) * s_renderer_frames_in_flight);
-
-  int32_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    VkDeviceSize size = sizeof(renderer_time_t);
-
-    VkBufferCreateInfo buffer_create_info = {0};
-    buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_create_info.size = size;
-    buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &s_renderer_time_buffer[frame_index]));
-
-    VkMemoryRequirements memory_requirements = {0};
-
-    vkGetBufferMemoryRequirements(g_context_device, s_renderer_time_buffer[frame_index], &memory_requirements);
-
-    VkMemoryAllocateInfo memory_allocate_info = {0};
-    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memory_allocate_info.allocationSize = memory_requirements.size;
-    memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-
-    VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &s_renderer_time_buffer_device_memory[frame_index]));
-    VULKAN_CHECK(vkBindBufferMemory(g_context_device, s_renderer_time_buffer[frame_index], s_renderer_time_buffer_device_memory[frame_index], 0));
-    VULKAN_CHECK(vkMapMemory(g_context_device, s_renderer_time_buffer_device_memory[frame_index], 0, size, 0, &s_renderer_time[frame_index]));
-
-    frame_index++;
-  }
-}
-static void renderer_create_screen_buffer(void) {
-  s_renderer_screen_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_screen_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_screen = (renderer_screen_t **)heap_alloc(sizeof(renderer_screen_t *) * s_renderer_frames_in_flight);
-
-  int32_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    VkDeviceSize size = sizeof(renderer_screen_t);
-
-    VkBufferCreateInfo buffer_create_info = {0};
-    buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_create_info.size = size;
-    buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &s_renderer_screen_buffer[frame_index]));
-
-    VkMemoryRequirements memory_requirements = {0};
-
-    vkGetBufferMemoryRequirements(g_context_device, s_renderer_screen_buffer[frame_index], &memory_requirements);
-
-    VkMemoryAllocateInfo memory_allocate_info = {0};
-    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memory_allocate_info.allocationSize = memory_requirements.size;
-    memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-
-    VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &s_renderer_screen_buffer_device_memory[frame_index]));
-    VULKAN_CHECK(vkBindBufferMemory(g_context_device, s_renderer_screen_buffer[frame_index], s_renderer_screen_buffer_device_memory[frame_index], 0));
-    VULKAN_CHECK(vkMapMemory(g_context_device, s_renderer_screen_buffer_device_memory[frame_index], 0, size, 0, &s_renderer_screen[frame_index]));
-
-    frame_index++;
-  }
-}
-static void renderer_create_camera_buffer(void) {
-  s_renderer_camera_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_camera_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_camera = (renderer_camera_t **)heap_alloc(sizeof(renderer_camera_t *) * s_renderer_frames_in_flight);
-
-  int32_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    VkDeviceSize size = sizeof(renderer_camera_t);
-
-    VkBufferCreateInfo buffer_create_info = {0};
-    buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_create_info.size = size;
-    buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &s_renderer_camera_buffer[frame_index]));
-
-    VkMemoryRequirements memory_requirements = {0};
-
-    vkGetBufferMemoryRequirements(g_context_device, s_renderer_camera_buffer[frame_index], &memory_requirements);
-
-    VkMemoryAllocateInfo memory_allocate_info = {0};
-    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memory_allocate_info.allocationSize = memory_requirements.size;
-    memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-
-    VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &s_renderer_camera_buffer_device_memory[frame_index]));
-    VULKAN_CHECK(vkBindBufferMemory(g_context_device, s_renderer_camera_buffer[frame_index], s_renderer_camera_buffer_device_memory[frame_index], 0));
-    VULKAN_CHECK(vkMapMemory(g_context_device, s_renderer_camera_buffer_device_memory[frame_index], 0, size, 0, &s_renderer_camera[frame_index]));
-
-    frame_index++;
-  }
-}
-static void renderer_create_debug_line_vertex_buffer(void) {
-  s_renderer_debug_line_vertex_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_vertex_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_vertex = (renderer_debug_line_vertex_t **)heap_alloc(sizeof(renderer_debug_line_vertex_t *) * s_renderer_frames_in_flight);
-
-  uint64_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    VkDeviceSize size = sizeof(renderer_debug_line_vertex_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT;
-
-    VkBufferCreateInfo buffer_create_info = {0};
-    buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_create_info.size = size;
-    buffer_create_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &s_renderer_debug_line_vertex_buffer[frame_index]));
-
-    VkMemoryRequirements memory_requirements = {0};
-
-    vkGetBufferMemoryRequirements(g_context_device, s_renderer_debug_line_vertex_buffer[frame_index], &memory_requirements);
-
-    VkMemoryAllocateInfo memory_allocate_info = {0};
-    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memory_allocate_info.allocationSize = memory_requirements.size;
-    memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-
-    VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &s_renderer_debug_line_vertex_buffer_device_memory[frame_index]));
-    VULKAN_CHECK(vkBindBufferMemory(g_context_device, s_renderer_debug_line_vertex_buffer[frame_index], s_renderer_debug_line_vertex_buffer_device_memory[frame_index], 0));
-    VULKAN_CHECK(vkMapMemory(g_context_device, s_renderer_debug_line_vertex_buffer_device_memory[frame_index], 0, size, 0, &s_renderer_debug_line_vertex[frame_index]));
-
-    frame_index++;
-  }
-}
-static void renderer_create_debug_line_index_buffer(void) {
-  s_renderer_debug_line_index_buffer = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_index_buffer_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * s_renderer_frames_in_flight);
-  s_renderer_debug_line_index = (renderer_debug_line_index_t **)heap_alloc(sizeof(renderer_debug_line_index_t *) * s_renderer_frames_in_flight);
-
-  uint64_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    VkDeviceSize size = sizeof(renderer_debug_line_index_t) * RENDERER_DEBUG_LINE_INDEX_COUNT;
-
-    VkBufferCreateInfo buffer_create_info = {0};
-    buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer_create_info.size = size;
-    buffer_create_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &s_renderer_debug_line_index_buffer[frame_index]));
-
-    VkMemoryRequirements memory_requirements = {0};
-
-    vkGetBufferMemoryRequirements(g_context_device, s_renderer_debug_line_index_buffer[frame_index], &memory_requirements);
-
-    VkMemoryAllocateInfo memory_allocate_info = {0};
-    memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    memory_allocate_info.allocationSize = memory_requirements.size;
-    memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-
-    VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &s_renderer_debug_line_index_buffer_device_memory[frame_index]));
-    VULKAN_CHECK(vkBindBufferMemory(g_context_device, s_renderer_debug_line_index_buffer[frame_index], s_renderer_debug_line_index_buffer_device_memory[frame_index], 0));
-    VULKAN_CHECK(vkMapMemory(g_context_device, s_renderer_debug_line_index_buffer_device_memory[frame_index], 0, size, 0, &s_renderer_debug_line_index[frame_index]));
-
-    frame_index++;
-  }
-}
-
 static void renderer_update_uniform_buffers(transform_t *transform, camera_t *camera) {
   s_renderer_time[s_renderer_frame_index]->time = (float)g_context_time;
   s_renderer_time[s_renderer_frame_index]->delta_time = (float)g_context_delta_time;
@@ -620,11 +430,11 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
 }
 
 static void renderer_record_compute_commands(void) {
-  // vkCmdBindPipeline(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline);
-  // vkCmdBindDescriptorSets(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline_layout, 0, 1, &s_renderer_chunk_editor_descriptor_sets[s_renderer_frame_index], 0, 0);
-  // vkCmdDispatch(s_renderer_graphics_command_buffers[s_renderer_frame_index], group_count_x, group_count_y, group_count_z);
+  // vkCmdBindPipeline(s_renderer_graphic_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline);
+  // vkCmdBindDescriptorSets(s_renderer_graphic_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline_layout, 0, 1, &s_renderer_chunk_editor_descriptor_sets[s_renderer_frame_index], 0, 0);
+  // vkCmdDispatch(s_renderer_graphic_command_buffers[s_renderer_frame_index], group_count_x, group_count_y, group_count_z);
 }
-static void renderer_record_graphics_commands(void) {
+static void renderer_record_graphic_commands(void) {
   VkClearValue color_clear_value = {0};
   color_clear_value.color.float32[0] = 0.0F;
   color_clear_value.color.float32[1] = 0.0F;
@@ -672,11 +482,11 @@ static void renderer_record_graphics_commands(void) {
     // VkBuffer vertex_buffers[] = {s_renderer_cluster_vertex_buffer[s_renderer_frame_index]};
     // uint64_t vertex_offsets[] = {0, 0};
     //
-    // vkCmdBindPipeline(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline);
-    // vkCmdBindVertexBuffers(s_renderer_graphics_command_buffers[s_renderer_frame_index], 0, ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
-    // vkCmdBindIndexBuffer(s_renderer_graphics_command_buffers[s_renderer_frame_index], s_renderer_cluster_index_buffer[s_renderer_frame_index], 0, VK_INDEX_TYPE_UINT32);
-    // vkCmdBindDescriptorSets(s_renderer_graphics_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline_layout, 0, 1, &s_renderer_chunk_renderer_descriptor_sets[s_renderer_frame_index], 0, 0);
-    // vkCmdDrawIndexed(s_renderer_graphics_command_buffers[s_renderer_frame_index], RENDERER_CLUSTER_INDEX_COUNT, 1, 0, 0, 0);
+    // vkCmdBindPipeline(s_renderer_graphic_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline);
+    // vkCmdBindVertexBuffers(s_renderer_graphic_command_buffers[s_renderer_frame_index], 0, ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
+    // vkCmdBindIndexBuffer(s_renderer_graphic_command_buffers[s_renderer_frame_index], s_renderer_cluster_index_buffer[s_renderer_frame_index], 0, VK_INDEX_TYPE_UINT32);
+    // vkCmdBindDescriptorSets(s_renderer_graphic_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline_layout, 0, 1, &s_renderer_chunk_renderer_descriptor_sets[s_renderer_frame_index], 0, 0);
+    // vkCmdDrawIndexed(s_renderer_graphic_command_buffers[s_renderer_frame_index], RENDERER_CLUSTER_INDEX_COUNT, 1, 0, 0, 0);
   }
 
   {
@@ -698,6 +508,24 @@ static void renderer_record_graphics_commands(void) {
   vkCmdEndRenderPass(s_renderer_graphic_command_buffers[s_renderer_frame_index]);
 }
 
+static void renderer_destroy_buffers(void) {
+  // TODO
+}
+static void renderer_destroy_pipelines(void) {
+  uint64_t pipeline_index = 0;
+  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
+
+  while (pipeline_index < pipeline_count) {
+    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
+
+    pipeline_destroy(pipeline);
+
+    pipeline_index++;
+  }
+
+  vector_destroy(&s_renderer_pipelines);
+}
+
 static void renderer_destroy_command_buffer(void) {
   vkFreeCommandBuffers(g_context_device, g_context_command_pool, s_renderer_frames_in_flight, s_renderer_graphic_command_buffers);
 
@@ -717,90 +545,4 @@ static void renderer_destroy_sync_objects(void) {
   heap_free(s_renderer_graphic_complete_semaphores);
   heap_free(s_renderer_present_complete_semaphores);
   heap_free(s_renderer_frame_fences);
-}
-
-static void renderer_destroy_time_buffer(void) {
-  int32_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    vkUnmapMemory(g_context_device, s_renderer_time_buffer_device_memory[frame_index]);
-    vkFreeMemory(g_context_device, s_renderer_time_buffer_device_memory[frame_index], 0);
-    vkDestroyBuffer(g_context_device, s_renderer_time_buffer[frame_index], 0);
-
-    frame_index++;
-  }
-
-  heap_free(s_renderer_time_buffer);
-  heap_free(s_renderer_time_buffer_device_memory);
-  heap_free(s_renderer_time);
-}
-static void renderer_destroy_screen_buffer(void) {
-  int32_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    vkUnmapMemory(g_context_device, s_renderer_screen_buffer_device_memory[frame_index]);
-    vkFreeMemory(g_context_device, s_renderer_screen_buffer_device_memory[frame_index], 0);
-    vkDestroyBuffer(g_context_device, s_renderer_screen_buffer[frame_index], 0);
-
-    frame_index++;
-  }
-
-  heap_free(s_renderer_screen_buffer);
-  heap_free(s_renderer_screen_buffer_device_memory);
-  heap_free(s_renderer_screen);
-}
-static void renderer_destroy_camera_buffer(void) {
-  int32_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    vkUnmapMemory(g_context_device, s_renderer_camera_buffer_device_memory[frame_index]);
-    vkFreeMemory(g_context_device, s_renderer_camera_buffer_device_memory[frame_index], 0);
-    vkDestroyBuffer(g_context_device, s_renderer_camera_buffer[frame_index], 0);
-
-    frame_index++;
-  }
-
-  heap_free(s_renderer_camera_buffer);
-  heap_free(s_renderer_camera_buffer_device_memory);
-  heap_free(s_renderer_camera);
-}
-static void renderer_destroy_debug_line_vertex_buffer(void) {
-  uint64_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    vkUnmapMemory(g_context_device, s_renderer_debug_line_vertex_buffer_device_memory[frame_index]);
-    vkFreeMemory(g_context_device, s_renderer_debug_line_vertex_buffer_device_memory[frame_index], 0);
-    vkDestroyBuffer(g_context_device, s_renderer_debug_line_vertex_buffer[frame_index], 0);
-
-    frame_index++;
-  }
-
-  heap_free(s_renderer_debug_line_vertex_buffer);
-  heap_free(s_renderer_debug_line_vertex_buffer_device_memory);
-  heap_free(s_renderer_debug_line_vertex);
-}
-static void renderer_destroy_debug_line_index_buffer(void) {
-  uint64_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    vkUnmapMemory(g_context_device, s_renderer_debug_line_index_buffer_device_memory[frame_index]);
-    vkFreeMemory(g_context_device, s_renderer_debug_line_index_buffer_device_memory[frame_index], 0);
-    vkDestroyBuffer(g_context_device, s_renderer_debug_line_index_buffer[frame_index], 0);
-
-    frame_index++;
-  }
-
-  heap_free(s_renderer_debug_line_index_buffer);
-  heap_free(s_renderer_debug_line_index_buffer_device_memory);
-  heap_free(s_renderer_debug_line_index);
-}
-
-static void renderer_destroy_pipelines(void) {
-  uint64_t pipeline_index = 0;
-  uint64_t pipeline_count = vector_count(&s_renderer_pipelines);
-
-  while (pipeline_index < pipeline_count) {
-    pipeline_t *pipeline = (pipeline_t *)vector_at(&s_renderer_pipelines, pipeline_index);
-
-    pipeline_destroy(pipeline);
-
-    pipeline_index++;
-  }
-
-  vector_destroy(&s_renderer_pipelines);
 }

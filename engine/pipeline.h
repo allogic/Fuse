@@ -1,5 +1,5 @@
-#ifndef RENDERER_PIPELINE_H
-#define RENDERER_PIPELINE_H
+#ifndef PIPELINE_H
+#define PIPELINE_H
 
 #include <stdint.h>
 
@@ -43,13 +43,13 @@ typedef struct pipeline_t {
 extern "C" {
 #endif // __cplusplus
 
-pipeline_t pipeline_create(pipeline_type_t type, uint32_t frames_in_flight, char const *pipeline_name, ...);
-void pipeline_allocate_descriptor_sets(pipeline_t *pipeline);
-void pipeline_update_descriptor_sets(pipeline_t *pipeline);
+pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flight, char const *pipeline_name, ...);
+void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_flight, uint64_t descriptor_count);
+void pipeline_update_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_flight);
 void pipeline_destroy(pipeline_t *pipeline);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
-#endif // RENDERER_PIPELINE_H
+#endif // PIPELINE_H
