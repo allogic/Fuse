@@ -5,19 +5,17 @@
 
 #include <vulkan/vulkan.h>
 
-typedef void *buffer_value_t;
-
 typedef struct buffer_t {
-  vector_t buffers;
-  vector_t device_memory;
-  vector_t raw_buffers;
+  uint64_t buffer_size;
+  VkBuffer buffer;
+  VkDeviceMemory device_memory;
 } buffer_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-buffer_t *buffer_create(int32_t frames_in_flight);
+buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffer, uint64_t buffer_size);
 void buffer_destroy(buffer_t *buffer);
 
 #ifdef __cplusplus
