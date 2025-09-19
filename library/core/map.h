@@ -31,6 +31,8 @@ uint64_t map_record_value_size(map_record_t *record);
 map_iter_t map_iter_create_from(map_t *map);
 uint8_t map_iter_valid(map_iter_t *iter);
 void map_iter_advance(map_iter_t *iter);
+void *map_iter_key(map_iter_t *iter);
+uint64_t map_iter_key_size(map_iter_t *iter);
 void *map_iter_value(map_iter_t *iter);
 uint64_t map_iter_value_size(map_iter_t *iter);
 

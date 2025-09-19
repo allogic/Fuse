@@ -4,6 +4,7 @@
 
 #include <engine/context.h>
 #include <engine/player.h>
+#include <engine/renderer.h>
 
 static void player_handle_position(player_t *player);
 static void player_handle_rotation(player_t *player);

@@ -563,7 +563,7 @@ static void context_create_device(void) {
 
   VULKAN_CHECK(vkCreateDevice(g_context_physical_device, &device_create_info, 0, &g_context_device));
 
-  vkGetDeviceQueue(g_context_device, g_context_graphic_queue_index, 0, &g_context_graphics_queue);
+  vkGetDeviceQueue(g_context_device, g_context_graphic_queue_index, 0, &g_context_graphic_queue);
   vkGetDeviceQueue(g_context_device, g_context_present_queue_index, 0, &g_context_present_queue);
 }
 static void context_create_command_pool(void) {

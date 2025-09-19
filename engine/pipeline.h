@@ -7,6 +7,8 @@
 
 #include <spirv_reflect/spirv_reflect.h>
 
+#include <engine/buffer.h>
+
 typedef enum pipeline_type_t {
   PIPELINE_TYPE_NONE = 0,
   PIPELINE_TYPE_GRAPHIC,
@@ -33,6 +35,7 @@ typedef struct pipeline_t {
   vector_t descriptor_pool_sizes;
   vector_t descriptor_set_layout_bindings;
   vector_t descriptor_sets;
+  map_t descriptor_binding_name_to_index;
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;
@@ -43,9 +46,10 @@ typedef struct pipeline_t {
 extern "C" {
 #endif // __cplusplus
 
-pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flight, char const *pipeline_name, ...);
-void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_flight, uint64_t descriptor_count);
-void pipeline_update_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_flight);
+pipeline_t pipeline_create(pipeline_type_t pipeline_type, char const *pipeline_name, ...);
+void pipeline_link_buffer(pipeline_t *pipeline, int32_t frame_index, char const *binding_name, buffer_t *buffer);
+void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, uint64_t descriptor_count);
+void pipeline_update_descriptor_sets(pipeline_t *pipeline);
 void pipeline_destroy(pipeline_t *pipeline);
 
 #ifdef __cplusplus

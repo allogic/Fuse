@@ -339,6 +339,12 @@ void map_iter_advance(map_iter_t *iter) {
     }
   }
 }
+void *map_iter_key(map_iter_t *iter) {
+  return iter->table_record->key;
+}
+uint64_t map_iter_key_size(map_iter_t *iter) {
+  return iter->table_record->key_size;
+}
 void *map_iter_value(map_iter_t *iter) {
   return iter->table_record->value;
 }

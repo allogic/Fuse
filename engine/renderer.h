@@ -16,16 +16,16 @@
 
 #define RENDERER_MAKE_GROUP_COUNT(GLOBAL_SIZE, LOCAL_SIZE) ((int32_t)ceil((double)(GLOBAL_SIZE) / (LOCAL_SIZE)))
 
-typedef struct renderer_time_info_t {
+typedef struct time_info_t {
   float time;
   float delta_time;
-} renderer_time_info_t;
+} time_info_t;
 
-typedef struct renderer_screen_info_t {
+typedef struct screen_info_t {
   vector2_t resolution;
-} renderer_screen_info_t;
+} screen_info_t;
 
-typedef struct renderer_camera_info_t {
+typedef struct camera_info_t {
   vector3_t world_position;
   int32_t reserved;
   matrix4_t view;
@@ -33,21 +33,21 @@ typedef struct renderer_camera_info_t {
   matrix4_t view_projection;
   matrix4_t view_projection_inv;
   int32_t max_ray_steps;
-} renderer_camera_info_t;
+} camera_info_t;
 
-typedef struct renderer_debug_line_vertex_t {
+typedef struct debug_line_vertex_t {
   vector3_t position;
   vector4_t color;
-} renderer_debug_line_vertex_t;
+} debug_line_vertex_t;
 
-typedef uint32_t renderer_debug_line_index_t;
+typedef uint32_t debug_line_index_t;
 
-typedef struct renderer_frame_t {
-  renderer_time_info_t time_info;
-  renderer_screen_info_t screen_info;
-  renderer_camera_info_t camera_info;
-  renderer_debug_line_vertex_t *debug_line_vertices;
-  renderer_debug_line_index_t *debug_line_indices;
+typedef struct frame_t {
+  time_info_t time_info;
+  screen_info_t screen_info;
+  camera_info_t camera_info;
+  debug_line_vertex_t *debug_line_vertices;
+  debug_line_index_t *debug_line_indices;
   uint32_t debug_line_vertex_offset;
   uint32_t debug_line_index_offset;
   buffer_t time_info_buffer;
@@ -55,7 +55,7 @@ typedef struct renderer_frame_t {
   buffer_t camera_info_buffer;
   buffer_t debug_line_vertex_buffer;
   buffer_t debug_line_index_buffer;
-} renderer_frame_t;
+} frame_t;
 
 #ifdef __cplusplus
 extern "C" {

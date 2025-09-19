@@ -51,6 +51,9 @@ static vector_t s_renderer_pipelines = {0};
 static vector_t s_renderer_frames = {0};
 
 void renderer_create(void) {
+  s_renderer_pipelines = vector_create(sizeof(pipeline_t));
+  s_renderer_frames = vector_create(sizeof(frame_t));
+
   renderer_compute_local_variables();
 
   renderer_create_command_buffer();
@@ -248,16 +251,19 @@ void renderer_destroy(void) {
   VULKAN_CHECK(vkQueueWaitIdle(g_context_graphic_queue));
   VULKAN_CHECK(vkQueueWaitIdle(g_context_present_queue));
 
+  renderer_destroy_sync_objects();
+  renderer_destroy_command_buffer();
+
   renderer_destroy_frames();
   renderer_destroy_pipelines();
 
-  renderer_destroy_sync_objects();
-  renderer_destroy_command_buffer();
+  vector_destroy(&s_renderer_pipelines);
+  vector_destroy(&s_renderer_frames);
 }
 
 void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
   if (g_renderer_enable_debug) {
-    renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
+    frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
 
     frame->debug_line_vertices[frame->debug_line_vertex_offset + 0].position = (vector3_t){from.x, from.y, from.z};
     frame->debug_line_vertices[frame->debug_line_vertex_offset + 1].position = (vector3_t){to.x, to.y, to.z};
@@ -274,7 +280,7 @@ void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
 }
 void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color) {
   if (g_renderer_enable_debug) {
-    renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
+    frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
 
     frame->debug_line_vertices[frame->debug_line_vertex_offset + 0].position = (vector3_t){position.x, position.y, position.z};
     frame->debug_line_vertices[frame->debug_line_vertex_offset + 1].position = (vector3_t){position.x, position.y + size.y, position.z};
@@ -335,40 +341,45 @@ static void renderer_compute_local_variables(void) {
 }
 
 static void renderer_create_frames(void) {
+  vector_resize(&s_renderer_frames, s_renderer_frames_in_flight);
+
   int32_t frame_index = 0;
+  int32_t frame_count = s_renderer_frames_in_flight;
 
-  while (frame_index < s_renderer_frames_in_flight) {
-    renderer_frame_t frame = {0};
+  while (frame_index < frame_count) {
+    frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, frame_index);
 
-    frame.debug_line_vertices = (renderer_debug_line_vertex_t *)heap_alloc(sizeof(renderer_debug_line_vertex_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT);
-    frame.debug_line_indices = (renderer_debug_line_index_t *)heap_alloc(sizeof(renderer_debug_line_index_t) * RENDERER_DEBUG_LINE_INDEX_COUNT);
+    memset(frame, 0, sizeof(frame_t));
 
-    vector_push(&s_renderer_frames, &frame);
-
-    frame_index++;
-  }
-
-  frame_index = 0;
-
-  while (frame_index < s_renderer_frames_in_flight) {
-    renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, frame_index);
-
-    frame->time_info_buffer = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &frame->time_info, sizeof(renderer_time_info_t));
-    frame->screen_info_buffer = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &frame->screen_info, sizeof(renderer_screen_info_t));
-    frame->camera_info_buffer = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &frame->camera_info, sizeof(renderer_camera_info_t));
-    frame->debug_line_vertex_buffer = buffer_create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame->debug_line_vertices, sizeof(renderer_debug_line_vertex_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT);
-    frame->debug_line_index_buffer = buffer_create(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, frame->debug_line_indices, sizeof(renderer_debug_line_index_t) * RENDERER_DEBUG_LINE_INDEX_COUNT);
+    frame->time_info_buffer = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &frame->time_info, sizeof(time_info_t));
+    frame->screen_info_buffer = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &frame->screen_info, sizeof(screen_info_t));
+    frame->camera_info_buffer = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &frame->camera_info, sizeof(camera_info_t));
+    frame->debug_line_vertex_buffer = buffer_create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, frame->debug_line_vertices, sizeof(debug_line_vertex_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT);
+    frame->debug_line_index_buffer = buffer_create(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, frame->debug_line_indices, sizeof(debug_line_index_t) * RENDERER_DEBUG_LINE_INDEX_COUNT);
 
     frame_index++;
   }
 }
 static void renderer_create_pipelines(void) {
-  s_renderer_pipelines = vector_create(sizeof(pipeline_t));
+  pipeline_t debug_line_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, "debug_line", ROOT_DIR "/shader/debug/line.vert.spv", ROOT_DIR "/shader/debug//line.frag.spv");
 
-  pipeline_t chunk_renderer_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "chunk_renderer", ROOT_DIR "/shader/chunk/renderer.vert.spv", ROOT_DIR "/shader/chunk/renderer.frag.spv");
-  pipeline_t debug_line_pipeline = pipeline_create(PIPELINE_TYPE_GRAPHIC, s_renderer_frames_in_flight, "debug_line", ROOT_DIR "/shader/debug/line.vert.spv", ROOT_DIR "/shader/debug//line.frag.spv");
+  int32_t frame_index = 0;
+  int32_t frame_count = s_renderer_frames_in_flight;
 
-  vector_push(&s_renderer_pipelines, &chunk_renderer_pipeline);
+  while (frame_index < frame_count) {
+    frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, frame_index);
+
+    pipeline_link_buffer(&debug_line_pipeline, frame_index, "time_info", &frame->time_info_buffer);
+    pipeline_link_buffer(&debug_line_pipeline, frame_index, "screen_info", &frame->screen_info_buffer);
+    pipeline_link_buffer(&debug_line_pipeline, frame_index, "camera_info", &frame->camera_info_buffer);
+
+    frame_index++;
+  }
+
+  // TODO
+  // pipeline_allocate_descriptor_sets(&debug_line_pipeline, 10);
+  // pipeline_update_descriptor_sets(&debug_line_pipeline);
+
   vector_push(&s_renderer_pipelines, &debug_line_pipeline);
 }
 
@@ -408,7 +419,7 @@ static void renderer_create_sync_objects(void) {
 }
 
 static void renderer_update_uniform_buffers(transform_t *transform, camera_t *camera) {
-  renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
+  frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
 
   frame->time_info.time = (float)g_context_time;
   frame->time_info.delta_time = (float)g_context_delta_time;
@@ -438,14 +449,14 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
 }
 
 static void renderer_record_compute_commands(void) {
-  renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
+  frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
 
   // vkCmdBindPipeline(s_renderer_graphic_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline);
   // vkCmdBindDescriptorSets(s_renderer_graphic_command_buffers[s_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline_layout, 0, 1, &s_renderer_chunk_editor_descriptor_sets[s_renderer_frame_index], 0, 0);
   // vkCmdDispatch(s_renderer_graphic_command_buffers[s_renderer_frame_index], group_count_x, group_count_y, group_count_z);
 }
 static void renderer_record_graphic_commands(void) {
-  renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
+  frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, s_renderer_frame_index);
 
   VkClearValue color_clear_value = {0};
   color_clear_value.color.float32[0] = 0.0F;
@@ -520,11 +531,11 @@ static void renderer_record_graphic_commands(void) {
   vkCmdEndRenderPass(s_renderer_graphic_command_buffers[s_renderer_frame_index]);
 }
 
-static void renderer_destroy_buffers(void) {
+static void renderer_destroy_frames(void) {
   int32_t frame_index = 0;
 
   while (frame_index < s_renderer_frames_in_flight) {
-    renderer_frame_t *frame = (renderer_frame_t *)vector_at(&s_renderer_frames, frame_index);
+    frame_t *frame = (frame_t *)vector_at(&s_renderer_frames, frame_index);
 
     buffer_destroy(&frame->time_info_buffer);
     buffer_destroy(&frame->screen_info_buffer);
@@ -537,8 +548,6 @@ static void renderer_destroy_buffers(void) {
 
     frame_index++;
   }
-
-  vector_clear(&s_renderer_frames);
 }
 static void renderer_destroy_pipelines(void) {
   uint64_t pipeline_index = 0;
@@ -551,8 +560,6 @@ static void renderer_destroy_pipelines(void) {
 
     pipeline_index++;
   }
-
-  vector_destroy(&s_renderer_pipelines);
 }
 
 static void renderer_destroy_command_buffer(void) {

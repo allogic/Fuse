@@ -17,7 +17,7 @@ buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffe
   buffer_create_info.usage = buffer_usage_flags;
   buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, buffer.buffer));
+  VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &buffer.buffer));
 
   VkMemoryRequirements memory_requirements = {0};
 
@@ -28,9 +28,11 @@ buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffe
   memory_allocate_info.allocationSize = memory_requirements.size;
   memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
 
-  VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, buffer.device_memory));
+  VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &buffer.device_memory));
   VULKAN_CHECK(vkBindBufferMemory(g_context_device, buffer.buffer, buffer.device_memory, 0));
   VULKAN_CHECK(vkMapMemory(g_context_device, buffer.device_memory, 0, buffer.buffer_size, 0, &mapped_buffer));
+
+  return buffer;
 }
 void buffer_destroy(buffer_t *buffer) {
   /*

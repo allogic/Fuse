@@ -10,6 +10,12 @@
 
 #include <engine/pipeline.h>
 
+static uint32_t pipeline_binding_name_to_index(char const *binding_name);
+
+static void pipeline_insert_descriptor_binding_names(map_t *descriptor_binding_name_to_index, SpvReflectShaderModule *shader_module);
+
+static void pipeline_print_descriptor_binding_names(map_t *descriptor_binding_name_to_index);
+
 static void pipeline_push_vertex_input_binding_description(vector_t *vertex_input_binding_descriptions, SpvReflectShaderModule *shader_module);
 static void pipeline_push_vertex_input_attribute_description(vector_t *vertex_input_attribute_descriptions, SpvReflectShaderModule *shader_module);
 
@@ -31,7 +37,7 @@ static void pipeline_create_pipeline_layout(pipeline_t *pipeline, int32_t frames
 static void pipeline_create_graphic_pipeline(pipeline_t *pipeline, int32_t frames_in_flight);
 static void pipeline_create_compute_pipeline(pipeline_t *pipeline, int32_t frames_in_flight);
 
-pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flight, char const *pipeline_name, ...) {
+pipeline_t pipeline_create(pipeline_type_t pipeline_type, char const *pipeline_name, ...) {
   pipeline_t pipeline = {0};
 
   pipeline.type = pipeline_type;
@@ -41,6 +47,7 @@ pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flig
   pipeline.descriptor_pool_sizes = vector_create(sizeof(VkDescriptorPoolSize));
   pipeline.descriptor_set_layout_bindings = vector_create(sizeof(VkDescriptorSetLayoutBinding));
   pipeline.descriptor_sets = vector_create(sizeof(VkDescriptorSet));
+  pipeline.descriptor_binding_name_to_index = map_create();
 
   map_t descriptor_pool_size_mappings = map_create();
   map_t descriptor_set_layout_binding_mappings = map_create();
@@ -72,12 +79,18 @@ pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flig
       pipeline_flatten_descriptor_pool_sizes(&descriptor_pool_size_mappings, &pipeline.descriptor_pool_sizes);
       pipeline_flatten_descriptor_set_layout_bindings(&descriptor_set_layout_binding_mappings, &pipeline.descriptor_set_layout_bindings);
 
+      pipeline_insert_descriptor_binding_names(&pipeline.descriptor_binding_name_to_index, &pipeline.reflect_vertex_shader_module);
+      pipeline_insert_descriptor_binding_names(&pipeline.descriptor_binding_name_to_index, &pipeline.reflect_fragment_shader_module);
+
+#if defined(BUILD_DEBUG)
       printf("%s\n", string_buffer(&pipeline.name));
       pipeline_print_vertex_input_binding_descriptions(&pipeline.vertex_input_binding_descriptions);
       pipeline_print_vertex_input_attribute_descriptions(&pipeline.vertex_input_attribute_descriptions);
       pipeline_print_descriptor_pool_sizes(&pipeline.descriptor_pool_sizes);
       pipeline_print_descriptor_set_layout_bindings(&pipeline.descriptor_set_layout_bindings);
+      pipeline_print_descriptor_binding_names(&pipeline.descriptor_binding_name_to_index);
       printf("\n");
+#endif // BUILD_DEBUG
 
       break;
     }
@@ -98,10 +111,15 @@ pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flig
       pipeline_flatten_descriptor_pool_sizes(&descriptor_pool_size_mappings, &pipeline.descriptor_pool_sizes);
       pipeline_flatten_descriptor_set_layout_bindings(&descriptor_set_layout_binding_mappings, &pipeline.descriptor_set_layout_bindings);
 
+      pipeline_insert_descriptor_binding_names(&pipeline.descriptor_binding_name_to_index, &pipeline.reflect_compute_shader_module);
+
+#if defined(BUILD_DEBUG)
       printf("%s\n", string_buffer(&pipeline.name));
       pipeline_print_descriptor_pool_sizes(&pipeline.descriptor_pool_sizes);
       pipeline_print_descriptor_set_layout_bindings(&pipeline.descriptor_set_layout_bindings);
+      pipeline_print_descriptor_binding_names(&pipeline.descriptor_binding_name_to_index);
       printf("\n");
+#endif // BUILD_DEBUG
 
       break;
     }
@@ -110,24 +128,52 @@ pipeline_t pipeline_create(pipeline_type_t pipeline_type, int32_t frames_in_flig
   map_destroy(&descriptor_pool_size_mappings);
   map_destroy(&descriptor_set_layout_binding_mappings);
 
-  pipeline_create_descriptor_pool(&pipeline, &pipeline.descriptor_pool_sizes, frames_in_flight);
-  pipeline_create_descriptor_set_layouts(&pipeline, &pipeline.descriptor_set_layout_bindings, frames_in_flight);
-  pipeline_create_pipeline_layout(&pipeline, frames_in_flight);
+  // TODO
+  // pipeline_create_descriptor_pool(&pipeline, &pipeline.descriptor_pool_sizes, frames_in_flight);
+  // pipeline_create_descriptor_set_layouts(&pipeline, &pipeline.descriptor_set_layout_bindings, frames_in_flight);
+  // pipeline_create_pipeline_layout(&pipeline, frames_in_flight);
 
-  switch (pipeline_type) {
-    case PIPELINE_TYPE_GRAPHIC: {
-      pipeline_create_graphic_pipeline(&pipeline, frames_in_flight);
-      break;
-    }
-    case PIPELINE_TYPE_COMPUTE: {
-      pipeline_create_compute_pipeline(&pipeline, frames_in_flight);
-      break;
-    }
-  }
+  // TODO
+  // switch (pipeline_type) {
+  //   case PIPELINE_TYPE_GRAPHIC: {
+  //     pipeline_create_graphic_pipeline(&pipeline, frames_in_flight);
+  //     break;
+  //   }
+  //   case PIPELINE_TYPE_COMPUTE: {
+  //     pipeline_create_compute_pipeline(&pipeline, frames_in_flight);
+  //     break;
+  //   }
+  // }
 
   return pipeline;
 }
-void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_flight, uint64_t descriptor_count) {
+void pipeline_link_buffer(pipeline_t *pipeline, int32_t frame_index, char const *binding_name, buffer_t *buffer) {
+  uint32_t binding = pipeline_binding_name_to_index(binding_name);
+
+  // switch (descriptor_set_layout_binding->descriptorType) {
+  //   case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+  //     VkDescriptorBufferInfo descriptor_buffer_infos = {0};
+  //
+  //     // descriptor_buffer_infos.offset = 0;
+  //     // descriptor_buffer_infos.buffer = s_renderer_time_buffer[frame_index];
+  //     // descriptor_buffer_infos.range = VK_WHOLE_SIZE;
+  //
+  //     // write_descriptor_set->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  //     // write_descriptor_set->pNext = 0;
+  //     // write_descriptor_set->dstSet = s_renderer_chunk_renderer_descriptor_sets[frame_index];
+  //     // write_descriptor_set->dstBinding = descriptor_set_layout_binding->binding;
+  //     // write_descriptor_set->dstArrayElement = 0;
+  //     // write_descriptor_set->descriptorCount = 1; // TODO: support arrays..
+  //     // write_descriptor_set->descriptorType = descriptor_set_layout_binding->descriptorType;
+  //     // write_descriptor_set->pImageInfo = 0;
+  //     // write_descriptor_set->pBufferInfo = time_descriptor_buffer_infos;
+  //     // write_descriptor_set->pTexelBufferView = 0;
+  //
+  //     break;
+  //   }
+  // }
+}
+void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, uint64_t descriptor_count) {
   vector_t descriptor_set_Layouts = vector_create(sizeof(VkDescriptorSetLayout)); // TODO: move to struct
 
   vector_resize(&pipeline->descriptor_sets, descriptor_count);
@@ -135,60 +181,37 @@ void pipeline_allocate_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_f
 
   vector_fill(&descriptor_set_Layouts, &pipeline->descriptor_set_layout);
 
-  VkDescriptorSetAllocateInfo chunk_editor_descriptor_set_allocate_info = {0};
-  chunk_editor_descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  chunk_editor_descriptor_set_allocate_info.descriptorPool = pipeline->descriptor_pool;
-  chunk_editor_descriptor_set_allocate_info.descriptorSetCount = (uint32_t)vector_count(&descriptor_set_Layouts);
-  chunk_editor_descriptor_set_allocate_info.pSetLayouts = vector_buffer(&descriptor_set_Layouts);
+  VkDescriptorSetAllocateInfo descriptor_set_allocate_info = {0};
+  descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  descriptor_set_allocate_info.descriptorPool = pipeline->descriptor_pool;
+  descriptor_set_allocate_info.descriptorSetCount = (uint32_t)vector_count(&descriptor_set_Layouts);
+  descriptor_set_allocate_info.pSetLayouts = vector_buffer(&descriptor_set_Layouts);
 
-  VULKAN_CHECK(vkAllocateDescriptorSets(g_context_device, &chunk_editor_descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
+  VULKAN_CHECK(vkAllocateDescriptorSets(g_context_device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
 
   vector_destroy(&descriptor_set_Layouts);
 }
-void pipeline_update_descriptor_sets(pipeline_t *pipeline, int32_t frames_in_flight) {
+void pipeline_update_descriptor_sets(pipeline_t *pipeline) {
   vector_t write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
 
   uint64_t descriptor_set_count = vector_count(&pipeline->descriptor_set_layout_bindings);
 
   vector_resize(&write_descriptor_sets, descriptor_set_count);
 
-  int32_t frame_index = 0;
-  while (frame_index < frames_in_flight) {
-
-    uint64_t descriptor_set_index = 0;
-    while (descriptor_set_index < descriptor_set_count) {
-
-      VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)vector_at(&pipeline->descriptor_set_layout_bindings, descriptor_set_index);
-      VkWriteDescriptorSet *write_descriptor_set = (VkWriteDescriptorSet *)vector_at(&write_descriptor_sets, descriptor_set_index);
-
-      switch (descriptor_set_layout_binding->descriptorType) {
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-          VkDescriptorBufferInfo descriptor_buffer_infos = {0};
-
-          descriptor_buffer_infos.offset = 0;
-          descriptor_buffer_infos.buffer = s_renderer_time_buffer[frame_index];
-          descriptor_buffer_infos.range = VK_WHOLE_SIZE;
-
-          write_descriptor_set->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-          write_descriptor_set->pNext = 0;
-          write_descriptor_set->dstSet = s_renderer_chunk_renderer_descriptor_sets[frame_index];
-          write_descriptor_set->dstBinding = descriptor_set_layout_binding->binding;
-          write_descriptor_set->dstArrayElement = 0;
-          write_descriptor_set->descriptorCount = 1; // TODO: support arrays..
-          write_descriptor_set->descriptorType = descriptor_set_layout_binding->descriptorType;
-          write_descriptor_set->pImageInfo = 0;
-          write_descriptor_set->pBufferInfo = time_descriptor_buffer_infos;
-          write_descriptor_set->pTexelBufferView = 0;
-
-          break;
-        }
-      }
-
-      descriptor_set_index++;
-    }
-
-    frame_index++;
-  }
+  // int32_t frame_index = 0;
+  // while (frame_index < frames_in_flight) {
+  //
+  //   uint64_t descriptor_set_index = 0;
+  //   while (descriptor_set_index < descriptor_set_count) {
+  //
+  //     VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)vector_at(&pipeline->descriptor_set_layout_bindings, descriptor_set_index);
+  //     VkWriteDescriptorSet *write_descriptor_set = (VkWriteDescriptorSet *)vector_at(&write_descriptor_sets, descriptor_set_index);
+  //
+  //     descriptor_set_index++;
+  //   }
+  //
+  //   frame_index++;
+  // }
 
   vector_destroy(&write_descriptor_sets);
 
@@ -310,6 +333,8 @@ void pipeline_destroy(pipeline_t *pipeline) {
   vector_destroy(&pipeline->descriptor_set_layout_bindings);
   vector_destroy(&pipeline->descriptor_sets);
 
+  map_destroy(&pipeline->descriptor_binding_name_to_index);
+
   switch (pipeline->type) {
     case PIPELINE_TYPE_GRAPHIC: {
       heap_free(pipeline->raw_vertex_buffer);
@@ -338,6 +363,58 @@ void pipeline_destroy(pipeline_t *pipeline) {
   vkDestroyDescriptorSetLayout(g_context_device, pipeline->descriptor_set_layout, 0);
   vkDestroyPipelineLayout(g_context_device, pipeline->pipeline_layout, 0);
   vkDestroyPipeline(g_context_device, pipeline->pipeline, 0);
+}
+
+static uint32_t pipeline_binding_name_to_index(map_t *descriptor_binding_name_to_index, char const *binding_name) {
+  if (map_contains(descriptor_binding_name_to_index, binding_name, strlen(binding_name))) {
+
+  } else {
+    return 0xFFFFFFFF;
+  }
+}
+
+static void pipeline_insert_descriptor_binding_names(map_t *descriptor_binding_name_to_index, SpvReflectShaderModule *shader_module) {
+  uint32_t descriptor_binding_count = 0;
+  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, 0));
+
+  SpvReflectDescriptorBinding **descriptor_bindings = (SpvReflectDescriptorBinding **)heap_alloc(sizeof(SpvReflectDescriptorBinding *) * descriptor_binding_count);
+  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, descriptor_bindings));
+
+  uint32_t descriptor_binding_index = 0;
+  while (descriptor_binding_index < descriptor_binding_count) {
+    SpvReflectDescriptorBinding *descriptor_binding = descriptor_bindings[descriptor_binding_index];
+
+    string_t name = string_create_from(descriptor_binding->name); // Find solution for arrays!
+    uint32_t binding = descriptor_binding->binding;
+
+    if (map_contains(descriptor_binding_name_to_index, &name, sizeof(string_t))) {
+      string_destroy(&name);
+
+    } else {
+      map_insert(descriptor_binding_name_to_index, &name, sizeof(string_t), &binding, sizeof(uint32_t));
+    }
+
+    descriptor_binding_index++;
+  }
+
+  heap_free(descriptor_bindings);
+}
+
+static void pipeline_print_descriptor_binding_names(map_t *descriptor_binding_name_to_index) {
+  printf("  DescriptorBindingNames\n");
+
+  map_iter_t iter = map_iter_create_from(descriptor_binding_name_to_index);
+
+  while (map_iter_valid(&iter)) {
+    uint32_t binding = *(uint32_t *)map_iter_key(&iter);
+    descriptor_name_t *name = (descriptor_name_t *)map_iter_value(&iter);
+
+    printf("    {%u, %s}\n",
+           binding,
+           name->value);
+
+    map_iter_advance(&iter);
+  }
 }
 
 static void pipeline_push_vertex_input_binding_description(vector_t *vertex_input_binding_descriptions, SpvReflectShaderModule *shader_module) {
@@ -547,20 +624,22 @@ static void pipeline_print_descriptor_set_layout_bindings(vector_t *descriptor_s
 
 static void pipeline_flatten_descriptor_pool_sizes(map_t *descriptor_pool_size_mappings, vector_t *descriptor_pool_sizes) {
   map_iter_t iter = map_iter_create_from(descriptor_pool_size_mappings);
-  while (map_iter_valid(&iter)) {
-    VkDescriptorPoolSize descriptor_pool_size = *(VkDescriptorPoolSize *)map_iter_value(&iter);
 
-    vector_push(descriptor_pool_sizes, &descriptor_pool_size);
+  while (map_iter_valid(&iter)) {
+    VkDescriptorPoolSize *descriptor_pool_size = (VkDescriptorPoolSize *)map_iter_value(&iter);
+
+    vector_push(descriptor_pool_sizes, descriptor_pool_size);
 
     map_iter_advance(&iter);
   }
 }
 static void pipeline_flatten_descriptor_set_layout_bindings(map_t *descriptor_set_layout_bindings_mappings, vector_t *descriptor_set_layout_bindings) {
   map_iter_t iter = map_iter_create_from(descriptor_set_layout_bindings_mappings);
-  while (map_iter_valid(&iter)) {
-    VkDescriptorSetLayoutBinding descriptor_set_layout_binding = *(VkDescriptorSetLayoutBinding *)map_iter_value(&iter);
 
-    vector_push(descriptor_set_layout_bindings, &descriptor_set_layout_binding);
+  while (map_iter_valid(&iter)) {
+    VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)map_iter_value(&iter);
+
+    vector_push(descriptor_set_layout_bindings, descriptor_set_layout_binding);
 
     map_iter_advance(&iter);
   }
