@@ -8,13 +8,13 @@
 
 float noise_perlin(vec2 position)
 {
-	vec4 Pi = floor(position.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
-	vec4 Pf = fract(position.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
+	vec4 pi = floor(position.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
+	vec4 pf = fract(position.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
 
-	Pi = mod289(Pi);
+	pi = mod289(pi);
 
-	vec4 ix = Pi.xzxz;
-	vec4 iy = Pi.yyww;
+	vec4 ix = pi.xzxz;
+	vec4 iy = pi.yyww;
 	vec4 fx = Pf.xzxz;
 	vec4 fy = Pf.yyww;
 
@@ -54,19 +54,19 @@ float noise_perlin(vec2 position)
 
 float noise_perlin(vec3 position)
 {
-	vec3 Pi0 = floor(position);
-	vec3 Pi1 = Pi0 + vec3(1.0);
+	vec3 pi0 = floor(position);
+	vec3 pi1 = pi0 + vec3(1.0);
 
-	Pi0 = mod289(Pi0);
-	Pi1 = mod289(Pi1);
+	pi0 = mod289(pi0);
+	pi1 = mod289(pi1);
 
 	vec3 Pf0 = fract(position);
 	vec3 Pf1 = Pf0 - vec3(1.0);
 
-	vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
-	vec4 iy = vec4(Pi0.yy, Pi1.yy);
-	vec4 iz0 = Pi0.zzzz;
-	vec4 iz1 = Pi1.zzzz;
+	vec4 ix = vec4(pi0.x, pi1.x, pi0.x, pi1.x);
+	vec4 iy = vec4(pi0.yy, pi1.yy);
+	vec4 iz0 = pi0.zzzz;
+	vec4 iz1 = pi1.zzzz;
 	vec4 ixy = permute(permute(ix) + iy);
 	vec4 ixy0 = permute(ixy + iz0);
 	vec4 ixy1 = permute(ixy + iz1);
@@ -136,20 +136,20 @@ float noise_perlin(vec3 position)
 
 float noise_perlin(vec4 position)
 {
-	vec4 Pi0 = floor(position);
-	vec4 Pi1 = Pi0 + 1.0;
+	vec4 pi0 = floor(position);
+	vec4 pi1 = pi0 + 1.0;
 
-	Pi0 = mod289(Pi0);
-	Pi1 = mod289(Pi1);
+	pi0 = mod289(pi0);
+	pi1 = mod289(pi1);
 
 	vec4 Pf0 = fract(position);
 	vec4 Pf1 = Pf0 - 1.0;
-	vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
-	vec4 iy = vec4(Pi0.yy, Pi1.yy);
-	vec4 iz0 = vec4(Pi0.zzzz);
-	vec4 iz1 = vec4(Pi1.zzzz);
-	vec4 iw0 = vec4(Pi0.wwww);
-	vec4 iw1 = vec4(Pi1.wwww);
+	vec4 ix = vec4(pi0.x, pi1.x, pi0.x, pi1.x);
+	vec4 iy = vec4(pi0.yy, pi1.yy);
+	vec4 iz0 = vec4(pi0.zzzz);
+	vec4 iz1 = vec4(pi1.zzzz);
+	vec4 iw0 = vec4(pi0.wwww);
+	vec4 iw1 = vec4(pi1.wwww);
 	vec4 ixy = permute(permute(ix) + iy);
 	vec4 ixy0 = permute(ixy + iz0);
 	vec4 ixy1 = permute(ixy + iz1);
