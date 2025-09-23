@@ -42,21 +42,6 @@ typedef struct debug_line_vertex_t {
 
 typedef uint32_t debug_line_index_t;
 
-typedef struct frame_t {
-  time_info_t time_info;
-  screen_info_t screen_info;
-  camera_info_t camera_info;
-  debug_line_vertex_t *debug_line_vertices;
-  debug_line_index_t *debug_line_indices;
-  uint32_t debug_line_vertex_offset;
-  uint32_t debug_line_index_offset;
-  buffer_t time_info_buffer;
-  buffer_t screen_info_buffer;
-  buffer_t camera_info_buffer;
-  buffer_t debug_line_vertex_buffer;
-  buffer_t debug_line_index_buffer;
-} frame_t;
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

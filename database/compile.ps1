@@ -1,0 +1,1 @@
+sqlite3.exe "data.db" ".read 'database.sql'"

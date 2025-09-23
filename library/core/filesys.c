@@ -13,10 +13,12 @@ void filesys_load_text(uint8_t **buffer, uint64_t *buffer_size, char const *file
     fseek(file, 0, SEEK_END);
 
     (*buffer_size) = (uint64_t)ftell(file);
-    (*buffer) = (uint8_t *)heap_alloc((*buffer_size) + 1);
+    (*buffer) = (uint8_t *)heap_alloc((*buffer_size));
 
     fseek(file, 0, SEEK_SET);
-    fread((*buffer), sizeof(uint8_t), (*buffer_size), file);
+    uint64_t read_count = fread(*buffer, sizeof(uint8_t), *buffer_size, file);
+
+    (*buffer)[read_count] = 0;
 
     fclose(file);
   }
@@ -30,10 +32,10 @@ void filesys_load_binary(uint8_t **buffer, uint64_t *buffer_size, char const *fi
     fseek(file, 0, SEEK_END);
 
     (*buffer_size) = (uint64_t)ftell(file);
-    (*buffer) = (uint8_t *)heap_alloc((*buffer_size));
+    (*buffer) = (uint8_t *)heap_alloc(*buffer_size);
 
     fseek(file, 0, SEEK_SET);
-    fread((*buffer), sizeof(uint8_t), (*buffer_size), file);
+    fread(*buffer, sizeof(uint8_t), *buffer_size, file);
 
     fclose(file);
   }

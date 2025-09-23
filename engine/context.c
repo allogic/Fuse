@@ -653,7 +653,7 @@ static void context_check_physical_device_extensions(void) {
       VkExtensionProperties properties = available_device_extensions[available_device_extension_index];
 
       if (strcmp(s_context_device_extensions[device_extension_index], properties.extensionName) == 0) {
-        printf("\tFound %s\n", s_context_device_extensions[device_extension_index]);
+        printf("  Found %s\n", s_context_device_extensions[device_extension_index]);
 
         device_extensions_available = 1;
 
@@ -664,7 +664,7 @@ static void context_check_physical_device_extensions(void) {
     }
 
     if (device_extensions_available == 0) {
-      printf("\tMissing %s\n", s_context_device_extensions[device_extension_index]);
+      printf("  Missing %s\n", s_context_device_extensions[device_extension_index]);
 
       break;
     }
@@ -750,7 +750,7 @@ static void context_find_physical_device_queue_families(void) {
   heap_free(queue_family_properties);
 
   printf("Queue Indices\n");
-  printf("\tGraphic Queue Index %d\n", g_context_graphic_queue_index);
-  printf("\tPresent Queue Index %d\n", g_context_present_queue_index);
+  printf("  Graphic Queue Index %d\n", g_context_graphic_queue_index);
+  printf("  Present Queue Index %d\n", g_context_present_queue_index);
   printf("\n");
 }

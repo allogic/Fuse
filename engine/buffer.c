@@ -34,19 +34,11 @@ buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffe
 
   return buffer;
 }
+VkBuffer buffer_handle(buffer_t *buffer) {
+  return buffer->buffer;
+}
 void buffer_destroy(buffer_t *buffer) {
-  /*
-  uint64_t frame_index = 0;
-  while (frame_index < s_renderer_frames_in_flight) {
-    vkUnmapMemory(g_context_device, s_renderer_debug_line_index_buffer_device_memory[frame_index]);
-    vkFreeMemory(g_context_device, s_renderer_debug_line_index_buffer_device_memory[frame_index], 0);
-    vkDestroyBuffer(g_context_device, s_renderer_debug_line_index_buffer[frame_index], 0);
-
-    frame_index++;
-  }
-
-  heap_free(s_renderer_debug_line_index_buffer);
-  heap_free(s_renderer_debug_line_index_buffer_device_memory);
-  heap_free(s_renderer_debug_line_index);
-  */
+  vkUnmapMemory(g_context_device, buffer->device_memory);
+  vkFreeMemory(g_context_device, buffer->device_memory, 0);
+  vkDestroyBuffer(g_context_device, buffer->buffer, 0);
 }

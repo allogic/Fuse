@@ -1,13 +1,17 @@
 ﻿#include <library/core/api.h>
 
 #include <engine/context.h>
+#include <engine/database.h>
 #include <engine/engine.h>
+#include <engine/renderer.h>
 
 player_t *g_player_0 = {0};
 
-int main(int argc, char **argv, char **envp) {
-  context_create(1920, 1080);
+int32_t main(int32_t argc, char **argv, char **envp) {
+  database_create();
+  context_create(1920, 1080); // TODO
 
+  g_renderer_enable_debug = 1; // TODO
   g_player_0 = player_create();
 
   transform_set_position_xyz(g_player_0->transform, 0.0F, 0.0F, -10.0F);
@@ -17,8 +21,8 @@ int main(int argc, char **argv, char **envp) {
 
     player_update(g_player_0);
 
-    // renderer_update();
-    // renderer_draw(g_player_0->transform, g_player_0->camera);
+    renderer_update();
+    renderer_draw(g_player_0->transform, g_player_0->camera);
 
     context_end_frame();
   }
@@ -26,6 +30,7 @@ int main(int argc, char **argv, char **envp) {
   player_destroy(g_player_0);
 
   context_destroy();
+  database_destroy();
 
   heap_reset();
 

@@ -15,7 +15,7 @@
       }                                                     \
     }
 #else
-#  define VULKAN_CHECK(EXPRESSION, ...) (EXPRESSION)
+#  define VULKAN_CHECK(EXPRESSION) (EXPRESSION)
 #endif // BUILD_DEBUG
 
 #ifdef BUILD_DEBUG
@@ -28,7 +28,20 @@
       }                                                     \
     }
 #else
-#  define SPIRV_CHECK(EXPRESSION, ...) (EXPRESSION)
+#  define SPIRV_CHECK(EXPRESSION) (EXPRESSION)
+#endif // BUILD_DEBUG
+
+#ifdef BUILD_DEBUG
+#  define SQL_CHECK(EXPRESSION)                                                        \
+    {                                                                                  \
+      uint32_t result = (EXPRESSION);                                                  \
+      if (result != SQLITE_OK) {                                                       \
+        printf("%s failed with %s\n", #EXPRESSION, sqlite3_errmsg(s_database_handle)); \
+        __debugbreak();                                                                \
+      }                                                                                \
+    }
+#else
+#  define SQL_CHECK(EXPRESSION) (EXPRESSION)
 #endif // BUILD_DEBUG
 
 #endif // MACROS_H
