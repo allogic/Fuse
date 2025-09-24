@@ -47,6 +47,9 @@ string_t string_create_from_file(char const *input_file) {
 
   return string;
 }
+void string_to_file(string_t *string, char const *output_file) {
+  filesys_save_text(string->buffer, string->buffer_size, output_file);
+}
 string_t string_copy(string_t *reference) {
   string_t string = {0};
 
@@ -56,9 +59,6 @@ string_t string_copy(string_t *reference) {
   memcpy(string.buffer, reference->buffer, reference->buffer_size);
 
   return string;
-}
-void string_to_file(string_t *string, char const *output_file) {
-  filesys_save_text(string->buffer, string->buffer_size, output_file);
 }
 uint8_t string_equal(string_t *string, string_t *reference) {
   uint8_t not_equal = 0;
@@ -155,7 +155,7 @@ void string_appendf(string_t *string, char const *format, ...) {
   va_list args;
 
   va_start(args, format);
-  uint64_t value_length = (uint64_t)vsnprintf(0, 0, format, args) + 1;
+  uint64_t value_length = (uint64_t)vsnprintf(0, 0, format, args);
   va_end(args);
 
   while ((string->buffer_size + value_length) >= string->buffer_capacity) {
@@ -163,9 +163,10 @@ void string_appendf(string_t *string, char const *format, ...) {
   }
 
   va_start(args, format);
-  string->buffer_size = vsnprintf(string->buffer + string->buffer_size, value_length, format, args);
+  vsnprintf(string->buffer + string->buffer_size, value_length + 1, format, args);
   va_end(args);
 
+  string->buffer_size += value_length;
   string->buffer[string->buffer_size] = 0;
 }
 void string_resize(string_t *string, uint64_t size) {

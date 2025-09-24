@@ -17,3 +17,4 @@ output
 
 *.spv
 *.db
+*.db-journal

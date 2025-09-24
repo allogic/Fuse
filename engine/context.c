@@ -8,7 +8,9 @@
 #include <engine/swapchain.h>
 #include <engine/renderer.h>
 
-static LRESULT context_window_message_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param);
+#include <ui/ui.h>
+
+static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 #ifdef BUILD_DEBUG
 static VkBool32 context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const *callback_data, void *user_data);
@@ -170,7 +172,9 @@ void context_begin_frame(void) {
 
   uint8_t keyboard_key_index = 0;
   uint8_t keyboard_key_count = 0xFF;
+
   while (keyboard_key_index < keyboard_key_count) {
+
     if (s_context_event_keyboard_key_states[keyboard_key_index] == KEY_STATE_PRESSED) {
       s_context_event_keyboard_key_states[keyboard_key_index] = KEY_STATE_DOWN;
     } else if (s_context_event_keyboard_key_states[keyboard_key_index] == KEY_STATE_RELEASED) {
@@ -182,7 +186,9 @@ void context_begin_frame(void) {
 
   uint8_t mouse_key_index = 0;
   uint8_t mouse_key_count = 0x3;
+
   while (mouse_key_index < mouse_key_count) {
+
     if (s_context_event_mouse_key_states[mouse_key_index] == KEY_STATE_PRESSED) {
       s_context_event_mouse_key_states[mouse_key_index] = KEY_STATE_DOWN;
     } else if (s_context_event_mouse_key_states[mouse_key_index] == KEY_STATE_RELEASED) {
@@ -264,7 +270,9 @@ int32_t context_find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags mem
   int32_t memory_type = -1;
 
   uint32_t memory_type_index = 0;
+
   while (memory_type_index < g_context_physical_device_memory_properties.memoryTypeCount) {
+
     if ((type_filter & (1 << memory_type_index)) && ((g_context_physical_device_memory_properties.memoryTypes[memory_type_index].propertyFlags & memory_property_flags) == memory_property_flags)) {
       memory_type = (int32_t)memory_type_index;
 
@@ -310,7 +318,9 @@ void context_end_command_buffer(VkCommandBuffer command_buffer) {
   vkFreeCommandBuffers(g_context_device, g_context_command_pool, 1, &command_buffer);
 }
 
-static LRESULT context_window_message_proc(HWND window, UINT message, WPARAM w_param, LPARAM l_param) {
+static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
+  UI_FORWARD_MESSAGE(window_handle, message, w_param, l_param);
+
   switch (message) {
     case WM_CLOSE: {
       g_context_window_should_close = 1;
@@ -319,7 +329,7 @@ static LRESULT context_window_message_proc(HWND window, UINT message, WPARAM w_p
     }
     case WM_WINDOWPOSCHANGED: {
       RECT client_rect = {0};
-      GetClientRect(window, &client_rect);
+      GetClientRect(window_handle, &client_rect);
 
       static INT width_prev = 0;
       static INT height_prev = 0;
@@ -452,7 +462,7 @@ static LRESULT context_window_message_proc(HWND window, UINT message, WPARAM w_p
       break;
     }
     default: {
-      return DefWindowProcA(window, message, w_param, l_param);
+      return DefWindowProcA(window_handle, message, w_param, l_param);
     }
   }
 

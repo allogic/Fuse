@@ -17,6 +17,20 @@ vector_t vector_create(uint64_t value_size) {
 
   return vector;
 }
+vector_t vector_create_from(uint64_t value_size, void const *buffer, uint64_t count) {
+  vector_t vector = {0};
+
+  vector.buffer = (uint8_t *)heap_alloc(ALIGN_UP_BY(count, VECTOR_BUFFER_ALIGNMENT) * value_size);
+  vector.swap_buffer = (uint8_t *)heap_alloc(value_size);
+  vector.value_size = value_size;
+  vector.buffer_capacity = ALIGN_UP_BY(count, VECTOR_BUFFER_ALIGNMENT) * value_size;
+  vector.buffer_size = value_size * count;
+  vector.buffer_count = count;
+
+  memcpy(vector.buffer, buffer, vector.buffer_size);
+
+  return vector;
+}
 vector_t vector_copy(vector_t *reference) {
   vector_t vector = {0};
 
@@ -26,6 +40,7 @@ vector_t vector_copy(vector_t *reference) {
   vector.buffer_capacity = reference->buffer_capacity;
   vector.buffer_size = reference->buffer_size;
   vector.buffer_count = reference->buffer_count;
+
   memcpy(vector.buffer, reference->buffer, reference->buffer_size);
 
   return vector;

@@ -9,6 +9,8 @@
 #include <engine/renderer.h>
 #include <engine/swapchain.h>
 
+#include <ui/ui.h>
+
 // TODO: implement sparse textures..
 
 typedef enum renderer_pipeline_link_type_t {
@@ -60,7 +62,7 @@ static int32_t s_renderer_image_index = 0;
 static map_t s_renderer_graphic_pipelines = {0};
 static map_t s_renderer_compute_pipelines = {0};
 
-static void renderer_create(void) {
+void renderer_create(void) {
   s_renderer_graphic_pipelines = map_create();
   s_renderer_compute_pipelines = map_create();
 
@@ -68,6 +70,8 @@ static void renderer_create(void) {
 
   renderer_create_command_buffer();
   renderer_create_sync_objects();
+
+  ui_create(g_context_window, g_context_instance, g_context_physical_device, g_context_device, g_context_graphic_queue_index, g_context_graphic_queue, g_swapchain_render_pass, g_swapchain_image_count);
 
   renderer_create_pipelines();
 }
@@ -260,6 +264,8 @@ void renderer_destroy(void) {
   VULKAN_CHECK(vkQueueWaitIdle(g_context_graphic_queue));
   VULKAN_CHECK(vkQueueWaitIdle(g_context_present_queue));
 
+  UI_DESTROY(g_context_device);
+
   renderer_destroy_sync_objects();
   renderer_destroy_command_buffer();
 
@@ -278,7 +284,7 @@ void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
       uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, s_renderer_frame_index);
 
       vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, s_renderer_frame_index, 0);
-      vector4_t *colors = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, s_renderer_frame_index, 1);
+      vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, s_renderer_frame_index, 1);
       uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, s_renderer_frame_index);
 
       world_positions[vertex_offset + 0] = (vector3_t){from.x, from.y, from.z};
@@ -287,8 +293,8 @@ void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
       colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
       colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
 
-      indices[index_offset + 0] = vertex_offset + 0;
-      indices[index_offset + 1] = vertex_offset + 1;
+      indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
 
       *graphic_pipeline_vertex_offset(debug_pipeline, s_renderer_frame_index) += 2;
       *graphic_pipeline_index_offset(debug_pipeline, s_renderer_frame_index) += 2;
@@ -304,7 +310,7 @@ void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color
       uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, s_renderer_frame_index);
 
       vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, s_renderer_frame_index, 0);
-      vector4_t *colors = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, s_renderer_frame_index, 1);
+      vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, s_renderer_frame_index, 1);
       uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, s_renderer_frame_index);
 
       world_positions[vertex_offset + 0] = (vector3_t){position.x, position.y, position.z};
@@ -325,30 +331,30 @@ void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color
       colors[vertex_offset + 6] = (vector4_t){color.x, color.y, color.z, color.w};
       colors[vertex_offset + 7] = (vector4_t){color.x, color.y, color.z, color.w};
 
-      indices[index_offset + 0] = vertex_offset + 0;
-      indices[index_offset + 1] = vertex_offset + 1;
-      indices[index_offset + 2] = vertex_offset + 1;
-      indices[index_offset + 3] = vertex_offset + 3;
-      indices[index_offset + 4] = vertex_offset + 3;
-      indices[index_offset + 5] = vertex_offset + 2;
-      indices[index_offset + 6] = vertex_offset + 2;
-      indices[index_offset + 7] = vertex_offset + 0;
-      indices[index_offset + 8] = vertex_offset + 4;
-      indices[index_offset + 9] = vertex_offset + 5;
-      indices[index_offset + 10] = vertex_offset + 5;
-      indices[index_offset + 11] = vertex_offset + 7;
-      indices[index_offset + 12] = vertex_offset + 7;
-      indices[index_offset + 13] = vertex_offset + 6;
-      indices[index_offset + 14] = vertex_offset + 6;
-      indices[index_offset + 15] = vertex_offset + 4;
-      indices[index_offset + 16] = vertex_offset + 0;
-      indices[index_offset + 17] = vertex_offset + 4;
-      indices[index_offset + 18] = vertex_offset + 1;
-      indices[index_offset + 19] = vertex_offset + 5;
-      indices[index_offset + 20] = vertex_offset + 2;
-      indices[index_offset + 21] = vertex_offset + 6;
-      indices[index_offset + 22] = vertex_offset + 3;
-      indices[index_offset + 23] = vertex_offset + 7;
+      indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 2] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 3] = (uint32_t)(vertex_offset + 3);
+      indices[index_offset + 4] = (uint32_t)(vertex_offset + 3);
+      indices[index_offset + 5] = (uint32_t)(vertex_offset + 2);
+      indices[index_offset + 6] = (uint32_t)(vertex_offset + 2);
+      indices[index_offset + 7] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 8] = (uint32_t)(vertex_offset + 4);
+      indices[index_offset + 9] = (uint32_t)(vertex_offset + 5);
+      indices[index_offset + 10] = (uint32_t)(vertex_offset + 5);
+      indices[index_offset + 11] = (uint32_t)(vertex_offset + 7);
+      indices[index_offset + 12] = (uint32_t)(vertex_offset + 7);
+      indices[index_offset + 13] = (uint32_t)(vertex_offset + 6);
+      indices[index_offset + 14] = (uint32_t)(vertex_offset + 6);
+      indices[index_offset + 15] = (uint32_t)(vertex_offset + 4);
+      indices[index_offset + 16] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 17] = (uint32_t)(vertex_offset + 4);
+      indices[index_offset + 18] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 19] = (uint32_t)(vertex_offset + 5);
+      indices[index_offset + 20] = (uint32_t)(vertex_offset + 2);
+      indices[index_offset + 21] = (uint32_t)(vertex_offset + 6);
+      indices[index_offset + 22] = (uint32_t)(vertex_offset + 3);
+      indices[index_offset + 23] = (uint32_t)(vertex_offset + 7);
 
       *graphic_pipeline_vertex_offset(debug_pipeline, s_renderer_frame_index) += 8;
       *graphic_pipeline_index_offset(debug_pipeline, s_renderer_frame_index) += 24;
@@ -367,45 +373,43 @@ static void renderer_compute_local_variables(void) {
 }
 
 static void renderer_create_pipelines(void) {
-  database_pipelines_t graphic_pipelines = database_fetch_pipelines_by_type(PIPELINE_TYPE_GRAPHIC);
+  vector_t *graphic_pipelines = database_graphic_pipelines();
 
   uint64_t graphic_pipeline_index = 0;
-  uint64_t graphic_pipeline_count = vector_count(&graphic_pipelines.records);
+  uint64_t graphic_pipeline_count = vector_count(graphic_pipelines);
 
   while (graphic_pipeline_index < graphic_pipeline_count) {
-    database_pipeline_record_t *pipeline_record = (database_pipeline_record_t *)vector_at(&graphic_pipelines.records, graphic_pipeline_index);
+    database_pipeline_t *db_pipeline = (database_pipeline_t *)vector_at(graphic_pipelines, graphic_pipeline_index);
 
-    graphic_pipeline_t pipeline = graphic_pipeline_create(s_renderer_frames_in_flight, pipeline_record->name);
+    graphic_pipeline_t pipeline = graphic_pipeline_create(s_renderer_frames_in_flight, &db_pipeline->name);
 
-    graphic_pipeline_allocate_descriptor_sets(&pipeline, 1);
-    graphic_pipeline_update_descriptor_sets(&pipeline);
+    // TODO
+    // graphic_pipeline_allocate_descriptor_sets(&pipeline, 1);
+    // graphic_pipeline_update_descriptor_sets(&pipeline);
 
-    map_insert(&s_renderer_graphic_pipelines, pipeline_record->name, strlen(pipeline_record->name), &pipeline, sizeof(graphic_pipeline_t));
+    map_insert(&s_renderer_graphic_pipelines, string_buffer(&db_pipeline->name), string_size(&db_pipeline->name), &pipeline, sizeof(graphic_pipeline_t));
 
     graphic_pipeline_index++;
   }
 
-  database_close_pipelines(&graphic_pipelines);
-
-  database_pipelines_t compute_pipelines = database_fetch_pipelines_by_type(PIPELINE_TYPE_COMPUTE);
+  vector_t *compute_pipelines = database_compute_pipelines();
 
   uint64_t compute_pipeline_index = 0;
-  uint64_t compute_pipeline_count = vector_count(&compute_pipelines.records);
+  uint64_t compute_pipeline_count = vector_count(compute_pipelines);
 
   while (compute_pipeline_index < compute_pipeline_count) {
-    database_pipeline_record_t *pipeline_record = (database_pipeline_record_t *)vector_at(&compute_pipelines.records, compute_pipeline_index);
+    database_pipeline_t *db_pipeline = (database_pipeline_t *)vector_at(compute_pipelines, compute_pipeline_index);
 
-    compute_pipeline_t pipeline = compute_pipeline_create(s_renderer_frames_in_flight, pipeline_record->name);
+    compute_pipeline_t pipeline = compute_pipeline_create(s_renderer_frames_in_flight, &db_pipeline->name);
 
-    compute_pipeline_allocate_descriptor_sets(&pipeline, 1);
-    compute_pipeline_update_descriptor_sets(&pipeline);
+    // TODO
+    // compute_pipeline_allocate_descriptor_sets(&pipeline, 1);
+    // compute_pipeline_update_descriptor_sets(&pipeline);
 
-    map_insert(&s_renderer_compute_pipelines, pipeline_record->name, strlen(pipeline_record->name), &pipeline, sizeof(compute_pipeline_t));
+    map_insert(&s_renderer_compute_pipelines, string_buffer(&db_pipeline->name), string_size(&db_pipeline->name), &pipeline, sizeof(compute_pipeline_t));
 
     compute_pipeline_index++;
   }
-
-  database_close_pipelines(&compute_pipelines);
 }
 
 static void renderer_create_command_buffer(void) {
@@ -447,10 +451,10 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
   graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
   graphic_pipeline_t *pbr_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_PBR];
 
-  frame->time_info.time = (float)g_context_time;
-  frame->time_info.delta_time = (float)g_context_delta_time;
+  // frame->time_info.time = (float)g_context_time;
+  // frame->time_info.delta_time = (float)g_context_delta_time;
 
-  frame->screen_info.resolution = vector2_xy((float)g_context_surface_width, (float)g_context_surface_height);
+  // frame->screen_info.resolution = vector2_xy((float)g_context_surface_width, (float)g_context_surface_height);
 
   vector3_t eye = transform->world_position;
   vector3_t center = vector3_add(transform->world_position, transform->local_front);
@@ -466,12 +470,12 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
   matrix4_t view_projection = matrix4_mul(view, projection);
   matrix4_t view_projection_inv = matrix4_inverse(view_projection);
 
-  frame->camera_info.world_position = transform->world_position;
-  frame->camera_info.view = view;
-  frame->camera_info.projection = projection;
-  frame->camera_info.view_projection = view_projection;
-  frame->camera_info.view_projection_inv = view_projection_inv;
-  frame->camera_info.max_ray_steps = camera->ray_steps;
+  // frame->camera_info.world_position = transform->world_position;
+  // frame->camera_info.view = view;
+  // frame->camera_info.projection = projection;
+  // frame->camera_info.view_projection = view_projection;
+  // frame->camera_info.view_projection_inv = view_projection_inv;
+  // frame->camera_info.max_ray_steps = camera->ray_steps;
 }
 
 static void renderer_record_compute_commands(void) {
@@ -544,6 +548,8 @@ static void renderer_record_graphic_commands(void) {
       }
     }
   }
+
+  UI_DRAW(s_renderer_graphic_command_buffers[s_renderer_frame_index]);
 
   vkCmdEndRenderPass(s_renderer_graphic_command_buffers[s_renderer_frame_index]);
 }

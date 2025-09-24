@@ -33,10 +33,10 @@ static void pipeline_print_descriptor_set_layout_bindings(vector_t *descriptor_s
 static void pipeline_flatten_descriptor_pool_sizes(map_t *descriptor_pool_size_mappings, vector_t *descriptor_pool_sizes);
 static void pipeline_flatten_descriptor_set_layout_bindings(map_t *descriptor_set_layout_binding_mappings, vector_t *descriptor_set_layout_bindings);
 
-graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, char const *pipeline_name) {
+graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, string_t *pipeline_name) {
   graphic_pipeline_t pipeline = {0};
 
-  database_graphic_pipeline_settings_t settings = database_fetch_graphic_pipeline_settings_by_name(pipeline_name);
+  database_graphic_pipeline_settings_t db_settings = database_load_graphic_pipeline_settings_by_name(string_buffer(pipeline_name));
 
   pipeline.frames_in_flight = frames_in_flight;
   pipeline.vertex_input_binding_descriptions = vector_create(sizeof(VkVertexInputBindingDescription));
@@ -58,8 +58,8 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, char const 
   VkShaderModule vertex_shader_module = 0;
   VkShaderModule fragment_shader_module = 0;
 
-  SPIRV_CHECK(spvReflectCreateShaderModule(settings.vertex_shader_size, settings.vertex_shader, &reflect_vertex_shader_module));
-  SPIRV_CHECK(spvReflectCreateShaderModule(settings.fragment_shader_size, settings.fragment_shader, &reflect_fragment_shader_module));
+  SPIRV_CHECK(spvReflectCreateShaderModule(vector_size(&db_settings.vertex_shader), vector_buffer(&db_settings.vertex_shader), &reflect_vertex_shader_module));
+  SPIRV_CHECK(spvReflectCreateShaderModule(vector_size(&db_settings.fragment_shader), vector_buffer(&db_settings.fragment_shader), &reflect_fragment_shader_module));
 
   pipeline_push_vertex_input_binding_description(&pipeline.vertex_input_binding_descriptions, &reflect_vertex_shader_module);
   pipeline_push_vertex_input_attribute_description(&pipeline.vertex_input_attribute_descriptions, &reflect_vertex_shader_module);
@@ -77,7 +77,7 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, char const 
   pipeline_insert_descriptor_binding_names(&pipeline.descriptor_name_to_binding, &reflect_fragment_shader_module);
 
 #ifdef BUILD_DEBUG
-  printf("%s\n", settings.pipeline_name);
+  printf("%s\n", string_buffer(&db_settings.pipeline_name));
   pipeline_print_vertex_input_binding_descriptions(&pipeline.vertex_input_binding_descriptions);
   pipeline_print_vertex_input_attribute_descriptions(&pipeline.vertex_input_attribute_descriptions);
   pipeline_print_descriptor_pool_sizes(&pipeline.descriptor_pool_sizes);
@@ -116,15 +116,15 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, char const 
 
   VkShaderModuleCreateInfo vertex_shader_module_create_info = {0};
   vertex_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  vertex_shader_module_create_info.codeSize = settings.vertex_shader_size;
-  vertex_shader_module_create_info.pCode = (uint32_t const *)settings.vertex_shader;
+  vertex_shader_module_create_info.codeSize = vector_size(&db_settings.vertex_shader);
+  vertex_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&db_settings.vertex_shader);
 
   VULKAN_CHECK(vkCreateShaderModule(g_context_device, &vertex_shader_module_create_info, 0, &vertex_shader_module));
 
   VkShaderModuleCreateInfo fragment_shader_module_create_info = {0};
   fragment_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  fragment_shader_module_create_info.codeSize = settings.fragment_shader_size;
-  fragment_shader_module_create_info.pCode = (uint32_t const *)settings.fragment_shader;
+  fragment_shader_module_create_info.codeSize = vector_size(&db_settings.fragment_shader);
+  fragment_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&db_settings.fragment_shader);
 
   VULKAN_CHECK(vkCreateShaderModule(g_context_device, &fragment_shader_module_create_info, 0, &fragment_shader_module));
 
@@ -258,7 +258,7 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, char const 
   spvReflectDestroyShaderModule(&reflect_vertex_shader_module);
   spvReflectDestroyShaderModule(&reflect_fragment_shader_module);
 
-  database_close_graphic_pipeline_settings(&settings);
+  database_destroy_graphic_pipeline_settings(&db_settings);
 
   return pipeline;
 }
@@ -347,10 +347,10 @@ void *graphic_pipeline_index_buffer(graphic_pipeline_t *pipeline, int32_t frame_
   return 0;
 }
 uint64_t *graphic_pipeline_vertex_offset(graphic_pipeline_t *pipeline, int32_t frame_index) {
-  return pipeline->vertex_offsets[frame_index];
+  return 0;
 }
 uint64_t *graphic_pipeline_index_offset(graphic_pipeline_t *pipeline, int32_t frame_index) {
-  return pipeline->index_offsets[frame_index];
+  return 0;
 }
 void graphic_pipeline_execute(graphic_pipeline_t *pipeline) {
   // TODO
@@ -398,10 +398,10 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   vkDestroyPipeline(g_context_device, pipeline->pipeline, 0);
 }
 
-compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, char const *pipeline_name) {
+compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, string_t *pipeline_name) {
   compute_pipeline_t pipeline = {0};
 
-  database_compute_pipeline_settings_t settings = database_fetch_compute_pipeline_settings_by_name(pipeline_name);
+  database_compute_pipeline_settings_t db_settings = database_load_compute_pipeline_settings_by_name(string_buffer(pipeline_name));
 
   pipeline.frames_in_flight = frames_in_flight;
   pipeline.descriptor_pool_sizes = vector_create(sizeof(VkDescriptorPoolSize));
@@ -419,7 +419,7 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, char const 
 
   VkShaderModule compute_shader_module = 0;
 
-  SPIRV_CHECK(spvReflectCreateShaderModule(settings.compute_shader_size, settings.compute_shader, &reflect_compute_shader_module));
+  SPIRV_CHECK(spvReflectCreateShaderModule(vector_size(&db_settings.compute_shader), vector_buffer(&db_settings.compute_shader), &reflect_compute_shader_module));
 
   pipeline_insert_descriptor_pool_size(&descriptor_pool_size_mappings, &reflect_compute_shader_module);
   pipeline_insert_descriptor_set_layout_binding(&descriptor_set_layout_binding_mappings, &reflect_compute_shader_module, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -430,7 +430,7 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, char const 
   pipeline_insert_descriptor_binding_names(&pipeline.descriptor_name_to_binding, &reflect_compute_shader_module);
 
 #ifdef BUILD_DEBUG
-  printf("%s\n", settings.pipeline_name);
+  printf("%s\n", string_buffer(&db_settings.pipeline_name));
   pipeline_print_descriptor_pool_sizes(&pipeline.descriptor_pool_sizes);
   pipeline_print_descriptor_set_layout_bindings(&pipeline.descriptor_set_layout_bindings);
   pipeline_print_descriptor_binding_names(&pipeline.descriptor_name_to_binding);
@@ -467,8 +467,8 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, char const 
 
   VkShaderModuleCreateInfo compute_shader_module_create_info = {0};
   compute_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  compute_shader_module_create_info.codeSize = &settings.compute_shader_size;
-  compute_shader_module_create_info.pCode = (uint32_t const *)settings.compute_shader;
+  compute_shader_module_create_info.codeSize = vector_size(&db_settings.compute_shader);
+  compute_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&db_settings.compute_shader);
 
   VULKAN_CHECK(vkCreateShaderModule(g_context_device, &compute_shader_module_create_info, 0, &compute_shader_module));
 
@@ -489,7 +489,7 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, char const 
 
   spvReflectDestroyShaderModule(&reflect_compute_shader_module);
 
-  database_close_compute_pipeline_settings(&settings);
+  database_destroy_compute_pipeline_settings(&db_settings);
 
   return pipeline;
 }

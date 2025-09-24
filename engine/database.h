@@ -3,39 +3,33 @@
 
 #include <stdint.h>
 
+#include <library/core/api.h>
+
 #include <engine/pipeline.h>
 
-#include <sqlite3/sqlite3.h>
+typedef enum database_cache_flag_t {
+  DATABASE_CACHE_FLAG_NONE = 0,
+  DATABASE_CACHE_FLAG_RENEW_BIT,
+} database_cache_flags_t;
 
-typedef enum database_fetch_flags_t {
-  DATABASE_FETCH_NONE = 0,
-  DATABASE_FETCH_RENEW,
-} database_fetch_flags_t;
+typedef struct database_pipeline_t {
+  string_t name;
+} database_pipeline_t;
 
-typedef struct database_pipeline_record_t {
-  char const *name;
-  pipeline_type_t type;
-} database_pipeline_record_t;
-
-typedef struct database_pipelines_t {
-  sqlite3_stmt *statement;
-  vector_t records;
-} database_pipelines_t;
+typedef struct database_pipeline_binding_t {
+  string_t name;
+  uint8_t no_auto_buffer;
+} database_pipeline_binding_t;
 
 typedef struct database_graphic_pipeline_settings_t {
-  sqlite3_stmt *statement;
-  char const *pipeline_name;
-  uint8_t *vertex_shader;
-  uint8_t *fragment_shader;
-  uint64_t vertex_shader_size;
-  uint64_t fragment_shader_size;
+  string_t pipeline_name;
+  vector_t vertex_shader;
+  vector_t fragment_shader;
 } database_graphic_pipeline_settings_t;
 
 typedef struct database_compute_pipeline_settings_t {
-  sqlite3_stmt *statement;
-  char const *pipeline_name;
-  uint8_t *compute_shader;
-  uint64_t compute_shader_size;
+  string_t pipeline_name;
+  vector_t compute_shader;
 } database_compute_pipeline_settings_t;
 
 #ifdef __cplusplus
@@ -45,14 +39,15 @@ extern "C" {
 void database_create(void);
 void database_destroy(void);
 
-database_pipelines_t database_fetch_pipelines_by_type(pipeline_type_t pipeline_type);
-void database_close_pipelines(database_pipelines_t *pipelines);
+vector_t *database_graphic_pipelines(void);
+vector_t *database_compute_pipelines(void);
+vector_t *database_pipeline_bindings(void);
 
-database_graphic_pipeline_settings_t database_fetch_graphic_pipeline_settings_by_name(char const *pipeline_name);
-void database_close_graphic_pipeline_settings(database_graphic_pipeline_settings_t *settings);
+database_graphic_pipeline_settings_t database_load_graphic_pipeline_settings_by_name(char const *pipeline_name);
+void database_destroy_graphic_pipeline_settings(database_graphic_pipeline_settings_t *settings);
 
-database_compute_pipeline_settings_t database_fetch_compute_pipeline_settings_by_name(char const *pipeline_name);
-void database_close_compute_pipeline_settings(database_compute_pipeline_settings_t *settings);
+database_compute_pipeline_settings_t database_load_compute_pipeline_settings_by_name(char const *pipeline_name);
+void database_destroy_compute_pipeline_settings(database_compute_pipeline_settings_t *settings);
 
 #ifdef __cplusplus
 }
