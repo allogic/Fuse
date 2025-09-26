@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <library/math/api.h>
+#include <library/math/ma_api.h>
 
 typedef struct camera_t {
   float fov;

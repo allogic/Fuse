@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include <library/math/api.h>
+#include <library/math/ma_api.h>
 
 #include <engine/camera.h>
 #include <engine/transform.h>

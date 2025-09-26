@@ -2,9 +2,9 @@
 
 #include <engine/camera.h>
 
-#include <library/core/api.h>
+#include <library/core/co_api.h>
 
-#include <library/math/api.h>
+#include <library/math/ma_api.h>
 
 camera_t *camera_create(void) {
   camera_t *camera = (camera_t *)heap_alloc(sizeof(camera_t));

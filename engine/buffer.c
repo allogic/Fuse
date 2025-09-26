@@ -1,10 +1,9 @@
 #include <string.h>
 
-#include <library/core/api.h>
+#include <library/core/co_api.h>
 
 #include <engine/buffer.h>
 #include <engine/context.h>
-#include <engine/macros.h>
 
 buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffer, uint64_t buffer_size) {
   buffer_t buffer = {0};

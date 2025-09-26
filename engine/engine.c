@@ -1,14 +1,14 @@
-﻿#include <library/core/api.h>
+﻿#include <library/core/co_api.h>
+#include <library/database/db_api.h>
 
 #include <engine/context.h>
-#include <engine/database.h>
 #include <engine/engine.h>
 #include <engine/renderer.h>
 
 player_t *g_player_0 = {0};
 
 int32_t main(int32_t argc, char **argv, char **envp) {
-  database_create();
+  db_create();
   context_create(1920, 1080); // TODO
 
   // g_renderer_enable_debug = 1; // TODO
@@ -30,7 +30,7 @@ int32_t main(int32_t argc, char **argv, char **envp) {
   player_destroy(g_player_0);
 
   context_destroy();
-  database_destroy();
+  db_destroy();
 
   heap_reset();
 

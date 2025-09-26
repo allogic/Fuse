@@ -2,41 +2,17 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include <spirv_reflect/spirv_reflect.h>
-
-#include <library/core/api.h>
+#include <library/core/co_api.h>
+#include <library/database/db_api.h>
 
 #include <engine/context.h>
-#include <engine/database.h>
-#include <engine/macros.h>
 #include <engine/pipeline.h>
 #include <engine/swapchain.h>
 
-static uint32_t pipeline_descriptor_name_to_binding(map_t *descriptor_name_to_binding, char const *binding_name);
-
-static void pipeline_insert_descriptor_binding_names(map_t *descriptor_name_to_binding, SpvReflectShaderModule *shader_module);
-
-static void pipeline_print_descriptor_binding_names(map_t *descriptor_name_to_binding);
-
-static void pipeline_push_vertex_input_binding_description(vector_t *vertex_input_binding_descriptions, SpvReflectShaderModule *shader_module);
-static void pipeline_push_vertex_input_attribute_description(vector_t *vertex_input_attribute_descriptions, SpvReflectShaderModule *shader_module);
-
-static void pipeline_print_vertex_input_binding_descriptions(vector_t *vertex_input_binding_descriptions);
-static void pipeline_print_vertex_input_attribute_descriptions(vector_t *vertex_input_attribute_descriptions);
-
-static void pipeline_insert_descriptor_pool_size(map_t *descriptor_pool_sizes, SpvReflectShaderModule *shader_module);
-static void pipeline_insert_descriptor_set_layout_binding(map_t *descriptor_set_layout_bindings, SpvReflectShaderModule *shader_module, VkShaderStageFlags stage_flag);
-
-static void pipeline_print_descriptor_pool_sizes(vector_t *descriptor_pool_sizes);
-static void pipeline_print_descriptor_set_layout_bindings(vector_t *descriptor_set_layout_bindings);
-
-static void pipeline_flatten_descriptor_pool_sizes(map_t *descriptor_pool_size_mappings, vector_t *descriptor_pool_sizes);
-static void pipeline_flatten_descriptor_set_layout_bindings(map_t *descriptor_set_layout_binding_mappings, vector_t *descriptor_set_layout_bindings);
-
-graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, string_t *pipeline_name) {
+graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, int32_t pipeline_id) {
   graphic_pipeline_t pipeline = {0};
 
-  database_graphic_pipeline_settings_t db_settings = database_load_graphic_pipeline_settings_by_name(string_buffer(pipeline_name));
+  pipeline_resource_t pipeline_resource = db_load_pipeline_resource_by_id(pipeline_id);
 
   pipeline.frames_in_flight = frames_in_flight;
   pipeline.vertex_input_binding_descriptions = vector_create(sizeof(VkVertexInputBindingDescription));
@@ -46,48 +22,9 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, string_t *p
   pipeline.descriptor_set_layouts = vector_create(sizeof(VkDescriptorSetLayout));
   pipeline.descriptor_sets = vector_create(sizeof(VkDescriptorSet));
   pipeline.write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
-  pipeline.descriptor_name_to_binding = map_create();
-  pipeline.buffer_mappings = map_create();
-
-  map_t descriptor_pool_size_mappings = map_create();
-  map_t descriptor_set_layout_binding_mappings = map_create();
-
-  SpvReflectShaderModule reflect_vertex_shader_module = {0};
-  SpvReflectShaderModule reflect_fragment_shader_module = {0};
 
   VkShaderModule vertex_shader_module = 0;
   VkShaderModule fragment_shader_module = 0;
-
-  SPIRV_CHECK(spvReflectCreateShaderModule(vector_size(&db_settings.vertex_shader), vector_buffer(&db_settings.vertex_shader), &reflect_vertex_shader_module));
-  SPIRV_CHECK(spvReflectCreateShaderModule(vector_size(&db_settings.fragment_shader), vector_buffer(&db_settings.fragment_shader), &reflect_fragment_shader_module));
-
-  pipeline_push_vertex_input_binding_description(&pipeline.vertex_input_binding_descriptions, &reflect_vertex_shader_module);
-  pipeline_push_vertex_input_attribute_description(&pipeline.vertex_input_attribute_descriptions, &reflect_vertex_shader_module);
-
-  pipeline_insert_descriptor_pool_size(&descriptor_pool_size_mappings, &reflect_vertex_shader_module);
-  pipeline_insert_descriptor_pool_size(&descriptor_pool_size_mappings, &reflect_fragment_shader_module);
-
-  pipeline_insert_descriptor_set_layout_binding(&descriptor_set_layout_binding_mappings, &reflect_vertex_shader_module, VK_SHADER_STAGE_VERTEX_BIT);
-  pipeline_insert_descriptor_set_layout_binding(&descriptor_set_layout_binding_mappings, &reflect_fragment_shader_module, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-  pipeline_flatten_descriptor_pool_sizes(&descriptor_pool_size_mappings, &pipeline.descriptor_pool_sizes);
-  pipeline_flatten_descriptor_set_layout_bindings(&descriptor_set_layout_binding_mappings, &pipeline.descriptor_set_layout_bindings);
-
-  pipeline_insert_descriptor_binding_names(&pipeline.descriptor_name_to_binding, &reflect_vertex_shader_module);
-  pipeline_insert_descriptor_binding_names(&pipeline.descriptor_name_to_binding, &reflect_fragment_shader_module);
-
-#ifdef BUILD_DEBUG
-  printf("%s\n", string_buffer(&db_settings.pipeline_name));
-  pipeline_print_vertex_input_binding_descriptions(&pipeline.vertex_input_binding_descriptions);
-  pipeline_print_vertex_input_attribute_descriptions(&pipeline.vertex_input_attribute_descriptions);
-  pipeline_print_descriptor_pool_sizes(&pipeline.descriptor_pool_sizes);
-  pipeline_print_descriptor_set_layout_bindings(&pipeline.descriptor_set_layout_bindings);
-  pipeline_print_descriptor_binding_names(&pipeline.descriptor_name_to_binding);
-  printf("\n");
-#endif // BUILD_DEBUG
-
-  map_destroy(&descriptor_pool_size_mappings);
-  map_destroy(&descriptor_set_layout_binding_mappings);
 
   VkDescriptorPoolCreateInfo descriptor_pool_create_info = {0};
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -116,15 +53,15 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, string_t *p
 
   VkShaderModuleCreateInfo vertex_shader_module_create_info = {0};
   vertex_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  vertex_shader_module_create_info.codeSize = vector_size(&db_settings.vertex_shader);
-  vertex_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&db_settings.vertex_shader);
+  vertex_shader_module_create_info.codeSize = vector_size(&pipeline_resource.vertex_shader);
+  vertex_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&pipeline_resource.vertex_shader);
 
   VULKAN_CHECK(vkCreateShaderModule(g_context_device, &vertex_shader_module_create_info, 0, &vertex_shader_module));
 
   VkShaderModuleCreateInfo fragment_shader_module_create_info = {0};
   fragment_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  fragment_shader_module_create_info.codeSize = vector_size(&db_settings.fragment_shader);
-  fragment_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&db_settings.fragment_shader);
+  fragment_shader_module_create_info.codeSize = vector_size(&pipeline_resource.fragment_shader);
+  fragment_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&pipeline_resource.fragment_shader);
 
   VULKAN_CHECK(vkCreateShaderModule(g_context_device, &fragment_shader_module_create_info, 0, &fragment_shader_module));
 
@@ -255,10 +192,7 @@ graphic_pipeline_t graphic_pipeline_create(int32_t frames_in_flight, string_t *p
   vkDestroyShaderModule(g_context_device, vertex_shader_module, 0);
   vkDestroyShaderModule(g_context_device, fragment_shader_module, 0);
 
-  spvReflectDestroyShaderModule(&reflect_vertex_shader_module);
-  spvReflectDestroyShaderModule(&reflect_fragment_shader_module);
-
-  database_destroy_graphic_pipeline_settings(&db_settings);
+  db_destroy_pipeline_resource(&pipeline_resource);
 
   return pipeline;
 }
@@ -280,6 +214,7 @@ void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uin
   VULKAN_CHECK(vkAllocateDescriptorSets(g_context_device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
 }
 void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
+  /*
   int32_t frame_index = 0;
   while (frame_index < pipeline->frames_in_flight) {
 
@@ -337,6 +272,7 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
   }
 
   vkUpdateDescriptorSets(g_context_device, (int32_t)vector_count(&pipeline->write_descriptor_sets), vector_buffer(&pipeline->write_descriptor_sets), 0, 0);
+  */
 }
 void *graphic_pipeline_vertex_buffer(graphic_pipeline_t *pipeline, int32_t frame_index, uint64_t binding_index) {
   // TODO
@@ -379,29 +315,16 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   vector_destroy(&pipeline->descriptor_sets);
   vector_destroy(&pipeline->write_descriptor_sets);
 
-  map_iter_t iter = map_iter_create_from(&pipeline->buffer_mappings);
-
-  if (map_iter_valid(&iter)) {
-    vector_t *buffer_mappings = (vector_t *)map_iter_value(&iter);
-
-    vector_destroy(buffer_mappings);
-
-    map_iter_advance(&iter);
-  }
-
-  map_destroy(&pipeline->descriptor_name_to_binding);
-  map_destroy(&pipeline->buffer_mappings);
-
   vkDestroyDescriptorPool(g_context_device, pipeline->descriptor_pool, 0);
   vkDestroyDescriptorSetLayout(g_context_device, pipeline->descriptor_set_layout, 0);
   vkDestroyPipelineLayout(g_context_device, pipeline->pipeline_layout, 0);
   vkDestroyPipeline(g_context_device, pipeline->pipeline, 0);
 }
 
-compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, string_t *pipeline_name) {
+compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, int32_t pipeline_id) {
   compute_pipeline_t pipeline = {0};
 
-  database_compute_pipeline_settings_t db_settings = database_load_compute_pipeline_settings_by_name(string_buffer(pipeline_name));
+  pipeline_resource_t pipeline_resource = db_load_pipeline_resource_by_id(pipeline_id);
 
   pipeline.frames_in_flight = frames_in_flight;
   pipeline.descriptor_pool_sizes = vector_create(sizeof(VkDescriptorPoolSize));
@@ -409,36 +332,8 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, string_t *p
   pipeline.descriptor_set_layouts = vector_create(sizeof(VkDescriptorSetLayout));
   pipeline.descriptor_sets = vector_create(sizeof(VkDescriptorSet));
   pipeline.write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
-  pipeline.descriptor_name_to_binding = map_create();
-  pipeline.buffer_mappings = map_create();
-
-  map_t descriptor_pool_size_mappings = map_create();
-  map_t descriptor_set_layout_binding_mappings = map_create();
-
-  SpvReflectShaderModule reflect_compute_shader_module = {0};
 
   VkShaderModule compute_shader_module = 0;
-
-  SPIRV_CHECK(spvReflectCreateShaderModule(vector_size(&db_settings.compute_shader), vector_buffer(&db_settings.compute_shader), &reflect_compute_shader_module));
-
-  pipeline_insert_descriptor_pool_size(&descriptor_pool_size_mappings, &reflect_compute_shader_module);
-  pipeline_insert_descriptor_set_layout_binding(&descriptor_set_layout_binding_mappings, &reflect_compute_shader_module, VK_SHADER_STAGE_COMPUTE_BIT);
-
-  pipeline_flatten_descriptor_pool_sizes(&descriptor_pool_size_mappings, &pipeline.descriptor_pool_sizes);
-  pipeline_flatten_descriptor_set_layout_bindings(&descriptor_set_layout_binding_mappings, &pipeline.descriptor_set_layout_bindings);
-
-  pipeline_insert_descriptor_binding_names(&pipeline.descriptor_name_to_binding, &reflect_compute_shader_module);
-
-#ifdef BUILD_DEBUG
-  printf("%s\n", string_buffer(&db_settings.pipeline_name));
-  pipeline_print_descriptor_pool_sizes(&pipeline.descriptor_pool_sizes);
-  pipeline_print_descriptor_set_layout_bindings(&pipeline.descriptor_set_layout_bindings);
-  pipeline_print_descriptor_binding_names(&pipeline.descriptor_name_to_binding);
-  printf("\n");
-#endif // BUILD_DEBUG
-
-  map_destroy(&descriptor_pool_size_mappings);
-  map_destroy(&descriptor_set_layout_binding_mappings);
 
   VkDescriptorPoolCreateInfo descriptor_pool_create_info = {0};
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -467,8 +362,8 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, string_t *p
 
   VkShaderModuleCreateInfo compute_shader_module_create_info = {0};
   compute_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  compute_shader_module_create_info.codeSize = vector_size(&db_settings.compute_shader);
-  compute_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&db_settings.compute_shader);
+  compute_shader_module_create_info.codeSize = vector_size(&pipeline_resource.compute_shader);
+  compute_shader_module_create_info.pCode = (uint32_t const *)vector_buffer(&pipeline_resource.compute_shader);
 
   VULKAN_CHECK(vkCreateShaderModule(g_context_device, &compute_shader_module_create_info, 0, &compute_shader_module));
 
@@ -487,9 +382,7 @@ compute_pipeline_t compute_pipeline_create(int32_t frames_in_flight, string_t *p
 
   vkDestroyShaderModule(g_context_device, compute_shader_module, 0);
 
-  spvReflectDestroyShaderModule(&reflect_compute_shader_module);
-
-  database_destroy_compute_pipeline_settings(&db_settings);
+  db_destroy_pipeline_resource(&pipeline_resource);
 
   return pipeline;
 }
@@ -511,6 +404,7 @@ void compute_pipeline_allocate_descriptor_sets(compute_pipeline_t *pipeline, uin
   VULKAN_CHECK(vkAllocateDescriptorSets(g_context_device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
 }
 void compute_pipeline_update_descriptor_sets(compute_pipeline_t *pipeline) {
+  /*
   int32_t frame_index = 0;
   while (frame_index < pipeline->frames_in_flight) {
 
@@ -568,6 +462,7 @@ void compute_pipeline_update_descriptor_sets(compute_pipeline_t *pipeline) {
   }
 
   vkUpdateDescriptorSets(g_context_device, (int32_t)vector_count(&pipeline->write_descriptor_sets), vector_buffer(&pipeline->write_descriptor_sets), 0, 0);
+  */
 }
 void compute_pipeline_execute(compute_pipeline_t *pipeline, VkCommandBuffer command_buffer, VkBuffer *vertex_buffers, uint64_t vertex_buffer_count, uint64_t *vertex_offsets, VkBuffer index_buffer, uint64_t index_buffer_offset) {
   // TODO
@@ -585,321 +480,8 @@ void compute_pipeline_destroy(compute_pipeline_t *pipeline) {
   vector_destroy(&pipeline->descriptor_sets);
   vector_destroy(&pipeline->write_descriptor_sets);
 
-  map_iter_t iter = map_iter_create_from(&pipeline->buffer_mappings);
-
-  if (map_iter_valid(&iter)) {
-    vector_t *buffer_mappings = (vector_t *)map_iter_value(&iter);
-
-    vector_destroy(buffer_mappings);
-
-    map_iter_advance(&iter);
-  }
-
-  map_destroy(&pipeline->descriptor_name_to_binding);
-  map_destroy(&pipeline->buffer_mappings);
-
   vkDestroyDescriptorPool(g_context_device, pipeline->descriptor_pool, 0);
   vkDestroyDescriptorSetLayout(g_context_device, pipeline->descriptor_set_layout, 0);
   vkDestroyPipelineLayout(g_context_device, pipeline->pipeline_layout, 0);
   vkDestroyPipeline(g_context_device, pipeline->pipeline, 0);
-}
-
-// TODO
-// void pipeline_link_buffer(pipeline_t *pipeline, int32_t frame_index, char const *binding_name, buffer_t *buffer) {
-//   if (map_contains(&pipeline->buffer_mappings, &frame_index, sizeof(int32_t)) == 0) {
-//     vector_t buffer_mappings = vector_create(sizeof(buffer_t *));
-//
-//     uint64_t descriptor_set_layout_binding_count = vector_count(&pipeline->descriptor_set_layout_bindings);
-//
-//     vector_resize(&buffer_mappings, descriptor_set_layout_binding_count);
-//
-//     map_insert(&pipeline->buffer_mappings, &frame_index, sizeof(int32_t), &buffer_mappings, sizeof(vector_t));
-//   }
-//
-//   vector_t *buffer_mappings = (vector_t *)map_at(&pipeline->buffer_mappings, &frame_index, sizeof(int32_t));
-//
-//   uint32_t binding = pipeline_descriptor_name_to_binding(&pipeline->descriptor_name_to_binding, binding_name);
-//
-//   vector_set(buffer_mappings, binding, &buffer);
-// }
-
-static uint32_t pipeline_descriptor_name_to_binding(map_t *descriptor_name_to_binding, char const *binding_name) {
-  uint64_t binding_name_length = strlen(binding_name) + 1;
-
-  if (map_contains(descriptor_name_to_binding, binding_name, binding_name_length)) {
-    return *(uint32_t *)map_at(descriptor_name_to_binding, binding_name, binding_name_length);
-  } else {
-    return 0xFFFFFFFF;
-  }
-}
-
-static void pipeline_insert_descriptor_binding_names(map_t *descriptor_name_to_binding, SpvReflectShaderModule *shader_module) {
-  uint32_t descriptor_binding_count = 0;
-  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, 0));
-
-  SpvReflectDescriptorBinding **descriptor_bindings = (SpvReflectDescriptorBinding **)heap_alloc(sizeof(SpvReflectDescriptorBinding *) * descriptor_binding_count);
-  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, descriptor_bindings));
-
-  uint32_t descriptor_binding_index = 0;
-  while (descriptor_binding_index < descriptor_binding_count) {
-    SpvReflectDescriptorBinding *descriptor_binding = descriptor_bindings[descriptor_binding_index];
-
-    char const *name = descriptor_binding->name;
-    uint64_t name_length = strlen(descriptor_binding->name) + 1;
-
-    uint32_t binding = descriptor_binding->binding;
-
-    if (map_contains(descriptor_name_to_binding, name, name_length) == 0) {
-      map_insert(descriptor_name_to_binding, name, name_length, &binding, sizeof(uint32_t));
-    }
-
-    descriptor_binding_index++;
-  }
-
-  heap_free(descriptor_bindings);
-}
-
-static void pipeline_print_descriptor_binding_names(map_t *descriptor_name_to_binding) {
-  printf("  DescriptorBindingNames\n");
-
-  map_iter_t iter = map_iter_create_from(descriptor_name_to_binding);
-
-  while (map_iter_valid(&iter)) {
-    char const *name = (char const *)map_iter_key(&iter);
-    uint32_t binding = *(uint32_t *)map_iter_value(&iter);
-
-    printf("    {%u, %s}\n",
-           binding,
-           name);
-
-    map_iter_advance(&iter);
-  }
-}
-
-static void pipeline_push_vertex_input_binding_description(vector_t *vertex_input_binding_descriptions, SpvReflectShaderModule *shader_module) {
-  uint32_t input_variable_count = 0;
-  SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, 0));
-
-  SpvReflectInterfaceVariable **input_variables = (SpvReflectInterfaceVariable **)heap_alloc(sizeof(SpvReflectInterfaceVariable *) * input_variable_count);
-  SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, input_variables));
-
-  uint32_t current_byte_offset = 0;
-  uint32_t input_variable_index = 0;
-
-  while (input_variable_index < input_variable_count) {
-    SpvReflectInterfaceVariable *input_variable = input_variables[input_variable_index];
-
-    current_byte_offset += (input_variable->numeric.scalar.width / 8) * input_variable->numeric.vector.component_count;
-
-    input_variable_index++;
-  }
-
-  input_variable_index = 0;
-
-  while (input_variable_index < input_variable_count) {
-    SpvReflectInterfaceVariable *input_variable = input_variables[input_variable_index];
-
-    VkVertexInputBindingDescription vertex_input_binding_description = {0};
-
-    vertex_input_binding_description.binding = 0; // TODO: WHAT?
-    vertex_input_binding_description.stride = current_byte_offset;
-    vertex_input_binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // TODO: support instance rate..
-
-    vector_push(vertex_input_binding_descriptions, &vertex_input_binding_description);
-
-    input_variable_index++;
-  }
-
-  heap_free(input_variables);
-}
-static void pipeline_push_vertex_input_attribute_description(vector_t *vertex_input_attribute_descriptions, SpvReflectShaderModule *shader_module) {
-  uint32_t input_variable_count = 0;
-  SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, 0));
-
-  SpvReflectInterfaceVariable **input_variables = (SpvReflectInterfaceVariable **)heap_alloc(sizeof(SpvReflectInterfaceVariable *) * input_variable_count);
-  SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, input_variables));
-
-  uint32_t current_byte_offset = 0;
-
-  uint32_t input_variable_index = 0;
-  while (input_variable_index < input_variable_count) {
-    SpvReflectInterfaceVariable *input_variable = input_variables[input_variable_index];
-
-    VkVertexInputAttributeDescription vertex_input_attribute_description = {0};
-
-    vertex_input_attribute_description.location = input_variable->location;
-    vertex_input_attribute_description.binding = 0;
-    vertex_input_attribute_description.format = (VkFormat)input_variable->format;
-    vertex_input_attribute_description.offset = current_byte_offset;
-
-    current_byte_offset += (input_variable->numeric.scalar.width / 8) * input_variable->numeric.vector.component_count;
-
-    vector_push(vertex_input_attribute_descriptions, &vertex_input_attribute_description);
-
-    input_variable_index++;
-  }
-
-  heap_free(input_variables);
-}
-
-static void pipeline_print_vertex_input_binding_descriptions(vector_t *vertex_input_binding_descriptions) {
-  printf("  VertexInputBindingDescriptions\n");
-
-  uint64_t vertex_input_binding_description_index = 0;
-  uint64_t vertex_input_binding_description_count = vector_count(vertex_input_binding_descriptions);
-
-  while (vertex_input_binding_description_index < vertex_input_binding_description_count) {
-    VkVertexInputBindingDescription *vertex_input_binding_description = (VkVertexInputBindingDescription *)vector_at(vertex_input_binding_descriptions, vertex_input_binding_description_index);
-
-    printf("    {%u, %u, %u},\n",
-           vertex_input_binding_description->binding,
-           vertex_input_binding_description->stride,
-           (uint32_t)vertex_input_binding_description->inputRate);
-
-    vertex_input_binding_description_index++;
-  }
-}
-static void pipeline_print_vertex_input_attribute_descriptions(vector_t *vertex_input_attribute_descriptions) {
-  printf("  VertexInputAttributeDescriptions\n");
-
-  uint64_t vertex_input_attribute_description_index = 0;
-  uint64_t vertex_input_attribute_description_count = vector_count(vertex_input_attribute_descriptions);
-
-  while (vertex_input_attribute_description_index < vertex_input_attribute_description_count) {
-    VkVertexInputAttributeDescription *vertex_input_attribute_description = (VkVertexInputAttributeDescription *)vector_at(vertex_input_attribute_descriptions, vertex_input_attribute_description_index);
-
-    printf("    {%u, %u, %u, %u}\n",
-           vertex_input_attribute_description->location,
-           vertex_input_attribute_description->binding,
-           vertex_input_attribute_description->format,
-           vertex_input_attribute_description->offset);
-
-    vertex_input_attribute_description_index++;
-  }
-}
-
-static void pipeline_insert_descriptor_pool_size(map_t *descriptor_pool_sizes, SpvReflectShaderModule *shader_module) {
-  uint32_t descriptor_binding_count = 0;
-  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, 0));
-
-  SpvReflectDescriptorBinding **descriptor_bindings = (SpvReflectDescriptorBinding **)heap_alloc(sizeof(SpvReflectDescriptorBinding *) * descriptor_binding_count);
-  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, descriptor_bindings));
-
-  uint32_t descriptor_binding_index = 0;
-  while (descriptor_binding_index < descriptor_binding_count) {
-    SpvReflectDescriptorBinding *descriptor_binding = descriptor_bindings[descriptor_binding_index];
-
-    VkDescriptorType type = (VkDescriptorType)descriptor_binding->descriptor_type;
-
-    if (map_contains(descriptor_pool_sizes, &type, sizeof(VkDescriptorType))) {
-      VkDescriptorPoolSize *descriptor_pool_size = (VkDescriptorPoolSize *)map_at(descriptor_pool_sizes, &type, sizeof(VkDescriptorType));
-
-      descriptor_pool_size->descriptorCount++;
-    } else {
-      VkDescriptorPoolSize descriptor_pool_size = {0};
-
-      descriptor_pool_size.type = type;
-      descriptor_pool_size.descriptorCount = 1;
-
-      map_insert(descriptor_pool_sizes, &type, sizeof(VkDescriptorType), &descriptor_pool_size, sizeof(VkDescriptorPoolSize));
-    }
-
-    descriptor_binding_index++;
-  }
-
-  heap_free(descriptor_bindings);
-}
-static void pipeline_insert_descriptor_set_layout_binding(map_t *descriptor_set_layout_bindings, SpvReflectShaderModule *shader_module, VkShaderStageFlags stage_flag) {
-  uint32_t descriptor_binding_count = 0;
-  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, 0));
-
-  SpvReflectDescriptorBinding **descriptor_bindings = (SpvReflectDescriptorBinding **)heap_alloc(sizeof(SpvReflectDescriptorBinding *) * descriptor_binding_count);
-  SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, descriptor_bindings));
-
-  uint32_t descriptor_binding_index = 0;
-  while (descriptor_binding_index < descriptor_binding_count) {
-    SpvReflectDescriptorBinding *descriptor_binding = descriptor_bindings[descriptor_binding_index];
-
-    uint32_t binding = descriptor_binding->binding;
-    VkDescriptorType type = (VkDescriptorType)descriptor_binding->descriptor_type;
-
-    if (map_contains(descriptor_set_layout_bindings, &binding, sizeof(uint32_t))) {
-      VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)map_at(descriptor_set_layout_bindings, &binding, sizeof(uint32_t));
-
-      descriptor_set_layout_binding->stageFlags |= stage_flag;
-    } else {
-      VkDescriptorSetLayoutBinding descriptor_set_layout_binding = {0};
-
-      descriptor_set_layout_binding.binding = binding;
-      descriptor_set_layout_binding.descriptorType = type;
-      descriptor_set_layout_binding.descriptorCount = 1; // TODO: support arrays..
-      descriptor_set_layout_binding.stageFlags |= stage_flag;
-      descriptor_set_layout_binding.pImmutableSamplers = 0;
-
-      map_insert(descriptor_set_layout_bindings, &binding, sizeof(uint32_t), &descriptor_set_layout_binding, sizeof(VkDescriptorSetLayoutBinding));
-    }
-
-    descriptor_binding_index++;
-  }
-
-  heap_free(descriptor_bindings);
-}
-
-static void pipeline_print_descriptor_pool_sizes(vector_t *descriptor_pool_sizes) {
-  printf("  DescriptorPoolSizes\n");
-
-  uint64_t descriptor_pool_size_index = 0;
-  uint64_t descriptor_pool_size_count = vector_count(descriptor_pool_sizes);
-
-  while (descriptor_pool_size_index < descriptor_pool_size_count) {
-    VkDescriptorPoolSize *descriptor_pool_size = (VkDescriptorPoolSize *)vector_at(descriptor_pool_sizes, descriptor_pool_size_index);
-
-    printf("    {%u, %u}\n",
-           (uint32_t)descriptor_pool_size->type,
-           descriptor_pool_size->descriptorCount);
-
-    descriptor_pool_size_index++;
-  }
-}
-static void pipeline_print_descriptor_set_layout_bindings(vector_t *descriptor_set_layout_bindings) {
-  printf("  DescriptorSetLayoutBindings\n");
-
-  uint64_t descriptor_set_layout_binding_index = 0;
-  uint64_t descriptor_set_layout_binding_count = vector_count(descriptor_set_layout_bindings);
-
-  while (descriptor_set_layout_binding_index < descriptor_set_layout_binding_count) {
-    VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)vector_at(descriptor_set_layout_bindings, descriptor_set_layout_binding_index);
-
-    printf("    {%u, %u, %u, %u, %p}\n",
-           descriptor_set_layout_binding->binding,
-           (uint32_t)descriptor_set_layout_binding->descriptorType,
-           descriptor_set_layout_binding->descriptorCount,
-           descriptor_set_layout_binding->stageFlags,
-           descriptor_set_layout_binding->pImmutableSamplers);
-
-    descriptor_set_layout_binding_index++;
-  }
-}
-
-static void pipeline_flatten_descriptor_pool_sizes(map_t *descriptor_pool_size_mappings, vector_t *descriptor_pool_sizes) {
-  map_iter_t iter = map_iter_create_from(descriptor_pool_size_mappings);
-
-  while (map_iter_valid(&iter)) {
-    VkDescriptorPoolSize *descriptor_pool_size = (VkDescriptorPoolSize *)map_iter_value(&iter);
-
-    vector_push(descriptor_pool_sizes, descriptor_pool_size);
-
-    map_iter_advance(&iter);
-  }
-}
-static void pipeline_flatten_descriptor_set_layout_bindings(map_t *descriptor_set_layout_bindings_mappings, vector_t *descriptor_set_layout_bindings) {
-  map_iter_t iter = map_iter_create_from(descriptor_set_layout_bindings_mappings);
-
-  while (map_iter_valid(&iter)) {
-    VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)map_iter_value(&iter);
-
-    vector_push(descriptor_set_layout_bindings, descriptor_set_layout_binding);
-
-    map_iter_advance(&iter);
-  }
 }

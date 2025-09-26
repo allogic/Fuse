@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <library/core/api.h>
+#include <library/core/co_api.h>
 
 #include <engine/context.h>
-#include <engine/macros.h>
 #include <engine/swapchain.h>
 #include <engine/renderer.h>
 
-#include <ui/ui.h>
+#include <ui/ui_itself.h>
 
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 

@@ -1,15 +1,14 @@
 #include <stdlib.h>
 
-#include <library/core/api.h>
+#include <library/core/co_api.h>
+#include <library/database/db_api.h>
 
 #include <engine/context.h>
-#include <engine/database.h>
-#include <engine/macros.h>
 #include <engine/pipeline.h>
 #include <engine/renderer.h>
 #include <engine/swapchain.h>
 
-#include <ui/ui.h>
+#include <ui/ui_itself.h>
 
 // TODO: implement sparse textures..
 
@@ -71,7 +70,7 @@ void renderer_create(void) {
   renderer_create_command_buffer();
   renderer_create_sync_objects();
 
-  ui_create(g_context_window, g_context_instance, g_context_physical_device, g_context_device, g_context_graphic_queue_index, g_context_graphic_queue, g_swapchain_render_pass, g_swapchain_image_count);
+  UI_CREATE(g_context_window, g_context_instance, g_context_physical_device, g_context_device, g_context_graphic_queue_index, g_context_graphic_queue, g_swapchain_render_pass, g_swapchain_image_count);
 
   renderer_create_pipelines();
 }
@@ -373,43 +372,51 @@ static void renderer_compute_local_variables(void) {
 }
 
 static void renderer_create_pipelines(void) {
-  vector_t *graphic_pipelines = database_graphic_pipelines();
+  vector_t graphic_pipeline_configs = db_load_pipeline_configs_by_type(0);
 
-  uint64_t graphic_pipeline_index = 0;
-  uint64_t graphic_pipeline_count = vector_count(graphic_pipelines);
+  uint64_t graphic_pipeline_config_index = 0;
+  uint64_t graphic_pipeline_config_count = vector_count(&graphic_pipeline_configs);
 
-  while (graphic_pipeline_index < graphic_pipeline_count) {
-    database_pipeline_t *db_pipeline = (database_pipeline_t *)vector_at(graphic_pipelines, graphic_pipeline_index);
+  while (graphic_pipeline_config_index < graphic_pipeline_config_count) {
+    pipeline_config_t *pipeline_config = (pipeline_config_t *)vector_at(&graphic_pipeline_configs, graphic_pipeline_config_index);
 
-    graphic_pipeline_t pipeline = graphic_pipeline_create(s_renderer_frames_in_flight, &db_pipeline->name);
+    if (pipeline_config->auto_create) {
+      graphic_pipeline_t pipeline = graphic_pipeline_create(s_renderer_frames_in_flight, pipeline_config->id);
 
-    // TODO
-    // graphic_pipeline_allocate_descriptor_sets(&pipeline, 1);
-    // graphic_pipeline_update_descriptor_sets(&pipeline);
+      // TODO
+      // graphic_pipeline_allocate_descriptor_sets(&pipeline, 1);
+      // graphic_pipeline_update_descriptor_sets(&pipeline);
 
-    map_insert(&s_renderer_graphic_pipelines, string_buffer(&db_pipeline->name), string_size(&db_pipeline->name), &pipeline, sizeof(graphic_pipeline_t));
+      map_insert(&s_renderer_graphic_pipelines, string_buffer(&pipeline_config->name), string_size(&pipeline_config->name), &pipeline, sizeof(graphic_pipeline_t));
+    }
 
-    graphic_pipeline_index++;
+    graphic_pipeline_config_index++;
   }
 
-  vector_t *compute_pipelines = database_compute_pipelines();
+  db_destroy_pipeline_configs(&graphic_pipeline_configs);
 
-  uint64_t compute_pipeline_index = 0;
-  uint64_t compute_pipeline_count = vector_count(compute_pipelines);
+  vector_t compute_pipeline_configs = db_load_pipeline_configs_by_type(1);
 
-  while (compute_pipeline_index < compute_pipeline_count) {
-    database_pipeline_t *db_pipeline = (database_pipeline_t *)vector_at(compute_pipelines, compute_pipeline_index);
+  uint64_t compute_pipeline_config_index = 0;
+  uint64_t compute_pipeline_config_count = vector_count(&compute_pipeline_configs);
 
-    compute_pipeline_t pipeline = compute_pipeline_create(s_renderer_frames_in_flight, &db_pipeline->name);
+  while (compute_pipeline_config_index < compute_pipeline_config_count) {
+    pipeline_config_t *pipeline_config = (pipeline_config_t *)vector_at(&compute_pipeline_configs, compute_pipeline_config_index);
 
-    // TODO
-    // compute_pipeline_allocate_descriptor_sets(&pipeline, 1);
-    // compute_pipeline_update_descriptor_sets(&pipeline);
+    if (pipeline_config->auto_create) {
+      compute_pipeline_t pipeline = compute_pipeline_create(s_renderer_frames_in_flight, pipeline_config->id);
 
-    map_insert(&s_renderer_compute_pipelines, string_buffer(&db_pipeline->name), string_size(&db_pipeline->name), &pipeline, sizeof(compute_pipeline_t));
+      // TODO
+      // compute_pipeline_allocate_descriptor_sets(&pipeline, 1);
+      // compute_pipeline_update_descriptor_sets(&pipeline);
 
-    compute_pipeline_index++;
+      map_insert(&s_renderer_compute_pipelines, string_buffer(&pipeline_config->name), string_size(&pipeline_config->name), &pipeline, sizeof(compute_pipeline_t));
+    }
+
+    compute_pipeline_config_index++;
   }
+
+  db_destroy_pipeline_configs(&compute_pipeline_configs);
 }
 
 static void renderer_create_command_buffer(void) {

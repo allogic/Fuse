@@ -1,3 +1,2 @@
-.read 'schemes/pipelines.sql'
-
-.read 'data/pipelines.sql'
+.read 'pipelines.sql'
+.read 'renderer.sql'

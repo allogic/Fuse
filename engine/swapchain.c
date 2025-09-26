@@ -1,7 +1,6 @@
-#include <library/core/api.h>
+#include <library/core/co_api.h>
 
 #include <engine/context.h>
-#include <engine/macros.h>
 #include <engine/swapchain.h>
 
 static void swapchain_compute_local_variables(void);

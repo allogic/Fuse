@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <library/core/heap.h>
+#include <library/core/co_heap.h>
 
 #include <engine/transform.h>
 

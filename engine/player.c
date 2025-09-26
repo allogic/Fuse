@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include <library/core/api.h>
+#include <library/core/co_api.h>
 
 #include <engine/context.h>
 #include <engine/player.h>

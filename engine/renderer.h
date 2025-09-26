@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <library/math/api.h>
+#include <library/math/ma_api.h>
 
 #include <engine/buffer.h>
 #include <engine/camera.h>
