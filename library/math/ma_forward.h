@@ -1,8 +1,6 @@
 #ifndef MA_FORWARD_H
 #define MA_FORWARD_H
 
-#include <stdint.h>
-
 typedef struct vector2_t {
   float x;
   float y;

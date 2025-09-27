@@ -1,8 +1,6 @@
 #ifndef CO_CONFIG_H
 #define CO_CONFIG_H
 
-#include <stdint.h>
-
 #define STRING_BUFFER_CAPACITY (16ULL)
 #define STRING_BUFFER_ALIGNMENT (16ULL)
 

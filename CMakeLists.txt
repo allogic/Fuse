@@ -99,6 +99,7 @@ else ()
 
 endif ()
 
+add_subdirectory (vendor)
 add_subdirectory (library)
 add_subdirectory (ui)
 add_subdirectory (engine)

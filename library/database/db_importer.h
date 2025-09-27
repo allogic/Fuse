@@ -1,10 +1,6 @@
 #ifndef DB_IMPORTER_H
 #define DB_IMPORTER_H
 
-#include <stdint.h>
-
-#include <library/database/db_forward.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

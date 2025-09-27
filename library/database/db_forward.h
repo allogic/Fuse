@@ -1,16 +1,26 @@
 #ifndef DB_FORWARD_H
 #define DB_FORWARD_H
 
-#include <stdint.h>
+typedef struct swapchain_asset_t {
+  int32_t id;
+  string_t name;
+  uint32_t image_count;
+  uint32_t depth_format;
+} swapchain_asset_t;
 
-#include <library/core/co_api.h>
+typedef struct renderer_asset_t {
+  int32_t id;
+  string_t name;
+  uint32_t frames_in_flight;
+} renderer_asset_t;
 
-typedef struct pipeline_config_t {
+typedef struct pipeline_asset_t {
   int32_t id;
   string_t name;
   uint32_t type;
+  uint32_t link_index;
   uint8_t auto_create;
-} pipeline_config_t;
+} pipeline_asset_t;
 
 typedef struct pipeline_resource_t {
   int32_t id;
@@ -20,31 +30,17 @@ typedef struct pipeline_resource_t {
   vector_t compute_shader;
 } pipeline_resource_t;
 
-typedef struct pipeline_vertex_input_binding_description_t {
+typedef struct pipeline_vertex_input_binding_t {
   int32_t id;
   int32_t pipeline_id;
   string_t binding_name;
   uint32_t binding;
-  uint32_t stride;
-  uint32_t input_rate;
-} pipeline_vertex_input_binding_description_t;
-
-typedef struct pipeline_vertex_input_attribute_description_t {
-  int32_t id;
-  int32_t pipeline_id;
-  string_t attribute_name;
   uint32_t location;
-  uint32_t binding;
+  uint32_t stride;
   uint32_t format;
   uint32_t offset;
-} pipeline_vertex_input_attribute_description_t;
-
-typedef struct pipeline_descriptor_pool_size_t {
-  int32_t id;
-  int32_t pipeline_id;
-  uint32_t type;
-  uint32_t count;
-} pipeline_descriptor_pool_size_t;
+  uint32_t input_rate;
+} pipeline_vertex_input_binding_t;
 
 typedef struct pipeline_descriptor_set_layout_binding_t {
   int32_t id;

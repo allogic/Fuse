@@ -1,8 +1,6 @@
 #ifndef CO_FORWARD_H
 #define CO_FORWARD_H
 
-#include <stdint.h>
-
 typedef struct file_t {
   char const *file_path;
   uint8_t *buffer;

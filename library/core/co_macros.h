@@ -1,10 +1,6 @@
 #ifndef CO_MACROS_H
 #define CO_MACROS_H
 
-#include <stdio.h>
-#include <stdint.h>
-#include <intrin.h>
-
 #define OFFSET_OF(TYPE, MEMBER) ((uint64_t)&(((TYPE *)0ULL)->MEMBER))
 
 #define ARRAY_COUNT(ARRAY) ((uint64_t)(sizeof(ARRAY) / sizeof((ARRAY)[0ULL])))

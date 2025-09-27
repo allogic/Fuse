@@ -1,10 +1,6 @@
 #ifndef CO_STRING_H
 #define CO_STRING_H
 
-#include <stdint.h>
-
-#include <library/core/co_forward.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

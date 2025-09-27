@@ -1,8 +1,6 @@
 #ifndef CO_FILESYS_H
 #define CO_FILESYS_H
 
-#include <stdint.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

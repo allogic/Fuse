@@ -1,8 +1,6 @@
 #ifndef MA_CONSTANTS_H
 #define MA_CONSTANTS_H
 
-#include <stdint.h>
-
 #define PI_HALF ((float)1.57079632679489655800)
 #define PI ((float)3.14159265358979323846)
 #define TAU ((float)6.28318530717958623200)

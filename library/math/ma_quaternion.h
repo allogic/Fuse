@@ -1,12 +1,6 @@
 #ifndef MA_QUATERNION_H
 #define MA_QUATERNION_H
 
-#include <math.h>
-#include <stdio.h>
-
-#include <library/math/ma_constants.h>
-#include <library/math/ma_forward.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

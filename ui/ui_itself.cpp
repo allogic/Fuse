@@ -1,7 +1,8 @@
 #include <library/core/co_api.h>
+#include <library/globals/go_api.h>
 
+#include <ui/ui_db.h>
 #include <ui/ui_itself.h>
-#include <ui/ui_pipelines.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_win32.h>
@@ -15,7 +16,7 @@ static VkDescriptorPoolSize const s_ui_descriptor_pool_sizes[] = {
 
 static VkDescriptorPool s_ui_descriptor_pool = 0;
 
-void ui_create(HWND window_handle, VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, uint32_t queue_index, VkQueue queue, VkRenderPass render_pass, uint32_t min_image_count) {
+void ui_create(void) {
   VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -27,7 +28,7 @@ void ui_create(HWND window_handle, VkInstance instance, VkPhysicalDevice physica
   descriptor_pool_create_info.pPoolSizes = s_ui_descriptor_pool_sizes;
   descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(s_ui_descriptor_pool_sizes);
 
-  vkCreateDescriptorPool(device, &descriptor_pool_create_info, 0, &s_ui_descriptor_pool);
+  vkCreateDescriptorPool(g_globals.context_device, &descriptor_pool_create_info, 0, &s_ui_descriptor_pool);
 
   IMGUI_CHECKVERSION();
 
@@ -92,45 +93,45 @@ void ui_create(HWND window_handle, VkInstance instance, VkPhysicalDevice physica
   style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.92f, 0.18f, 0.29f, 0.43f);
   style.Colors[ImGuiCol_PopupBg] = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
 
-  ImGui_ImplWin32_Init(window_handle);
+  ImGui_ImplWin32_Init(g_globals.context_window_handle);
 
   ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {};
-  imgui_vulkan_init_info.Instance = instance;
-  imgui_vulkan_init_info.PhysicalDevice = physical_device;
-  imgui_vulkan_init_info.Device = device;
-  imgui_vulkan_init_info.QueueFamily = queue_index;
-  imgui_vulkan_init_info.Queue = queue;
+  imgui_vulkan_init_info.Instance = g_globals.context_instance;
+  imgui_vulkan_init_info.PhysicalDevice = g_globals.context_physical_device;
+  imgui_vulkan_init_info.Device = g_globals.context_device;
+  imgui_vulkan_init_info.QueueFamily = g_globals.context_graphic_queue_index;
+  imgui_vulkan_init_info.Queue = g_globals.context_graphic_queue;
   imgui_vulkan_init_info.PipelineCache = 0;
   imgui_vulkan_init_info.DescriptorPool = s_ui_descriptor_pool;
-  imgui_vulkan_init_info.RenderPass = render_pass;
+  imgui_vulkan_init_info.RenderPass = g_globals.swapchain_render_pass;
   imgui_vulkan_init_info.Subpass = 0;
-  imgui_vulkan_init_info.MinImageCount = min_image_count; // TODO
-  imgui_vulkan_init_info.ImageCount = min_image_count;    // TODO
+  imgui_vulkan_init_info.MinImageCount = g_globals.swapchain_image_count; // TODO
+  imgui_vulkan_init_info.ImageCount = g_globals.swapchain_image_count;    // TODO
   imgui_vulkan_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   imgui_vulkan_init_info.Allocator = 0;
   imgui_vulkan_init_info.CheckVkResultFn = 0;
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  ui_pipelines_create();
+  ui_db_create();
 }
-void ui_draw(VkCommandBuffer command_buffer) {
+void ui_draw() {
   ImGui_ImplVulkan_NewFrame();
 
   ImGui_ImplWin32_NewFrame();
 
   ImGui::NewFrame();
 
-  ui_pipelines_draw();
+  ui_db_draw();
 
   ImGui::Render();
 
   ImDrawData *draw_data = ImGui::GetDrawData();
 
-  ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
+  ImGui_ImplVulkan_RenderDrawData(draw_data, g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index]);
 }
-void ui_destroy(VkDevice device) {
-  ui_pipelines_destroy();
+void ui_destroy(void) {
+  ui_db_destroy();
 
   ImGui_ImplVulkan_Shutdown();
 
@@ -138,7 +139,7 @@ void ui_destroy(VkDevice device) {
 
   ImGui::DestroyContext();
 
-  vkDestroyDescriptorPool(device, s_ui_descriptor_pool, 0);
+  vkDestroyDescriptorPool(g_globals.context_device, s_ui_descriptor_pool, 0);
 }
 
 void ui_forward_message(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {

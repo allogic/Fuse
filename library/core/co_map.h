@@ -1,10 +1,6 @@
 #ifndef CO_MAP_H
 #define CO_MAP_H
 
-#include <stdint.h>
-
-#include <library/core/co_forward.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

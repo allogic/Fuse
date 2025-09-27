@@ -1,8 +1,6 @@
 #ifndef DB_MACROS_H
 #define DB_MACROS_H
 
-#include <stdint.h>
-
 #ifdef BUILD_DEBUG
 #  define SQL_CHECK(EXPRESSION)                                                  \
     {                                                                            \

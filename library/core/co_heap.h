@@ -1,10 +1,6 @@
 #ifndef CO_HEAP_H
 #define CO_HEAP_H
 
-#include <stdint.h>
-
-#include <library/core/co_forward.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus

@@ -1,5 +1,4 @@
-#include <stdlib.h>
-#include <time.h>
+#include <library/lb_pch.h>
 
 #include <library/core/co_random.h>
 

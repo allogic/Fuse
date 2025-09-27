@@ -26,9 +26,9 @@
 extern "C" {
 #endif // __cplusplus
 
-void ui_create(HWND window_handle, VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, uint32_t queue_index, VkQueue queue, VkRenderPass render_pass, uint32_t min_image_count);
-void ui_draw(VkCommandBuffer command_buffer);
-void ui_destroy(VkDevice device);
+void ui_create(void);
+void ui_draw();
+void ui_destroy(void);
 
 void ui_forward_message(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 

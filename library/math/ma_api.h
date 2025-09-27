@@ -1,11 +1,6 @@
 #ifndef MA_API_H
 #define MA_API_H
 
-#include <library/math/ma_macros.h>
-#include <library/math/ma_config.h>
-#include <library/math/ma_constants.h>
-#include <library/math/ma_forward.h>
-
 #include <library/math/ma_itself.h>
 #include <library/math/ma_vector2.h>
 #include <library/math/ma_vector3.h>
