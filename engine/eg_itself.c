@@ -1,12 +1,13 @@
 ﻿#include <engine/eg_pch.h>
 #include <engine/eg_context.h>
+#include <engine/eg_player.h>
 #include <engine/eg_itself.h>
 #include <engine/eg_renderer.h>
+#include <engine/eg_transform.h>
 
 player_t *g_player_0 = {0};
 
 int32_t main(int32_t argc, char **argv, char **envp) {
-  db_create();
   context_create(1920, 1080); // TODO
 
   // g_renderer_enable_debug = 1; // TODO
@@ -28,7 +29,6 @@ int32_t main(int32_t argc, char **argv, char **envp) {
   player_destroy(g_player_0);
 
   context_destroy();
-  db_destroy();
 
   heap_reset();
 

@@ -93,8 +93,7 @@ void context_create(int32_t width, int32_t height) {
 
   g_globals.context_window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, width, height, 0, 0, g_globals.context_module_handle, 0);
 
-  ShowWindow(g_globals.context_window_handle, SW_SHOW); // TODO: remove this... can cause problems..
-  UpdateWindow(g_globals.context_window_handle);
+  db_create();
 
   context_create_instance();
   context_create_surface();
@@ -116,6 +115,7 @@ void context_create(int32_t width, int32_t height) {
   context_create_command_pool();
 
   swapchain_create();
+
   renderer_create();
 
   QueryPerformanceFrequency(&s_context_timer_freq);
@@ -196,6 +196,8 @@ void context_destroy(void) {
   context_destroy_device();
   context_destroy_surface();
   context_destroy_instance();
+
+  db_destroy();
 
   DestroyWindow(g_globals.context_window_handle);
 
@@ -278,27 +280,13 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
   UI_FORWARD_MESSAGE(window_handle, message, w_param, l_param);
 
   switch (message) {
-    case WM_CLOSE: {
-      g_globals.context_window_should_close = 1;
+    case WM_CREATE: {
+      ShowWindow(window_handle, SW_SHOW);
 
       break;
     }
-    case WM_WINDOWPOSCHANGED: {
-      RECT client_rect = {0};
-      GetClientRect(window_handle, &client_rect);
-
-      static INT width_prev = 0;
-      static INT height_prev = 0;
-
-      INT width = client_rect.right - client_rect.left;
-      INT height = client_rect.bottom - client_rect.top;
-
-      if ((width > 0) && (height > 0) && (width != width_prev) && (height != height_prev)) {
-        width_prev = width;
-        height_prev = height;
-
-        g_globals.swapchain_is_dirty = 1;
-      }
+    case WM_CLOSE: {
+      g_globals.context_window_should_close = 1;
 
       break;
     }
