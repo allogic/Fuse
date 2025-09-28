@@ -5,6 +5,7 @@ typedef struct buffer_t {
   uint64_t buffer_size;
   VkBuffer buffer;
   VkDeviceMemory device_memory;
+  void *mapped_buffer;
 } buffer_t;
 
 typedef struct camera_t {
@@ -46,5 +47,27 @@ typedef struct player_t {
   float move_drag;
   float rotation_drag;
 } player_t;
+
+typedef struct graphic_pipeline_t {
+  uint32_t frames_in_flight;
+  vector_t descriptor_sets;
+  vector_t write_descriptor_sets;
+  vector_t vertex_buffer_mappings;
+  vector_t index_buffers;
+  VkDescriptorPool descriptor_pool;
+  VkDescriptorSetLayout descriptor_set_layout;
+  VkPipelineLayout pipeline_layout;
+  VkPipeline pipeline;
+} graphic_pipeline_t;
+
+typedef struct compute_pipeline_t {
+  uint32_t frames_in_flight;
+  vector_t descriptor_sets;
+  vector_t write_descriptor_sets;
+  VkDescriptorPool descriptor_pool;
+  VkDescriptorSetLayout descriptor_set_layout;
+  VkPipelineLayout pipeline_layout;
+  VkPipeline pipeline;
+} compute_pipeline_t;
 
 #endif // EG_FORWARD_H

@@ -1,21 +1,30 @@
 #ifndef DB_FORWARD_H
 #define DB_FORWARD_H
 
+typedef int64_t swapchain_id_t;
+
+typedef int64_t renderer_id_t;
+
+typedef int64_t pipeline_id_t;
+typedef int64_t pipeline_resource_id_t;
+typedef int64_t pipeline_vertex_input_binding_id_t;
+typedef int64_t pipeline_descriptor_binding_id_t;
+
 typedef struct swapchain_asset_t {
-  int32_t id;
+  swapchain_id_t id;
   string_t name;
   uint32_t image_count;
   uint32_t depth_format;
 } swapchain_asset_t;
 
 typedef struct renderer_asset_t {
-  int32_t id;
+  renderer_id_t id;
   string_t name;
   uint32_t frames_in_flight;
 } renderer_asset_t;
 
 typedef struct pipeline_asset_t {
-  int32_t id;
+  pipeline_id_t id;
   string_t name;
   uint32_t type;
   uint32_t link_index;
@@ -23,16 +32,19 @@ typedef struct pipeline_asset_t {
 } pipeline_asset_t;
 
 typedef struct pipeline_resource_t {
-  int32_t id;
-  int32_t pipeline_id;
+  pipeline_resource_id_t id;
+  pipeline_id_t pipeline_id;
+  string_t vertex_shader_file_path;
+  string_t fragment_shader_file_path;
+  string_t compute_shader_file_path;
   vector_t vertex_shader;
   vector_t fragment_shader;
   vector_t compute_shader;
 } pipeline_resource_t;
 
 typedef struct pipeline_vertex_input_binding_t {
-  int32_t id;
-  int32_t pipeline_id;
+  pipeline_vertex_input_binding_id_t id;
+  pipeline_id_t pipeline_id;
   string_t binding_name;
   uint32_t binding;
   uint32_t location;
@@ -42,15 +54,15 @@ typedef struct pipeline_vertex_input_binding_t {
   uint32_t input_rate;
 } pipeline_vertex_input_binding_t;
 
-typedef struct pipeline_descriptor_set_layout_binding_t {
-  int32_t id;
-  int32_t pipeline_id;
+typedef struct pipeline_descriptor_binding_t {
+  pipeline_descriptor_binding_id_t id;
+  pipeline_id_t pipeline_id;
   string_t binding_name;
   uint32_t binding;
   uint32_t descriptor_type;
   uint32_t descriptor_count;
   uint32_t stage_flags;
   uint8_t auto_buffer;
-} pipeline_descriptor_set_layout_binding_t;
+} pipeline_descriptor_binding_t;
 
 #endif // DB_FORWARD_H

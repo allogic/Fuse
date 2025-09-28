@@ -93,7 +93,7 @@ void context_create(int32_t width, int32_t height) {
 
   g_globals.context_window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, width, height, 0, 0, g_globals.context_module_handle, 0);
 
-  db_create();
+  database_create();
 
   context_create_instance();
   context_create_surface();
@@ -197,7 +197,7 @@ void context_destroy(void) {
   context_destroy_surface();
   context_destroy_instance();
 
-  db_destroy();
+  database_destroy();
 
   DestroyWindow(g_globals.context_window_handle);
 

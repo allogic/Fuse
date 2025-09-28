@@ -21,11 +21,13 @@ string_t string_create_from(char const *value) {
 
   uint64_t value_size = strlen(value);
 
-  string_resize(&string, value_size);
+  if (value_size) {
+    string_resize(&string, value_size);
 
-  memcpy(string.buffer, value, value_size);
+    memcpy(string.buffer, value, value_size);
 
-  string.buffer[string.buffer_size] = 0;
+    string.buffer[string.buffer_size] = 0;
+  }
 
   return string;
 }
@@ -37,11 +39,13 @@ string_t string_create_from_file(char const *input_file) {
 
   filesys_load_text(&buffer, &buffer_size, input_file);
 
-  string_resize(&string, buffer_size);
+  if (buffer_size) {
+    string_resize(&string, buffer_size);
 
-  memcpy(string.buffer, buffer, buffer_size);
+    memcpy(string.buffer, buffer, buffer_size);
 
-  string.buffer[string.buffer_size] = 0;
+    string.buffer[string.buffer_size] = 0;
+  }
 
   return string;
 }

@@ -39,7 +39,7 @@ static VkSemaphore *s_renderer_present_complete_semaphores = 0;
 static VkFence *s_renderer_frame_fences = 0;
 
 void renderer_create(void) {
-  renderer_asset_t renderer_asset = db_load_renderer_default_asset();
+  renderer_asset_t renderer_asset = database_load_renderer_default_asset();
 
   g_globals.renderer_frames_in_flight = renderer_asset.frames_in_flight;
 
@@ -56,7 +56,7 @@ void renderer_create(void) {
 
   UI_CREATE();
 
-  db_destroy_renderer_asset(&renderer_asset);
+  database_destroy_renderer_asset(&renderer_asset);
 }
 void renderer_update(void) {
   if (g_globals.renderer_enable_debug) {
@@ -260,24 +260,26 @@ void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
     graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
-      uint64_t vertex_offset = *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index);
-      uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index);
+      /*
+            uint64_t vertex_offset = *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index);
+            uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index);
 
-      vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 0);
-      vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 1);
-      uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, g_globals.renderer_frame_index);
+            vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 0);
+            vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 1);
+            uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, g_globals.renderer_frame_index);
 
-      world_positions[vertex_offset + 0] = (vector3_t){from.x, from.y, from.z};
-      world_positions[vertex_offset + 1] = (vector3_t){to.x, to.y, to.z};
+            world_positions[vertex_offset + 0] = (vector3_t){from.x, from.y, from.z};
+            world_positions[vertex_offset + 1] = (vector3_t){to.x, to.y, to.z};
 
-      colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
 
-      indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
-      indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
+            indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
+            indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
 
-      *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index) += 2;
-      *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index) += 2;
+            *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index) += 2;
+            *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index) += 2;
+      */
     }
   }
 }
@@ -286,58 +288,60 @@ void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color
     graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
-      uint64_t vertex_offset = *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index);
-      uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index);
+      /*
+            uint64_t vertex_offset = *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index);
+            uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index);
 
-      vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 0);
-      vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 1);
-      uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, g_globals.renderer_frame_index);
+            vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 0);
+            vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 1);
+            uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, g_globals.renderer_frame_index);
 
-      world_positions[vertex_offset + 0] = (vector3_t){position.x, position.y, position.z};
-      world_positions[vertex_offset + 1] = (vector3_t){position.x, position.y + size.y, position.z};
-      world_positions[vertex_offset + 2] = (vector3_t){position.x + size.x, position.y, position.z};
-      world_positions[vertex_offset + 3] = (vector3_t){position.x + size.x, position.y + size.y, position.z};
-      world_positions[vertex_offset + 4] = (vector3_t){position.x, position.y, position.z + size.z};
-      world_positions[vertex_offset + 5] = (vector3_t){position.x, position.y + size.y, position.z + size.z};
-      world_positions[vertex_offset + 6] = (vector3_t){position.x + size.x, position.y, position.z + size.z};
-      world_positions[vertex_offset + 7] = (vector3_t){position.x + size.x, position.y + size.y, position.z + size.z};
+            world_positions[vertex_offset + 0] = (vector3_t){position.x, position.y, position.z};
+            world_positions[vertex_offset + 1] = (vector3_t){position.x, position.y + size.y, position.z};
+            world_positions[vertex_offset + 2] = (vector3_t){position.x + size.x, position.y, position.z};
+            world_positions[vertex_offset + 3] = (vector3_t){position.x + size.x, position.y + size.y, position.z};
+            world_positions[vertex_offset + 4] = (vector3_t){position.x, position.y, position.z + size.z};
+            world_positions[vertex_offset + 5] = (vector3_t){position.x, position.y + size.y, position.z + size.z};
+            world_positions[vertex_offset + 6] = (vector3_t){position.x + size.x, position.y, position.z + size.z};
+            world_positions[vertex_offset + 7] = (vector3_t){position.x + size.x, position.y + size.y, position.z + size.z};
 
-      colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 2] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 3] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 4] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 5] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 6] = (vector4_t){color.x, color.y, color.z, color.w};
-      colors[vertex_offset + 7] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 2] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 3] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 4] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 5] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 6] = (vector4_t){color.x, color.y, color.z, color.w};
+            colors[vertex_offset + 7] = (vector4_t){color.x, color.y, color.z, color.w};
 
-      indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
-      indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
-      indices[index_offset + 2] = (uint32_t)(vertex_offset + 1);
-      indices[index_offset + 3] = (uint32_t)(vertex_offset + 3);
-      indices[index_offset + 4] = (uint32_t)(vertex_offset + 3);
-      indices[index_offset + 5] = (uint32_t)(vertex_offset + 2);
-      indices[index_offset + 6] = (uint32_t)(vertex_offset + 2);
-      indices[index_offset + 7] = (uint32_t)(vertex_offset + 0);
-      indices[index_offset + 8] = (uint32_t)(vertex_offset + 4);
-      indices[index_offset + 9] = (uint32_t)(vertex_offset + 5);
-      indices[index_offset + 10] = (uint32_t)(vertex_offset + 5);
-      indices[index_offset + 11] = (uint32_t)(vertex_offset + 7);
-      indices[index_offset + 12] = (uint32_t)(vertex_offset + 7);
-      indices[index_offset + 13] = (uint32_t)(vertex_offset + 6);
-      indices[index_offset + 14] = (uint32_t)(vertex_offset + 6);
-      indices[index_offset + 15] = (uint32_t)(vertex_offset + 4);
-      indices[index_offset + 16] = (uint32_t)(vertex_offset + 0);
-      indices[index_offset + 17] = (uint32_t)(vertex_offset + 4);
-      indices[index_offset + 18] = (uint32_t)(vertex_offset + 1);
-      indices[index_offset + 19] = (uint32_t)(vertex_offset + 5);
-      indices[index_offset + 20] = (uint32_t)(vertex_offset + 2);
-      indices[index_offset + 21] = (uint32_t)(vertex_offset + 6);
-      indices[index_offset + 22] = (uint32_t)(vertex_offset + 3);
-      indices[index_offset + 23] = (uint32_t)(vertex_offset + 7);
+            indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
+            indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
+            indices[index_offset + 2] = (uint32_t)(vertex_offset + 1);
+            indices[index_offset + 3] = (uint32_t)(vertex_offset + 3);
+            indices[index_offset + 4] = (uint32_t)(vertex_offset + 3);
+            indices[index_offset + 5] = (uint32_t)(vertex_offset + 2);
+            indices[index_offset + 6] = (uint32_t)(vertex_offset + 2);
+            indices[index_offset + 7] = (uint32_t)(vertex_offset + 0);
+            indices[index_offset + 8] = (uint32_t)(vertex_offset + 4);
+            indices[index_offset + 9] = (uint32_t)(vertex_offset + 5);
+            indices[index_offset + 10] = (uint32_t)(vertex_offset + 5);
+            indices[index_offset + 11] = (uint32_t)(vertex_offset + 7);
+            indices[index_offset + 12] = (uint32_t)(vertex_offset + 7);
+            indices[index_offset + 13] = (uint32_t)(vertex_offset + 6);
+            indices[index_offset + 14] = (uint32_t)(vertex_offset + 6);
+            indices[index_offset + 15] = (uint32_t)(vertex_offset + 4);
+            indices[index_offset + 16] = (uint32_t)(vertex_offset + 0);
+            indices[index_offset + 17] = (uint32_t)(vertex_offset + 4);
+            indices[index_offset + 18] = (uint32_t)(vertex_offset + 1);
+            indices[index_offset + 19] = (uint32_t)(vertex_offset + 5);
+            indices[index_offset + 20] = (uint32_t)(vertex_offset + 2);
+            indices[index_offset + 21] = (uint32_t)(vertex_offset + 6);
+            indices[index_offset + 22] = (uint32_t)(vertex_offset + 3);
+            indices[index_offset + 23] = (uint32_t)(vertex_offset + 7);
 
-      *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index) += 8;
-      *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index) += 24;
+            *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index) += 8;
+            *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index) += 24;
+      */
     }
   }
 }
@@ -366,7 +370,7 @@ static void renderer_create_pipeline_links(void) {
   memset(s_renderer_pipeline_links, 0, sizeof(s_renderer_pipeline_links));
 }
 static void renderer_create_pipelines(void) {
-  vector_t graphic_pipeline_assets = db_load_pipeline_assets_by_type(0);
+  vector_t graphic_pipeline_assets = database_load_pipeline_assets_by_type(0);
 
   uint64_t graphic_pipeline_asset_index = 0;
   uint64_t graphic_pipeline_asset_count = vector_count(&graphic_pipeline_assets);
@@ -387,9 +391,9 @@ static void renderer_create_pipelines(void) {
     graphic_pipeline_asset_index++;
   }
 
-  db_destroy_pipeline_assets(&graphic_pipeline_assets);
+  database_destroy_pipeline_assets(&graphic_pipeline_assets);
 
-  vector_t compute_pipeline_assets = db_load_pipeline_assets_by_type(1);
+  vector_t compute_pipeline_assets = database_load_pipeline_assets_by_type(1);
 
   uint64_t compute_pipeline_asset_index = 0;
   uint64_t compute_pipeline_asset_count = vector_count(&compute_pipeline_assets);
@@ -410,7 +414,7 @@ static void renderer_create_pipelines(void) {
     compute_pipeline_asset_index++;
   }
 
-  db_destroy_pipeline_assets(&compute_pipeline_assets);
+  database_destroy_pipeline_assets(&compute_pipeline_assets);
 }
 static void renderer_create_command_buffer(void) {
   g_globals.renderer_graphic_command_buffers = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * g_globals.renderer_frames_in_flight);

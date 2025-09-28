@@ -21,7 +21,7 @@ static VkImageView *s_swapchain_color_image_view = 0;
 static VkImageView *s_swapchain_depth_image_view = 0;
 
 void swapchain_create(void) {
-  swapchain_asset_t swapchain_asset = db_load_swapchain_default_asset();
+  swapchain_asset_t swapchain_asset = database_load_swapchain_default_asset();
 
   g_globals.swapchain_image_count = swapchain_asset.image_count;
   g_globals.swapchain_depth_format = swapchain_asset.depth_format;
@@ -66,7 +66,7 @@ void swapchain_create(void) {
   swapchain_create_depth_images();
   swapchain_create_frame_buffer();
 
-  db_destroy_swapchain_asset(&swapchain_asset);
+  database_destroy_swapchain_asset(&swapchain_asset);
 }
 void swapchain_destroy(void) {
   swapchain_destroy_frame_buffer();

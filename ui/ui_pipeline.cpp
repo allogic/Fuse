@@ -1,6 +1,4 @@
-#include <library/core/co_api.h>
-#include <library/database/db_api.h>
-
+#include <ui/ui_pch.h>
 #include <ui/ui_pipeline.h>
 
 #include <imgui/imgui.h>
@@ -10,45 +8,45 @@ static void ui_pipeline_draw_insert();
 
 static vector_t s_ui_pipeline_assets = {};
 static vector_t s_ui_pipeline_vertex_input_bindings = {};
-static vector_t s_ui_pipeline_descriptor_set_layout_bindings = {};
+static vector_t s_ui_pipeline_descriptor_bindings = {};
 
 static int64_t s_ui_selected_pipeline_asset = -1;
 static int64_t s_ui_selected_pipeline_vertex_input_bindings = -1;
-static int64_t s_ui_selected_pipeline_descriptor_set_layout_bindings = -1;
+static int64_t s_ui_selected_pipeline_descriptor_bindings = -1;
 
 void ui_pipeline_create() {
-  s_ui_pipeline_assets = db_load_pipeline_assets();
+  s_ui_pipeline_assets = database_load_pipeline_assets();
 
   if (vector_count(&s_ui_pipeline_assets) > 0) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_front(&s_ui_pipeline_assets);
 
     s_ui_selected_pipeline_asset = 0;
 
-    s_ui_pipeline_vertex_input_bindings = db_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
-    s_ui_pipeline_descriptor_set_layout_bindings = db_load_pipeline_descriptor_set_layout_bindings_by_id(pipeline_asset->id);
+    s_ui_pipeline_vertex_input_bindings = database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
+    s_ui_pipeline_descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
   }
 }
 void ui_pipeline_refresh() {
   if (vector_count(&s_ui_pipeline_assets) > 0) {
     pipeline_asset_t *pipeline = (pipeline_asset_t *)vector_front(&s_ui_pipeline_assets);
 
-    db_destroy_pipeline_vertex_input_bindings(&s_ui_pipeline_vertex_input_bindings);
-    db_destroy_pipeline_descriptor_set_layout_bindings(&s_ui_pipeline_descriptor_set_layout_bindings);
+    database_destroy_pipeline_vertex_input_bindings(&s_ui_pipeline_vertex_input_bindings);
+    database_destroy_pipeline_descriptor_bindings(&s_ui_pipeline_descriptor_bindings);
   }
 
-  db_destroy_pipeline_assets(&s_ui_pipeline_assets);
+  database_destroy_pipeline_assets(&s_ui_pipeline_assets);
 
   s_ui_selected_pipeline_asset = -1;
   s_ui_selected_pipeline_vertex_input_bindings = -1;
-  s_ui_selected_pipeline_descriptor_set_layout_bindings = -1;
+  s_ui_selected_pipeline_descriptor_bindings = -1;
 
-  s_ui_pipeline_assets = db_load_pipeline_assets();
+  s_ui_pipeline_assets = database_load_pipeline_assets();
 
   if (vector_count(&s_ui_pipeline_assets) > 0) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_front(&s_ui_pipeline_assets);
 
-    s_ui_pipeline_vertex_input_bindings = db_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
-    s_ui_pipeline_descriptor_set_layout_bindings = db_load_pipeline_descriptor_set_layout_bindings_by_id(pipeline_asset->id);
+    s_ui_pipeline_vertex_input_bindings = database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
+    s_ui_pipeline_descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
   }
 }
 void ui_pipeline_draw() {
@@ -169,13 +167,13 @@ void ui_pipeline_draw() {
 
     ImGui::Dummy(ImVec2(0.0f, 20.0F));
 
-    static ImGuiTableFlags pipeline_descriptor_set_layout_binding_table_flags =
+    static ImGuiTableFlags pipeline_descriptor_binding_table_flags =
       ImGuiTableFlags_Borders |
       ImGuiTableFlags_RowBg |
       ImGuiTableFlags_Resizable |
       ImGuiTableFlags_SizingStretchProp;
 
-    if (ImGui::BeginTable("##PipelineDescriptorSetLayoutBindingTable", 7, pipeline_descriptor_set_layout_binding_table_flags)) {
+    if (ImGui::BeginTable("##PipelineDescriptorBindingTable", 7, pipeline_descriptor_binding_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("BINDING_NAME", ImGuiTableColumnFlags_WidthStretch);
       ImGui::TableSetupColumn("BINDING", ImGuiTableColumnFlags_WidthFixed);
@@ -185,40 +183,40 @@ void ui_pipeline_draw() {
       ImGui::TableSetupColumn("AUTO_BUFFER", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableHeadersRow();
 
-      uint64_t pipeline_descriptor_set_layout_binding_index = 0;
-      uint64_t pipeline_descriptor_set_layout_binding_count = vector_count(&s_ui_pipeline_descriptor_set_layout_bindings);
+      uint64_t pipeline_descriptor_binding_index = 0;
+      uint64_t pipeline_descriptor_binding_count = vector_count(&s_ui_pipeline_descriptor_bindings);
 
-      while (pipeline_descriptor_set_layout_binding_index < pipeline_descriptor_set_layout_binding_count) {
-        pipeline_descriptor_set_layout_binding_t *pipeline_descriptor_set_layout_binding = (pipeline_descriptor_set_layout_binding_t *)vector_at(&s_ui_pipeline_descriptor_set_layout_bindings, pipeline_descriptor_set_layout_binding_index);
+      while (pipeline_descriptor_binding_index < pipeline_descriptor_binding_count) {
+        pipeline_descriptor_binding_t *pipeline_descriptor_binding = (pipeline_descriptor_binding_t *)vector_at(&s_ui_pipeline_descriptor_bindings, pipeline_descriptor_binding_index);
 
         ImGui::TableNextRow();
 
-        ImGui::PushID(pipeline_descriptor_set_layout_binding);
+        ImGui::PushID(pipeline_descriptor_binding);
 
         ImGui::TableSetColumnIndex(0);
-        ImGui::Text("%d", pipeline_descriptor_set_layout_binding->id);
+        ImGui::Text("%d", pipeline_descriptor_binding->id);
 
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text("%s", string_buffer(&pipeline_descriptor_set_layout_binding->binding_name));
+        ImGui::Text("%s", string_buffer(&pipeline_descriptor_binding->binding_name));
 
         ImGui::TableSetColumnIndex(2);
-        ImGui::Text("%d", pipeline_descriptor_set_layout_binding->binding);
+        ImGui::Text("%d", pipeline_descriptor_binding->binding);
 
         ImGui::TableSetColumnIndex(3);
-        ImGui::Text("%d", pipeline_descriptor_set_layout_binding->descriptor_type);
+        ImGui::Text("%d", pipeline_descriptor_binding->descriptor_type);
 
         ImGui::TableSetColumnIndex(4);
-        ImGui::Text("%d", pipeline_descriptor_set_layout_binding->descriptor_count);
+        ImGui::Text("%d", pipeline_descriptor_binding->descriptor_count);
 
         ImGui::TableSetColumnIndex(5);
-        ImGui::Text("%d", pipeline_descriptor_set_layout_binding->stage_flags);
+        ImGui::Text("%d", pipeline_descriptor_binding->stage_flags);
 
         ImGui::TableSetColumnIndex(6);
-        ImGui::Text("%d", pipeline_descriptor_set_layout_binding->auto_buffer);
+        ImGui::Text("%d", pipeline_descriptor_binding->auto_buffer);
 
         ImGui::PopID();
 
-        pipeline_descriptor_set_layout_binding_index++;
+        pipeline_descriptor_binding_index++;
       }
 
       ImGui::EndTable();
@@ -231,38 +229,38 @@ void ui_pipeline_destroy() {
   if (vector_count(&s_ui_pipeline_assets) > 0) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_front(&s_ui_pipeline_assets);
 
-    db_destroy_pipeline_vertex_input_bindings(&s_ui_pipeline_vertex_input_bindings);
-    db_destroy_pipeline_descriptor_set_layout_bindings(&s_ui_pipeline_descriptor_set_layout_bindings);
+    database_destroy_pipeline_vertex_input_bindings(&s_ui_pipeline_vertex_input_bindings);
+    database_destroy_pipeline_descriptor_bindings(&s_ui_pipeline_descriptor_bindings);
   }
 
-  db_destroy_pipeline_assets(&s_ui_pipeline_assets);
+  database_destroy_pipeline_assets(&s_ui_pipeline_assets);
 
   s_ui_selected_pipeline_asset = -1;
   s_ui_selected_pipeline_vertex_input_bindings = -1;
-  s_ui_selected_pipeline_descriptor_set_layout_bindings = -1;
+  s_ui_selected_pipeline_descriptor_bindings = -1;
 }
 
 static void ui_pipeline_select_new_asset(uint64_t selected_index) {
   if (s_ui_selected_pipeline_asset >= 0) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_front(&s_ui_pipeline_assets);
 
-    db_destroy_pipeline_vertex_input_bindings(&s_ui_pipeline_vertex_input_bindings);
-    db_destroy_pipeline_descriptor_set_layout_bindings(&s_ui_pipeline_descriptor_set_layout_bindings);
+    database_destroy_pipeline_vertex_input_bindings(&s_ui_pipeline_vertex_input_bindings);
+    database_destroy_pipeline_descriptor_bindings(&s_ui_pipeline_descriptor_bindings);
   }
 
-  db_destroy_pipeline_assets(&s_ui_pipeline_assets);
+  database_destroy_pipeline_assets(&s_ui_pipeline_assets);
 
   s_ui_selected_pipeline_asset = selected_index;
   s_ui_selected_pipeline_vertex_input_bindings = -1;
-  s_ui_selected_pipeline_descriptor_set_layout_bindings = -1;
+  s_ui_selected_pipeline_descriptor_bindings = -1;
 
-  s_ui_pipeline_assets = db_load_pipeline_assets();
+  s_ui_pipeline_assets = database_load_pipeline_assets();
 
   if (s_ui_selected_pipeline_asset >= 0) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&s_ui_pipeline_assets, s_ui_selected_pipeline_asset);
 
-    s_ui_pipeline_vertex_input_bindings = db_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
-    s_ui_pipeline_descriptor_set_layout_bindings = db_load_pipeline_descriptor_set_layout_bindings_by_id(pipeline_asset->id);
+    s_ui_pipeline_vertex_input_bindings = database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
+    s_ui_pipeline_descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
   }
 }
 static void ui_pipeline_draw_insert() {
@@ -295,15 +293,15 @@ static void ui_pipeline_draw_insert() {
     case 0: {
       // TODO
       static char pipeline_name[0xFF] = "debug_line";
-      static char pipeline_vertex_shader[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.vert.spv";
-      static char pipeline_fragment_shader[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
+      static char pipeline_vertex_shader_file_path[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.vert.spv";
+      static char pipeline_fragment_shader_file_path[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
 
       ImGui::InputText("Pipeline Name", pipeline_name, sizeof(pipeline_name));
-      ImGui::InputText("Vertex Shader", pipeline_vertex_shader, sizeof(pipeline_vertex_shader));
-      ImGui::InputText("Fragment Shader", pipeline_fragment_shader, sizeof(pipeline_fragment_shader));
+      ImGui::InputText("Vertex Shader", pipeline_vertex_shader_file_path, sizeof(pipeline_vertex_shader_file_path));
+      ImGui::InputText("Fragment Shader", pipeline_fragment_shader_file_path, sizeof(pipeline_fragment_shader_file_path));
 
       if (ImGui::Button("Create Pipeline")) {
-        db_importer_insert_graphic_pipeline(pipeline_name, pipeline_vertex_shader, pipeline_fragment_shader);
+        importer_import_graphic_pipeline(pipeline_name, pipeline_vertex_shader_file_path, pipeline_fragment_shader_file_path);
 
         ui_pipeline_refresh();
       }
@@ -312,13 +310,13 @@ static void ui_pipeline_draw_insert() {
     }
     case 1: {
       static char pipeline_name[0xFF] = "";
-      static char pipeline_compute_shader[0xFF] = "";
+      static char pipeline_compute_shader_file_path[0xFF] = "";
 
       ImGui::InputText("Pipeline Name", pipeline_name, sizeof(pipeline_name));
-      ImGui::InputText("Compute Shader", pipeline_compute_shader, sizeof(pipeline_compute_shader));
+      ImGui::InputText("Compute Shader", pipeline_compute_shader_file_path, sizeof(pipeline_compute_shader_file_path));
 
       if (ImGui::Button("Create Pipeline")) {
-        db_importer_insert_compute_pipeline(pipeline_name, pipeline_compute_shader);
+        importer_import_compute_pipeline(pipeline_name, pipeline_compute_shader_file_path);
 
         ui_pipeline_refresh();
       }

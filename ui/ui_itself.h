@@ -1,13 +1,6 @@
 #ifndef UI_ITSELF_H
 #define UI_ITSELF_H
 
-#include <stdint.h>
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-#include <vulkan/vulkan.h>
-
 #ifdef BUILD_DEBUG
 #  define UI_CREATE(...) ui_create(__VA_ARGS__)
 #  define UI_DRAW(...) ui_draw(__VA_ARGS__)

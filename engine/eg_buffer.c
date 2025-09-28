@@ -2,7 +2,7 @@
 #include <engine/eg_buffer.h>
 #include <engine/eg_context.h>
 
-buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffer, uint64_t buffer_size) {
+buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, uint64_t buffer_size) {
   buffer_t buffer = {0};
 
   buffer.buffer_size = buffer_size;
@@ -26,7 +26,10 @@ buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffe
 
   VULKAN_CHECK(vkAllocateMemory(g_globals.context_device, &memory_allocate_info, 0, &buffer.device_memory));
   VULKAN_CHECK(vkBindBufferMemory(g_globals.context_device, buffer.buffer, buffer.device_memory, 0));
-  VULKAN_CHECK(vkMapMemory(g_globals.context_device, buffer.device_memory, 0, buffer.buffer_size, 0, &mapped_buffer));
+
+  buffer.mapped_buffer = heap_alloc(buffer_size);
+
+  VULKAN_CHECK(vkMapMemory(g_globals.context_device, buffer.device_memory, 0, buffer.buffer_size, 0, &buffer.mapped_buffer));
 
   return buffer;
 }
@@ -35,6 +38,10 @@ VkBuffer buffer_handle(buffer_t *buffer) {
 }
 void buffer_destroy(buffer_t *buffer) {
   vkUnmapMemory(g_globals.context_device, buffer->device_memory);
+
+  heap_free(buffer->mapped_buffer);
+
   vkFreeMemory(g_globals.context_device, buffer->device_memory, 0);
+
   vkDestroyBuffer(g_globals.context_device, buffer->buffer, 0);
 }
