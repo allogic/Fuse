@@ -19,15 +19,15 @@ string_t string_create(void) {
 string_t string_create_from(char const *value) {
   string_t string = string_create();
 
-  uint64_t value_size = strlen(value);
+  if (value) {
+    uint64_t value_size = strlen(value);
 
-  if (value_size) {
     string_resize(&string, value_size);
 
     memcpy(string.buffer, value, value_size);
-
-    string.buffer[string.buffer_size] = 0;
   }
+
+  string.buffer[string.buffer_size] = 0;
 
   return string;
 }
@@ -43,9 +43,11 @@ string_t string_create_from_file(char const *input_file) {
     string_resize(&string, buffer_size);
 
     memcpy(string.buffer, buffer, buffer_size);
-
-    string.buffer[string.buffer_size] = 0;
   }
+
+  string.buffer[string.buffer_size] = 0;
+
+  heap_free(buffer);
 
   return string;
 }

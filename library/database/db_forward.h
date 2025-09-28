@@ -10,6 +10,9 @@ typedef int64_t pipeline_resource_id_t;
 typedef int64_t pipeline_vertex_input_binding_id_t;
 typedef int64_t pipeline_descriptor_binding_id_t;
 
+typedef int64_t model_id_t;
+typedef int64_t model_resource_id_t;
+
 typedef struct swapchain_asset_t {
   swapchain_id_t id;
   string_t name;
@@ -30,7 +33,6 @@ typedef struct pipeline_asset_t {
   uint32_t link_index;
   uint8_t auto_create;
 } pipeline_asset_t;
-
 typedef struct pipeline_resource_t {
   pipeline_resource_id_t id;
   pipeline_id_t pipeline_id;
@@ -41,7 +43,6 @@ typedef struct pipeline_resource_t {
   vector_t fragment_shader;
   vector_t compute_shader;
 } pipeline_resource_t;
-
 typedef struct pipeline_vertex_input_binding_t {
   pipeline_vertex_input_binding_id_t id;
   pipeline_id_t pipeline_id;
@@ -53,7 +54,6 @@ typedef struct pipeline_vertex_input_binding_t {
   uint32_t offset;
   uint32_t input_rate;
 } pipeline_vertex_input_binding_t;
-
 typedef struct pipeline_descriptor_binding_t {
   pipeline_descriptor_binding_id_t id;
   pipeline_id_t pipeline_id;
@@ -64,5 +64,10 @@ typedef struct pipeline_descriptor_binding_t {
   uint32_t stage_flags;
   uint8_t auto_buffer;
 } pipeline_descriptor_binding_t;
+
+typedef struct model_asset_t {
+  model_id_t id;
+  string_t name;
+} model_asset_t;
 
 #endif // DB_FORWARD_H

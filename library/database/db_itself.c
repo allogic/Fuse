@@ -152,7 +152,7 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_id_t pipeline
 
   string_t sql = string_create();
 
-  string_appendf(&sql, "SELECT PR.ID, PR.VERTEX_SHADER_FILE_PATH, PR.FRAGMENT_SHADER_FILE_PATH, PR.COMPUTE_SHADER_FILE_PATH, PR.VERTEX_SHADER, PR.FRAGMENT_SHADER, PR.COMPUTE_SHADER\n");
+  string_appendf(&sql, "SELECT PR.ID, PR.VERTEX_SHADER_FILE_PATH, PR.FRAGMENT_SHADER_FILE_PATH, PR.COMPUTE_SHADER_FILE_PATH, PR.VERTEX_SHADER_BYTES, PR.FRAGMENT_SHADER_BYTES, PR.COMPUTE_SHADER_BYTES\n");
   string_appendf(&sql, "FROM PIPELINE_ASSETS AS PA\n");
   string_appendf(&sql, "LEFT JOIN PIPELINE_RESOURCES AS PR\n");
   string_appendf(&sql, "ON PA.ID = PR.PIPELINE_ID\n");
@@ -167,9 +167,9 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_id_t pipeline
     char const *vertex_shader_file_path = sqlite3_column_text(stmt, 1);
     char const *fragment_shader_file_path = sqlite3_column_text(stmt, 2);
     char const *compute_shader_file_path = sqlite3_column_text(stmt, 3);
-    uint8_t *vertex_shader = (uint8_t *)sqlite3_column_blob(stmt, 4);
-    uint8_t *fragment_shader = (uint8_t *)sqlite3_column_blob(stmt, 5);
-    uint8_t *compute_shader = (uint8_t *)sqlite3_column_blob(stmt, 6);
+    uint8_t *vertex_shader_bytes = (uint8_t *)sqlite3_column_blob(stmt, 4);
+    uint8_t *fragment_shader_bytes = (uint8_t *)sqlite3_column_blob(stmt, 5);
+    uint8_t *compute_shader_bytes = (uint8_t *)sqlite3_column_blob(stmt, 6);
     uint64_t vertex_shader_size = (uint64_t)sqlite3_column_bytes(stmt, 4);
     uint64_t fragment_shader_size = (uint64_t)sqlite3_column_bytes(stmt, 5);
     uint64_t compute_shader_size = (uint64_t)sqlite3_column_bytes(stmt, 6);
@@ -179,9 +179,9 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_id_t pipeline
     pipeline_resource.vertex_shader_file_path = string_create_from(vertex_shader_file_path);
     pipeline_resource.fragment_shader_file_path = string_create_from(fragment_shader_file_path);
     pipeline_resource.compute_shader_file_path = string_create_from(compute_shader_file_path);
-    pipeline_resource.vertex_shader = vector_create_from(sizeof(uint8_t), vertex_shader, vertex_shader_size);
-    pipeline_resource.fragment_shader = vector_create_from(sizeof(uint8_t), fragment_shader, fragment_shader_size);
-    pipeline_resource.compute_shader = vector_create_from(sizeof(uint8_t), compute_shader, compute_shader_size);
+    pipeline_resource.vertex_shader = vector_create_from(sizeof(uint8_t), vertex_shader_bytes, vertex_shader_size);
+    pipeline_resource.fragment_shader = vector_create_from(sizeof(uint8_t), fragment_shader_bytes, fragment_shader_size);
+    pipeline_resource.compute_shader = vector_create_from(sizeof(uint8_t), compute_shader_bytes, compute_shader_size);
   }
 
   sqlite3_finalize(stmt);
@@ -281,6 +281,36 @@ vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_id_t pipeline
   return pipeline_descriptor_bindings;
 }
 
+vector_t database_load_model_assets(void) {
+  vector_t model_assets = vector_create(sizeof(pipeline_asset_t));
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT ID, NAME FROM MODEL_ASSETS\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    model_asset_t model_asset = {0};
+
+    model_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+
+    model_asset.id = id;
+    model_asset.name = string_create_from(name);
+
+    vector_push(&model_assets, &model_asset);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return model_assets;
+}
+
 pipeline_id_t database_store_pipeline_asset(char const *pipeline_name, uint32_t pipeline_type, uint32_t pipeline_link_index, uint32_t pipeline_auto_create) {
   string_t sql = string_create();
 
@@ -304,10 +334,10 @@ pipeline_id_t database_store_pipeline_asset(char const *pipeline_name, uint32_t 
 
   return database_get_sequence_index_by_name("PIPELINE_ASSETS");
 }
-pipeline_resource_id_t database_store_pipeline_resource(pipeline_id_t pipeline_id, char const *vertex_shader_file_path, char const *fragment_shader_file_path, char const *compute_shader_file_path, uint8_t *vertex_shader, uint8_t *fragment_shader, uint8_t *compute_shader, uint64_t vertex_shader_size, uint64_t fragment_shader_size, uint64_t compute_shader_size) {
+pipeline_resource_id_t database_store_pipeline_resource(pipeline_id_t pipeline_id, char const *vertex_shader_file_path, char const *fragment_shader_file_path, char const *compute_shader_file_path, uint8_t *vertex_shader_bytes, uint8_t *fragment_shader_bytes, uint8_t *compute_shader_bytes, uint64_t vertex_shader_size, uint64_t fragment_shader_size, uint64_t compute_shader_size) {
   string_t sql = string_create();
 
-  string_appendf(&sql, "INSERT INTO PIPELINE_RESOURCES (PIPELINE_ID, VERTEX_SHADER_FILE_PATH, FRAGMENT_SHADER_FILE_PATH, COMPUTE_SHADER_FILE_PATH, VERTEX_SHADER, FRAGMENT_SHADER, COMPUTE_SHADER)\n");
+  string_appendf(&sql, "INSERT INTO PIPELINE_RESOURCES (PIPELINE_ID, VERTEX_SHADER_FILE_PATH, FRAGMENT_SHADER_FILE_PATH, COMPUTE_SHADER_FILE_PATH, VERTEX_SHADER_BYTES, FRAGMENT_SHADER_BYTES, COMPUTE_SHADER_BYTES)\n");
   string_appendf(&sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
   string_appendf(&sql, "ON CONFLICT (PIPELINE_ID) DO UPDATE\n");
   string_appendf(&sql, "SET PIPELINE_ID = PIPELINE_RESOURCES.PIPELINE_ID\n");
@@ -320,9 +350,9 @@ pipeline_resource_id_t database_store_pipeline_resource(pipeline_id_t pipeline_i
   sqlite3_bind_text(stmt, 2, vertex_shader_file_path, -1, SQLITE_STATIC);
   sqlite3_bind_text(stmt, 3, fragment_shader_file_path, -1, SQLITE_STATIC);
   sqlite3_bind_text(stmt, 4, compute_shader_file_path, -1, SQLITE_STATIC);
-  sqlite3_bind_blob(stmt, 5, vertex_shader, (int32_t)vertex_shader_size, SQLITE_STATIC);
-  sqlite3_bind_blob(stmt, 6, fragment_shader, (int32_t)fragment_shader_size, SQLITE_STATIC);
-  sqlite3_bind_blob(stmt, 7, compute_shader, (int32_t)compute_shader_size, SQLITE_STATIC);
+  sqlite3_bind_blob(stmt, 5, vertex_shader_bytes, (int32_t)vertex_shader_size, SQLITE_STATIC);
+  sqlite3_bind_blob(stmt, 6, fragment_shader_bytes, (int32_t)fragment_shader_size, SQLITE_STATIC);
+  sqlite3_bind_blob(stmt, 7, compute_shader_bytes, (int32_t)compute_shader_size, SQLITE_STATIC);
 
   SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
@@ -450,6 +480,21 @@ void database_destroy_pipeline_descriptor_bindings(vector_t *descriptor_bindings
   }
 
   vector_destroy(descriptor_bindings);
+}
+
+void database_destroy_model_assets(vector_t *model_assets) {
+  uint64_t model_asset_index = 0;
+  uint64_t model_asset_count = vector_count(model_assets);
+
+  while (model_asset_index < model_asset_count) {
+    model_asset_t *model_asset = (model_asset_t *)vector_at(model_assets, model_asset_index);
+
+    string_destroy(&model_asset->name);
+
+    model_asset_index++;
+  }
+
+  vector_destroy(model_assets);
 }
 
 static int32_t database_get_sequence_index_by_name(char const *table_name) {

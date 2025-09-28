@@ -51,6 +51,8 @@ void ui_pipeline_refresh() {
 }
 void ui_pipeline_draw() {
   if (ImGui::TreeNodeEx("Pipelines", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+    ImGui::Dummy(ImVec2(0.0f, 10.0F));
+
     ui_pipeline_draw_insert();
 
     ImGui::Dummy(ImVec2(0.0f, 20.0F));
@@ -61,7 +63,8 @@ void ui_pipeline_draw() {
       ImGuiTableFlags_Resizable |
       ImGuiTableFlags_SizingStretchProp;
 
-    if (ImGui::BeginTable("##PipelineConfigTable", 5, pipeline_table_flags)) {
+    ImGui::Text("Assets");
+    if (ImGui::BeginTable("##PipelineAssetTable", 5, pipeline_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
       ImGui::TableSetupColumn("TYPE", ImGuiTableColumnFlags_WidthFixed);
@@ -112,6 +115,7 @@ void ui_pipeline_draw() {
       ImGuiTableFlags_Resizable |
       ImGuiTableFlags_SizingStretchProp;
 
+    ImGui::Text("Vertex Input Bindings");
     if (ImGui::BeginTable("##PipelineVertexInputBindingTable", 8, pipeline_vertex_input_binding_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("BINDING_NAME", ImGuiTableColumnFlags_WidthStretch);
@@ -173,6 +177,7 @@ void ui_pipeline_draw() {
       ImGuiTableFlags_Resizable |
       ImGuiTableFlags_SizingStretchProp;
 
+    ImGui::Text("Descriptor Bindings");
     if (ImGui::BeginTable("##PipelineDescriptorBindingTable", 7, pipeline_descriptor_binding_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("BINDING_NAME", ImGuiTableColumnFlags_WidthStretch);
@@ -221,6 +226,8 @@ void ui_pipeline_draw() {
 
       ImGui::EndTable();
     }
+
+    ImGui::Dummy(ImVec2(0.0f, 10.0F));
 
     ImGui::TreePop();
   }
@@ -297,8 +304,8 @@ static void ui_pipeline_draw_insert() {
       static char pipeline_fragment_shader_file_path[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
 
       ImGui::InputText("Pipeline Name", pipeline_name, sizeof(pipeline_name));
-      ImGui::InputText("Vertex Shader", pipeline_vertex_shader_file_path, sizeof(pipeline_vertex_shader_file_path));
-      ImGui::InputText("Fragment Shader", pipeline_fragment_shader_file_path, sizeof(pipeline_fragment_shader_file_path));
+      ImGui::InputText("Vertex File", pipeline_vertex_shader_file_path, sizeof(pipeline_vertex_shader_file_path));
+      ImGui::InputText("Fragment File", pipeline_fragment_shader_file_path, sizeof(pipeline_fragment_shader_file_path));
 
       if (ImGui::Button("Create Pipeline")) {
         importer_import_graphic_pipeline(pipeline_name, pipeline_vertex_shader_file_path, pipeline_fragment_shader_file_path);
@@ -313,7 +320,7 @@ static void ui_pipeline_draw_insert() {
       static char pipeline_compute_shader_file_path[0xFF] = "";
 
       ImGui::InputText("Pipeline Name", pipeline_name, sizeof(pipeline_name));
-      ImGui::InputText("Compute Shader", pipeline_compute_shader_file_path, sizeof(pipeline_compute_shader_file_path));
+      ImGui::InputText("Compute File", pipeline_compute_shader_file_path, sizeof(pipeline_compute_shader_file_path));
 
       if (ImGui::Button("Create Pipeline")) {
         importer_import_compute_pipeline(pipeline_name, pipeline_compute_shader_file_path);

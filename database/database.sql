@@ -1,3 +1,4 @@
-.read 'pipelines.sql'
-.read 'renderer.sql'
 .read 'swapchain.sql'
+.read 'renderer.sql'
+.read 'pipeline.sql'
+.read 'model.sql'
