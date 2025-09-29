@@ -33,8 +33,8 @@ static void renderer_destroy_sync_objects(void);
 static uint32_t s_renderer_pipeline_types[0xFF] = {0};
 static void *s_renderer_pipeline_links[0xFF] = {0};
 
-static VkSemaphore *s_renderer_graphic_complete_semaphores = 0;
-static VkSemaphore *s_renderer_present_complete_semaphores = 0;
+static VkSemaphore *s_renderer_render_finished_semaphores = 0;
+static VkSemaphore *s_renderer_image_available_semaphores = 0;
 
 static VkFence *s_renderer_frame_fences = 0;
 
@@ -80,9 +80,11 @@ void renderer_update(void) {
   }
 }
 void renderer_draw(transform_t *transform, camera_t *camera) {
-  VkResult wait_for_frame_fence_result = vkWaitForFences(g_globals.context_device, 1, &s_renderer_frame_fences[g_globals.renderer_frame_index], 1, UINT64_MAX);
+  VkResult result = VK_SUCCESS;
 
-  switch (wait_for_frame_fence_result) {
+  result = vkWaitForFences(g_globals.context_device, 1, &s_renderer_frame_fences[g_globals.renderer_frame_index], 1, UINT64_MAX);
+
+  switch (result) {
     case VK_SUCCESS: {
       break;
     }
@@ -96,9 +98,9 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  VkResult reset_frame_fence_result = vkResetFences(g_globals.context_device, 1, &s_renderer_frame_fences[g_globals.renderer_frame_index]);
+  result = vkResetFences(g_globals.context_device, 1, &s_renderer_frame_fences[g_globals.renderer_frame_index]);
 
-  switch (reset_frame_fence_result) {
+  switch (result) {
     case VK_SUCCESS: {
       break;
     }
@@ -109,9 +111,9 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  VkResult reset_graphic_command_buffer_result = vkResetCommandBuffer(g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index], 0);
+  result = vkResetCommandBuffer(g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index], 0);
 
-  switch (reset_graphic_command_buffer_result) {
+  switch (result) {
     case VK_SUCCESS: {
       break;
     }
@@ -122,15 +124,9 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  VkResult acquire_next_image_result = vkAcquireNextImageKHR(
-    g_globals.context_device,
-    g_globals.swapchain,
-    UINT64_MAX,
-    s_renderer_present_complete_semaphores[g_globals.renderer_frame_index],
-    0,
-    &g_globals.renderer_image_index);
+  result = vkAcquireNextImageKHR(g_globals.context_device, g_globals.swapchain, UINT64_MAX, s_renderer_image_available_semaphores[g_globals.renderer_frame_index], 0, &g_globals.renderer_image_index);
 
-  switch (acquire_next_image_result) {
+  switch (result) {
     case VK_SUCCESS: {
       break;
     }
@@ -157,50 +153,29 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
   command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   command_buffer_begin_info.pInheritanceInfo = 0;
 
-  VkResult begin_graphic_command_buffer_result = vkBeginCommandBuffer(g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index], &command_buffer_begin_info);
-
-  switch (begin_graphic_command_buffer_result) {
-    case VK_SUCCESS: {
-      break;
-    }
-#ifdef BUILD_DEBUG
-    default: {
-      __debugbreak();
-    }
-#endif // BUILD_DEBUG
-  }
+  VULKAN_CHECK(vkBeginCommandBuffer(g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index], &command_buffer_begin_info));
 
   renderer_record_compute_commands();
   renderer_record_graphic_commands();
 
-  VkResult end_graphic_command_buffer_result = vkEndCommandBuffer(g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index]);
+  VULKAN_CHECK(vkEndCommandBuffer(g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index]));
 
-  switch (end_graphic_command_buffer_result) {
-    case VK_SUCCESS: {
-      break;
-    }
-#ifdef BUILD_DEBUG
-    default: {
-      __debugbreak();
-    }
-#endif // BUILD_DEBUG
-  }
-
+  // TODO: re-validate VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
   VkPipelineStageFlags graphic_wait_stages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
   VkSubmitInfo graphic_submit_info = {0};
   graphic_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  graphic_submit_info.pWaitSemaphores = &s_renderer_present_complete_semaphores[g_globals.renderer_frame_index];
+  graphic_submit_info.pWaitSemaphores = &s_renderer_image_available_semaphores[g_globals.renderer_frame_index];
   graphic_submit_info.waitSemaphoreCount = 1;
-  graphic_submit_info.pSignalSemaphores = &s_renderer_graphic_complete_semaphores[g_globals.renderer_frame_index];
+  graphic_submit_info.pSignalSemaphores = &s_renderer_render_finished_semaphores[g_globals.renderer_image_index];
   graphic_submit_info.signalSemaphoreCount = 1;
   graphic_submit_info.pCommandBuffers = &g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index];
   graphic_submit_info.commandBufferCount = 1;
   graphic_submit_info.pWaitDstStageMask = graphic_wait_stages;
 
-  VkResult graphics_queue_submit_result = vkQueueSubmit(g_globals.context_graphic_queue, 1, &graphic_submit_info, s_renderer_frame_fences[g_globals.renderer_frame_index]);
+  result = vkQueueSubmit(g_globals.context_graphic_queue, 1, &graphic_submit_info, s_renderer_frame_fences[g_globals.renderer_frame_index]);
 
-  switch (graphics_queue_submit_result) {
+  switch (result) {
     case VK_SUCCESS: {
       break;
     }
@@ -216,15 +191,15 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 
   VkPresentInfoKHR present_info = {0};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  present_info.pWaitSemaphores = &s_renderer_graphic_complete_semaphores[g_globals.renderer_frame_index];
+  present_info.pWaitSemaphores = &s_renderer_render_finished_semaphores[g_globals.renderer_image_index];
   present_info.waitSemaphoreCount = 1;
   present_info.pSwapchains = &g_globals.swapchain;
   present_info.swapchainCount = 1;
   present_info.pImageIndices = &g_globals.renderer_image_index;
 
-  VkResult present_queue_result = vkQueuePresentKHR(g_globals.context_present_queue, &present_info);
+  result = vkQueuePresentKHR(g_globals.context_present_queue, &present_info);
 
-  switch (present_queue_result) {
+  switch (result) {
     case VK_SUCCESS: {
       break;
     }
@@ -428,8 +403,8 @@ static void renderer_create_command_buffer(void) {
   VULKAN_CHECK(vkAllocateCommandBuffers(g_globals.context_device, &command_buffer_alloc_create_info, g_globals.renderer_graphic_command_buffers));
 }
 static void renderer_create_sync_objects(void) {
-  s_renderer_graphic_complete_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.renderer_frames_in_flight);
-  s_renderer_present_complete_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.renderer_frames_in_flight);
+  s_renderer_render_finished_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.swapchain_image_count);
+  s_renderer_image_available_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.renderer_frames_in_flight);
   s_renderer_frame_fences = (VkFence *)heap_alloc(sizeof(VkFence) * g_globals.renderer_frames_in_flight);
 
   VkSemaphoreCreateInfo semaphore_create_info = {0};
@@ -440,10 +415,16 @@ static void renderer_create_sync_objects(void) {
   fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+  uint32_t image_index = 0;
+  while (image_index < g_globals.swapchain_image_count) {
+    VULKAN_CHECK(vkCreateSemaphore(g_globals.context_device, &semaphore_create_info, 0, &s_renderer_render_finished_semaphores[image_index]));
+
+    image_index++;
+  }
+
   uint32_t frame_index = 0;
   while (frame_index < g_globals.renderer_frames_in_flight) {
-    VULKAN_CHECK(vkCreateSemaphore(g_globals.context_device, &semaphore_create_info, 0, &s_renderer_graphic_complete_semaphores[frame_index]));
-    VULKAN_CHECK(vkCreateSemaphore(g_globals.context_device, &semaphore_create_info, 0, &s_renderer_present_complete_semaphores[frame_index]));
+    VULKAN_CHECK(vkCreateSemaphore(g_globals.context_device, &semaphore_create_info, 0, &s_renderer_image_available_semaphores[frame_index]));
 
     VULKAN_CHECK(vkCreateFence(g_globals.context_device, &fence_create_info, 0, &s_renderer_frame_fences[frame_index]));
 
@@ -594,17 +575,23 @@ static void renderer_destroy_command_buffer(void) {
   heap_free(g_globals.renderer_graphic_command_buffers);
 }
 static void renderer_destroy_sync_objects(void) {
+  uint32_t image_index = 0;
+  while (image_index < g_globals.swapchain_image_count) {
+    vkDestroySemaphore(g_globals.context_device, s_renderer_render_finished_semaphores[image_index], 0);
+
+    image_index++;
+  }
+
   uint32_t frame_index = 0;
   while (frame_index < g_globals.renderer_frames_in_flight) {
-    vkDestroySemaphore(g_globals.context_device, s_renderer_graphic_complete_semaphores[frame_index], 0);
-    vkDestroySemaphore(g_globals.context_device, s_renderer_present_complete_semaphores[frame_index], 0);
+    vkDestroySemaphore(g_globals.context_device, s_renderer_image_available_semaphores[frame_index], 0);
 
     vkDestroyFence(g_globals.context_device, s_renderer_frame_fences[frame_index], 0);
 
     frame_index++;
   }
 
-  heap_free(s_renderer_graphic_complete_semaphores);
-  heap_free(s_renderer_present_complete_semaphores);
+  heap_free(s_renderer_render_finished_semaphores);
+  heap_free(s_renderer_image_available_semaphores);
   heap_free(s_renderer_frame_fences);
 }
