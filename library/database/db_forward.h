@@ -1,33 +1,36 @@
 #ifndef DB_FORWARD_H
 #define DB_FORWARD_H
 
-typedef int64_t swapchain_id_t;
+typedef int64_t swapchain_asset_id_t;
 
-typedef int64_t renderer_id_t;
+typedef int64_t renderer_asset_id_t;
 
-typedef int64_t pipeline_id_t;
+typedef int64_t pipeline_asset_id_t;
 typedef int64_t pipeline_resource_id_t;
 typedef int64_t pipeline_vertex_input_binding_id_t;
 typedef int64_t pipeline_descriptor_binding_id_t;
 
-typedef int64_t model_id_t;
+typedef int64_t model_asset_id_t;
 typedef int64_t model_resource_id_t;
+typedef int64_t model_mesh_id_t;
+typedef int64_t model_primitive_id_t;
+typedef int64_t model_attribute_id_t;
 
 typedef struct swapchain_asset_t {
-  swapchain_id_t id;
+  swapchain_asset_id_t id;
   string_t name;
   uint32_t image_count;
   uint32_t depth_format;
 } swapchain_asset_t;
 
 typedef struct renderer_asset_t {
-  renderer_id_t id;
+  renderer_asset_id_t id;
   string_t name;
   uint32_t frames_in_flight;
 } renderer_asset_t;
 
 typedef struct pipeline_asset_t {
-  pipeline_id_t id;
+  pipeline_asset_id_t id;
   string_t name;
   uint32_t type;
   uint32_t link_index;
@@ -35,7 +38,7 @@ typedef struct pipeline_asset_t {
 } pipeline_asset_t;
 typedef struct pipeline_resource_t {
   pipeline_resource_id_t id;
-  pipeline_id_t pipeline_id;
+  pipeline_asset_id_t pipeline_asset_id;
   string_t vertex_shader_file_path;
   string_t fragment_shader_file_path;
   string_t compute_shader_file_path;
@@ -45,7 +48,7 @@ typedef struct pipeline_resource_t {
 } pipeline_resource_t;
 typedef struct pipeline_vertex_input_binding_t {
   pipeline_vertex_input_binding_id_t id;
-  pipeline_id_t pipeline_id;
+  pipeline_asset_id_t pipeline_asset_id;
   string_t binding_name;
   uint32_t binding;
   uint32_t location;
@@ -56,7 +59,7 @@ typedef struct pipeline_vertex_input_binding_t {
 } pipeline_vertex_input_binding_t;
 typedef struct pipeline_descriptor_binding_t {
   pipeline_descriptor_binding_id_t id;
-  pipeline_id_t pipeline_id;
+  pipeline_asset_id_t pipeline_asset_id;
   string_t binding_name;
   uint32_t binding;
   uint32_t descriptor_type;
@@ -66,7 +69,7 @@ typedef struct pipeline_descriptor_binding_t {
 } pipeline_descriptor_binding_t;
 
 typedef struct model_asset_t {
-  model_id_t id;
+  model_asset_id_t id;
   string_t name;
 } model_asset_t;
 

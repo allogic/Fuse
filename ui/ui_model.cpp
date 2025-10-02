@@ -94,7 +94,7 @@ static void ui_model_select_new_asset(uint64_t selected_index) {
 static void ui_model_draw_insert() {
   // TODO
   static char model_name[0xFF] = "kalista";
-  static char model_file_path[0xFF] = "C:\\Users\\mialb\\Downloads\\marauder_kalista.glb";
+  static char model_file_path[0xFF] = "C:\\Users\\burm\\Downloads\\marauder_kalista.glb";
 
   ImGui::InputText("Model Name", model_name, sizeof(model_name));
   ImGui::InputText("Model File", model_file_path, sizeof(model_file_path));

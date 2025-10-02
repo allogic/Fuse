@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, uint64_t buffer_size);
+buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *buffer, uint64_t buffer_size);
 VkBuffer buffer_handle(buffer_t *buffer);
 void buffer_destroy(buffer_t *buffer);
 

@@ -1,6 +1,7 @@
 #include <ui/ui_pch.h>
 #include <ui/ui_db.h>
 #include <ui/ui_itself.h>
+#include <ui/ui_renderer.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_win32.h>
@@ -112,6 +113,7 @@ void ui_create(void) {
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
   ui_db_create();
+  ui_renderer_create();
 }
 void ui_draw() {
   ImGui_ImplVulkan_NewFrame();
@@ -121,6 +123,7 @@ void ui_draw() {
   ImGui::NewFrame();
 
   ui_db_draw();
+  ui_renderer_draw();
 
   ImGui::Render();
 
@@ -130,6 +133,7 @@ void ui_draw() {
 }
 void ui_destroy(void) {
   ui_db_destroy();
+  ui_renderer_destroy();
 
   ImGui_ImplVulkan_Shutdown();
 

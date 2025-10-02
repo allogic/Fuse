@@ -5,7 +5,6 @@ typedef struct buffer_t {
   uint64_t buffer_size;
   VkBuffer buffer;
   VkDeviceMemory device_memory;
-  void *mapped_buffer;
 } buffer_t;
 
 typedef struct camera_t {
@@ -48,12 +47,34 @@ typedef struct player_t {
   float rotation_drag;
 } player_t;
 
+typedef struct time_info_t {
+  float time;
+  float delta_time;
+} time_info_t;
+typedef struct screen_info_t {
+  vector2_t resolution;
+} screen_info_t;
+typedef struct camera_info_t {
+  vector3_t world_position;
+  int32_t reserved;
+  matrix4_t view;
+  matrix4_t projection;
+  matrix4_t view_projection;
+  matrix4_t view_projection_inv;
+} camera_info_t;
+
 typedef struct graphic_pipeline_t {
   uint32_t frames_in_flight;
+  uint64_t vertex_input_binding_count;
+  uint64_t descriptor_binding_count;
+  buffer_t *index_buffer;
+  vector_t vertex_input_binding_buffers;
+  vector_t descriptor_binding_buffers;
+  vector_t vertex_input_binding_descriptions;
+  vector_t vertex_input_attribute_descriptions;
+  vector_t descriptor_pool_sizes;
+  vector_t descriptor_set_layout_bindings;
   vector_t descriptor_sets;
-  vector_t write_descriptor_sets;
-  vector_t vertex_buffer_mappings;
-  vector_t index_buffers;
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;
@@ -62,6 +83,8 @@ typedef struct graphic_pipeline_t {
 
 typedef struct compute_pipeline_t {
   uint32_t frames_in_flight;
+  vector_t descriptor_pool_sizes;
+  vector_t descriptor_set_layout_bindings;
   vector_t descriptor_sets;
   vector_t write_descriptor_sets;
   VkDescriptorPool descriptor_pool;
