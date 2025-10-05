@@ -300,8 +300,8 @@ static void ui_pipeline_draw_insert() {
     case 0: {
       // TODO
       static char pipeline_name[0xFF] = "debug_line";
-      static char pipeline_vertex_shader_file_path[0xFF] = "C:\\Users\\burm\\Downloads\\fuse\\shader\\debug\\line.vert.spv";
-      static char pipeline_fragment_shader_file_path[0xFF] = "C:\\Users\\burm\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
+      static char pipeline_vertex_shader_file_path[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.vert.spv";
+      static char pipeline_fragment_shader_file_path[0xFF] = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
 
       ImGui::InputText("Pipeline Name", pipeline_name, sizeof(pipeline_name));
       ImGui::InputText("Vertex File", pipeline_vertex_shader_file_path, sizeof(pipeline_vertex_shader_file_path));

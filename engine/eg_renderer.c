@@ -443,14 +443,22 @@ static void renderer_create_pipelines(void) {
     if (pipeline_asset->auto_create) {
       graphic_pipeline_t *pipeline = graphic_pipeline_create(g_globals.renderer_frames_in_flight, pipeline_asset->id);
 
-      graphic_pipeline_link_vertex_buffer(pipeline, 0, s_renderer_debug_line_world_position_buffers);
-      graphic_pipeline_link_vertex_buffer(pipeline, 1, s_renderer_debug_line_color_buffers);
+      uint64_t frame_index = 0;
+      uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
-      graphic_pipeline_link_index_buffer(pipeline, s_renderer_debug_line_index_buffers);
+      while (frame_index < frame_count) {
 
-      graphic_pipeline_link_uniform_buffer(pipeline, 0, s_renderer_time_info_buffers);
-      graphic_pipeline_link_uniform_buffer(pipeline, 1, s_renderer_screen_info_buffers);
-      graphic_pipeline_link_uniform_buffer(pipeline, 2, s_renderer_camera_info_buffers);
+        graphic_pipeline_link_vertex_input_binding_buffer(pipeline, frame_index, 0, buffer_handle(&s_renderer_debug_line_world_position_buffers[frame_index]), 0);
+        graphic_pipeline_link_vertex_input_binding_buffer(pipeline, frame_index, 1, buffer_handle(&s_renderer_debug_line_color_buffers[frame_index]), 0);
+
+        graphic_pipeline_link_index_buffer(pipeline, frame_index, buffer_handle(&s_renderer_debug_line_index_buffers[frame_index]));
+
+        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 0, buffer_handle(&s_renderer_time_info_buffers[frame_index]));
+        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 1, buffer_handle(&s_renderer_screen_info_buffers[frame_index]));
+        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 2, buffer_handle(&s_renderer_camera_info_buffers[frame_index]));
+
+        frame_index++;
+      }
 
       graphic_pipeline_allocate_descriptor_sets(pipeline, 1);
       graphic_pipeline_update_descriptor_sets(pipeline);
@@ -624,7 +632,7 @@ static void renderer_record_graphic_commands(void) {
       graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
       if (debug_pipeline) {
-        graphic_pipeline_execute(debug_pipeline, s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index]);
+        graphic_pipeline_execute(debug_pipeline, g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index], s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index]);
       }
 
       s_renderer_debug_line_vertex_offsets[g_globals.renderer_frame_index] = 0;
@@ -662,6 +670,7 @@ static void renderer_destroy_debug_buffers(void) {
   uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
   while (frame_index < frame_count) {
+
     buffer_destroy(&s_renderer_debug_line_world_position_buffers[frame_index]);
     buffer_destroy(&s_renderer_debug_line_color_buffers[frame_index]);
     buffer_destroy(&s_renderer_debug_line_index_buffers[frame_index]);

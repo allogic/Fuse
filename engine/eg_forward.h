@@ -64,11 +64,12 @@ typedef struct camera_info_t {
 } camera_info_t;
 
 typedef struct graphic_pipeline_t {
-  uint32_t frames_in_flight;
   uint64_t vertex_input_binding_count;
   uint64_t descriptor_binding_count;
-  buffer_t *index_buffer;
+  // uint64_t descriptor_count;
   vector_t vertex_input_binding_buffers;
+  vector_t vertex_input_binding_offsets;
+  vector_t index_buffers;
   vector_t descriptor_binding_buffers;
   vector_t vertex_input_binding_descriptions;
   vector_t vertex_input_attribute_descriptions;

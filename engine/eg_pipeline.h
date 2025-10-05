@@ -6,9 +6,9 @@ extern "C" {
 #endif // __cplusplus
 
 graphic_pipeline_t *graphic_pipeline_create(uint32_t frames_in_flight, pipeline_asset_id_t pipeline_asset_id);
-void graphic_pipeline_link_vertex_buffer(graphic_pipeline_t *pipeline, uint32_t index, buffer_t *buffer);
-void graphic_pipeline_link_index_buffer(graphic_pipeline_t *pipeline, buffer_t *buffer);
-void graphic_pipeline_link_uniform_buffer(graphic_pipeline_t *pipeline, uint32_t index, buffer_t *buffer);
+void graphic_pipeline_link_vertex_input_binding_buffer(graphic_pipeline_t *pipeline, uint64_t frame_index, uint64_t binding_index, VkBuffer buffer, uint64_t offset);
+void graphic_pipeline_link_index_buffer(graphic_pipeline_t *pipeline, uint64_t index, VkBuffer buffer);
+void graphic_pipeline_link_descriptor_binding_buffer(graphic_pipeline_t *pipeline, uint64_t frame_index, uint64_t binding_index, VkBuffer buffer);
 void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uint64_t descriptor_count);
 void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline);
 void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer command_buffer, uint32_t index_count);
