@@ -21,6 +21,9 @@ graphic_pipeline_t *graphic_pipeline_create(uint32_t frames_in_flight, pipeline_
 
   pipeline_resource_t pipeline_resource = database_load_pipeline_resource_by_id(pipeline_asset_id);
 
+  pipeline->vertex_input_binding_count = 0;
+  pipeline->descriptor_binding_count = 0;
+  pipeline->descriptor_set_count = 0;
   pipeline->vertex_input_binding_count = database_load_vertex_input_binding_count(pipeline_asset_id);
   pipeline->descriptor_binding_count = database_load_descriptor_binding_count(pipeline_asset_id);
   pipeline->vertex_input_binding_buffers = vector_create(sizeof(vector_t));
@@ -31,7 +34,9 @@ graphic_pipeline_t *graphic_pipeline_create(uint32_t frames_in_flight, pipeline_
   pipeline->vertex_input_attribute_descriptions = pipeline_create_vertex_input_attribute_descriptions(pipeline_asset_id);
   pipeline->descriptor_pool_sizes = pipeline_create_descriptor_pool_sizes(pipeline_asset_id);
   pipeline->descriptor_set_layout_bindings = pipeline_create_descriptor_set_layout_bindings(pipeline_asset_id);
+  pipeline->descriptor_set_layouts = vector_create(sizeof(VkDescriptorSetLayout));
   pipeline->descriptor_sets = vector_create(sizeof(VkDescriptorSet));
+  pipeline->write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
 
   graphic_pipeline_create_frame_dependant_buffers(pipeline);
 
@@ -57,25 +62,22 @@ void graphic_pipeline_link_descriptor_binding_buffer(graphic_pipeline_t *pipelin
   vector_set(curr_frame_descriptor_binding_buffers, binding_index, &buffer);
 }
 void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uint64_t descriptor_count) {
-  vector_t descriptor_set_layouts = vector_create(sizeof(VkDescriptorSetLayout)); // TODO: move to struct..
-
-  pipeline->descriptor_count = descriptor_count;
+  pipeline->descriptor_set_count = descriptor_count;
 
   // TODO: double check these counts..
-  vector_resize(&descriptor_set_layouts, descriptor_count);
-  vector_resize(&pipeline->descriptor_sets, descriptor_count);
+  vector_resize(&pipeline->descriptor_set_layouts, g_globals.renderer_frames_in_flight * descriptor_count);
+  vector_resize(&pipeline->descriptor_sets, g_globals.renderer_frames_in_flight * descriptor_count);
+  vector_resize(&pipeline->write_descriptor_sets, g_globals.renderer_frames_in_flight * descriptor_count * pipeline->descriptor_binding_count);
 
-  vector_fill(&descriptor_set_layouts, &pipeline->descriptor_set_layout);
+  vector_fill(&pipeline->descriptor_set_layouts, &pipeline->descriptor_set_layout);
 
   VkDescriptorSetAllocateInfo descriptor_set_allocate_info = {0};
   descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   descriptor_set_allocate_info.descriptorPool = pipeline->descriptor_pool;
-  descriptor_set_allocate_info.descriptorSetCount = (uint32_t)vector_count(&descriptor_set_layouts);
-  descriptor_set_allocate_info.pSetLayouts = vector_buffer(&descriptor_set_layouts);
+  descriptor_set_allocate_info.descriptorSetCount = (uint32_t)vector_count(&pipeline->descriptor_set_layouts);
+  descriptor_set_allocate_info.pSetLayouts = vector_buffer(&pipeline->descriptor_set_layouts);
 
   VULKAN_CHECK(vkAllocateDescriptorSets(g_globals.context_device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
-
-  vector_destroy(&descriptor_set_layouts);
 }
 void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
@@ -83,64 +85,70 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
 
   while (frame_index < frame_count) {
 
-    vector_t write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet)); // TODO: move to struct..
-
-    vector_resize(&write_descriptor_sets, pipeline->descriptor_binding_count);
-
     vector_t *curr_frame_descriptor_binding_buffers = (vector_t *)vector_at(&pipeline->descriptor_binding_buffers, frame_index);
 
-    // VkDescriptorSet curr_descriptor_sets = *(VkDescriptorSet *)vector_at(&pipeline->descriptor_sets, frame_index);
+    uint64_t descriptor_set_index = 0;
+    uint64_t descriptor_set_count = pipeline->descriptor_set_count;
 
-    uint64_t descriptor_binding_index = 0;
-    uint64_t descriptor_binding_count = pipeline->descriptor_binding_count;
+    while (descriptor_set_index < descriptor_set_count) {
 
-    while (descriptor_binding_index < descriptor_binding_count) {
+      uint64_t descriptor_binding_index = 0;
+      uint64_t descriptor_binding_count = pipeline->descriptor_binding_count;
 
-      VkBuffer descriptor_binding_buffer = *(VkBuffer *)vector_at(curr_frame_descriptor_binding_buffers, descriptor_binding_index);
-      VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)vector_at(&pipeline->descriptor_set_layout_bindings, descriptor_binding_index);
-      VkWriteDescriptorSet *write_descriptor_set = (VkWriteDescriptorSet *)vector_at(&write_descriptor_sets, descriptor_binding_index);
+      while (descriptor_binding_index < descriptor_binding_count) {
 
-      memset(write_descriptor_set, 0, sizeof(VkWriteDescriptorSet));
+        uint64_t curr_descriptor_binding_buffer_index = descriptor_binding_index;
+        uint64_t curr_descriptor_set_layout_binding_index = descriptor_binding_index;
+        uint64_t curr_descriptor_set_index = (frame_index) + (descriptor_set_index * frame_count);
+        uint64_t curr_write_descriptor_set_index = (frame_index) + (descriptor_set_index * frame_count) + (descriptor_binding_index * frame_count * descriptor_set_count);
 
-      switch (descriptor_set_layout_binding->descriptorType) {
-        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-          VkDescriptorBufferInfo descriptor_buffer_info = {0};
+        VkBuffer descriptor_binding_buffer = *(VkBuffer *)vector_at(curr_frame_descriptor_binding_buffers, curr_descriptor_binding_buffer_index);
+        VkDescriptorSetLayoutBinding *descriptor_set_layout_binding = (VkDescriptorSetLayoutBinding *)vector_at(&pipeline->descriptor_set_layout_bindings, curr_descriptor_set_layout_binding_index);
+        VkDescriptorSet descriptor_set = *(VkDescriptorSet *)vector_at(&pipeline->descriptor_sets, curr_descriptor_set_index);
+        VkWriteDescriptorSet *write_descriptor_set = (VkWriteDescriptorSet *)vector_at(&pipeline->write_descriptor_sets, curr_write_descriptor_set_index);
 
-          descriptor_buffer_info.offset = 0;
-          descriptor_buffer_info.buffer = descriptor_binding_buffer;
-          descriptor_buffer_info.range = VK_WHOLE_SIZE;
+        memset(write_descriptor_set, 0, sizeof(VkWriteDescriptorSet));
 
-          write_descriptor_set->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-          write_descriptor_set->pNext = 0;
-          write_descriptor_set->dstSet = descriptor_set[frame_index]; // TODO: ???
-          write_descriptor_set->dstBinding = descriptor_set_layout_binding->binding;
-          write_descriptor_set->dstArrayElement = 0;
-          write_descriptor_set->descriptorCount = 1; // TODO: support arrays..
-          write_descriptor_set->descriptorType = descriptor_set_layout_binding->descriptorType;
-          write_descriptor_set->pImageInfo = 0;
-          write_descriptor_set->pBufferInfo = &descriptor_buffer_info;
-          write_descriptor_set->pTexelBufferView = 0;
+        switch (descriptor_set_layout_binding->descriptorType) {
+          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+            VkDescriptorBufferInfo descriptor_buffer_info = {0};
 
-          break;
+            descriptor_buffer_info.offset = 0;
+            descriptor_buffer_info.buffer = descriptor_binding_buffer;
+            descriptor_buffer_info.range = VK_WHOLE_SIZE;
+
+            write_descriptor_set->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write_descriptor_set->pNext = 0;
+            write_descriptor_set->dstSet = descriptor_set;
+            write_descriptor_set->dstBinding = descriptor_set_layout_binding->binding;
+            write_descriptor_set->dstArrayElement = 0;
+            write_descriptor_set->descriptorCount = 1; // TODO: support arrays..
+            write_descriptor_set->descriptorType = descriptor_set_layout_binding->descriptorType;
+            write_descriptor_set->pImageInfo = 0;
+            write_descriptor_set->pBufferInfo = &descriptor_buffer_info;
+            write_descriptor_set->pTexelBufferView = 0;
+
+            break;
+          }
         }
+
+        descriptor_binding_index++;
       }
 
-      descriptor_binding_index++;
+      descriptor_set_index++;
     }
-
-    vkUpdateDescriptorSets(g_globals.context_device, (int32_t)vector_count(&write_descriptor_sets), vector_buffer(&write_descriptor_sets), 0, 0);
 
     frame_index++;
   }
 
-  vector_destroy(&write_descriptor_sets);
+  vkUpdateDescriptorSets(g_globals.context_device, (int32_t)vector_count(&pipeline->write_descriptor_sets), vector_buffer(&pipeline->write_descriptor_sets), 0, 0);
 }
 void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer command_buffer, uint32_t index_count) {
   vector_t *curr_frame_vertex_buffers = (vector_t *)vector_at(&pipeline->vertex_input_binding_buffers, g_globals.renderer_frame_index);
   vector_t *curr_frame_vertex_offsets = (vector_t *)vector_at(&pipeline->vertex_input_binding_offsets, g_globals.renderer_frame_index);
 
-  VkBuffer *vertex_buffers = vector_buffer(curr_frame_vertex_buffers);
-  uint64_t *vertex_offsets = vector_buffer(curr_frame_vertex_offsets);
+  VkBuffer *vertex_buffers = (VkBuffer *)vector_buffer(curr_frame_vertex_buffers);
+  uint64_t *vertex_offsets = (uint64_t *)vector_buffer(curr_frame_vertex_offsets);
 
   VkBuffer index_buffer = *(VkBuffer *)vector_at(&pipeline->index_buffers, g_globals.renderer_frame_index);
 
@@ -156,7 +164,6 @@ void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer comm
 void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   graphic_pipeline_destroy_frame_dependant_buffers(pipeline);
 
-  vector_destroy(&pipeline->index_buffers);
   vector_destroy(&pipeline->vertex_input_binding_buffers);
   vector_destroy(&pipeline->vertex_input_binding_offsets);
   vector_destroy(&pipeline->index_buffers);
@@ -165,7 +172,9 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   vector_destroy(&pipeline->vertex_input_attribute_descriptions);
   vector_destroy(&pipeline->descriptor_pool_sizes);
   vector_destroy(&pipeline->descriptor_set_layout_bindings);
+  vector_destroy(&pipeline->descriptor_set_layouts);
   vector_destroy(&pipeline->descriptor_sets);
+  vector_destroy(&pipeline->write_descriptor_sets);
 
   vkDestroyDescriptorPool(g_globals.context_device, pipeline->descriptor_pool, 0);
   vkDestroyDescriptorSetLayout(g_globals.context_device, pipeline->descriptor_set_layout, 0);
@@ -457,12 +466,12 @@ static vector_t pipeline_create_descriptor_set_layout_bindings(pipeline_asset_id
 }
 
 static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
-  vector_resize(&pipeline->vertex_input_binding_buffers, pipeline->frames_in_flight);
-  vector_resize(&pipeline->vertex_input_binding_offsets, pipeline->frames_in_flight);
-  vector_resize(&pipeline->descriptor_binding_buffers, pipeline->frames_in_flight);
+  vector_resize(&pipeline->vertex_input_binding_buffers, g_globals.renderer_frames_in_flight);
+  vector_resize(&pipeline->vertex_input_binding_offsets, g_globals.renderer_frames_in_flight);
+  vector_resize(&pipeline->descriptor_binding_buffers, g_globals.renderer_frames_in_flight);
 
   uint64_t frame_index = 0;
-  uint64_t frame_count = pipeline->frames_in_flight;
+  uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
   while (frame_index < frame_count) {
 
@@ -489,7 +498,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline, pipeline_resour
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.pPoolSizes = vector_buffer(&pipeline->descriptor_pool_sizes);
   descriptor_pool_create_info.poolSizeCount = (uint32_t)vector_count(&pipeline->descriptor_pool_sizes);
-  descriptor_pool_create_info.maxSets = pipeline->frames_in_flight; // TODO: Double check that..
+  descriptor_pool_create_info.maxSets = g_globals.renderer_frames_in_flight; // TODO: Double check that..
 
   VULKAN_CHECK(vkCreateDescriptorPool(g_globals.context_device, &descriptor_pool_create_info, 0, &pipeline->descriptor_pool));
 
@@ -654,7 +663,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline, pipeline_resour
 
 static void graphic_pipeline_destroy_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
-  uint64_t frame_count = pipeline->frames_in_flight;
+  uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
   while (frame_index < frame_count) {
 

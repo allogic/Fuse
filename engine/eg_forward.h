@@ -66,7 +66,7 @@ typedef struct camera_info_t {
 typedef struct graphic_pipeline_t {
   uint64_t vertex_input_binding_count;
   uint64_t descriptor_binding_count;
-  // uint64_t descriptor_count;
+  uint64_t descriptor_set_count;
   vector_t vertex_input_binding_buffers;
   vector_t vertex_input_binding_offsets;
   vector_t index_buffers;
@@ -75,7 +75,9 @@ typedef struct graphic_pipeline_t {
   vector_t vertex_input_attribute_descriptions;
   vector_t descriptor_pool_sizes;
   vector_t descriptor_set_layout_bindings;
+  vector_t descriptor_set_layouts;
   vector_t descriptor_sets;
+  vector_t write_descriptor_sets;
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;
