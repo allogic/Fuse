@@ -3,7 +3,7 @@
 
 #include <imgui/imgui.h>
 
-static void ui_pipeline_select_new_asset(uint64_t selected_index);
+static void ui_pipeline_select_asset(uint64_t selected_index);
 static void ui_pipeline_draw_insert();
 
 static vector_t s_ui_pipeline_assets = {};
@@ -64,12 +64,14 @@ void ui_pipeline_draw() {
       ImGuiTableFlags_SizingStretchProp;
 
     ImGui::Text("Assets");
-    if (ImGui::BeginTable("##PipelineAssetTable", 5, pipeline_table_flags)) {
+    if (ImGui::BeginTable("##PipelineAssetTable", 7, pipeline_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
       ImGui::TableSetupColumn("TYPE", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("LINK_INDEX", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("AUTO_CREATE", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("AUTO_VERTEX_INPUT_BUFFER", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("INTERLEAVED_VERTEX_INPUT_BUFFER", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableHeadersRow();
 
       uint64_t pipeline_asset_index = 0;
@@ -86,8 +88,8 @@ void ui_pipeline_draw() {
         ImGui::Text("%d", pipeline_asset->id);
 
         ImGui::TableSetColumnIndex(1);
-        if (ImGui::Selectable(string_buffer(&pipeline_asset->name), (pipeline_asset_index == s_ui_selected_pipeline_asset), ImGuiSelectableFlags_SpanAllColumns)) {
-          ui_pipeline_select_new_asset(pipeline_asset_index);
+        if (ImGui::Selectable(pipeline_asset->name, (pipeline_asset_index == s_ui_selected_pipeline_asset), ImGuiSelectableFlags_SpanAllColumns)) {
+          ui_pipeline_select_asset(pipeline_asset_index);
         }
 
         ImGui::TableSetColumnIndex(2);
@@ -98,6 +100,12 @@ void ui_pipeline_draw() {
 
         ImGui::TableSetColumnIndex(4);
         ImGui::Text("%d", pipeline_asset->auto_create);
+
+        ImGui::TableSetColumnIndex(5);
+        ImGui::Text("%d", pipeline_asset->auto_vertex_input_buffer);
+
+        ImGui::TableSetColumnIndex(6);
+        ImGui::Text("%d", pipeline_asset->interleaved_vertex_input_buffer);
 
         ImGui::PopID();
 
@@ -116,14 +124,13 @@ void ui_pipeline_draw() {
       ImGuiTableFlags_SizingStretchProp;
 
     ImGui::Text("Vertex Input Bindings");
-    if (ImGui::BeginTable("##PipelineVertexInputBindingTable", 8, pipeline_vertex_input_binding_table_flags)) {
+    if (ImGui::BeginTable("##PipelineVertexInputBindingTable", 7, pipeline_vertex_input_binding_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("BINDING_NAME", ImGuiTableColumnFlags_WidthStretch);
-      ImGui::TableSetupColumn("BINDING", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("LOCATION", ImGuiTableColumnFlags_WidthFixed);
-      ImGui::TableSetupColumn("STRIDE", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("SIZE", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("COMPONENT_COUNT", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("FORMAT", ImGuiTableColumnFlags_WidthFixed);
-      ImGui::TableSetupColumn("OFFSET", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("INPUT_RATE", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableHeadersRow();
 
@@ -141,24 +148,21 @@ void ui_pipeline_draw() {
         ImGui::Text("%d", pipeline_vertex_input_binding->id);
 
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text("%s", string_buffer(&pipeline_vertex_input_binding->binding_name));
+        ImGui::Text("%s", pipeline_vertex_input_binding->binding_name);
 
         ImGui::TableSetColumnIndex(2);
-        ImGui::Text("%d", pipeline_vertex_input_binding->binding);
-
-        ImGui::TableSetColumnIndex(3);
         ImGui::Text("%d", pipeline_vertex_input_binding->location);
 
+        ImGui::TableSetColumnIndex(3);
+        ImGui::Text("%d", pipeline_vertex_input_binding->size);
+
         ImGui::TableSetColumnIndex(4);
-        ImGui::Text("%d", pipeline_vertex_input_binding->stride);
+        ImGui::Text("%d", pipeline_vertex_input_binding->component_count);
 
         ImGui::TableSetColumnIndex(5);
         ImGui::Text("%d", pipeline_vertex_input_binding->format);
 
         ImGui::TableSetColumnIndex(6);
-        ImGui::Text("%d", pipeline_vertex_input_binding->offset);
-
-        ImGui::TableSetColumnIndex(7);
         ImGui::Text("%d", pipeline_vertex_input_binding->input_rate);
 
         ImGui::PopID();
@@ -202,7 +206,7 @@ void ui_pipeline_draw() {
         ImGui::Text("%d", pipeline_descriptor_binding->id);
 
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text("%s", string_buffer(&pipeline_descriptor_binding->binding_name));
+        ImGui::Text("%s", pipeline_descriptor_binding->binding_name);
 
         ImGui::TableSetColumnIndex(2);
         ImGui::Text("%d", pipeline_descriptor_binding->binding);
@@ -247,7 +251,7 @@ void ui_pipeline_destroy() {
   s_ui_selected_pipeline_descriptor_bindings = -1;
 }
 
-static void ui_pipeline_select_new_asset(uint64_t selected_index) {
+static void ui_pipeline_select_asset(uint64_t selected_index) {
   if (s_ui_selected_pipeline_asset >= 0) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_front(&s_ui_pipeline_assets);
 
@@ -307,8 +311,25 @@ static void ui_pipeline_draw_insert() {
       ImGui::InputText("Vertex File", pipeline_vertex_shader_file_path, sizeof(pipeline_vertex_shader_file_path));
       ImGui::InputText("Fragment File", pipeline_fragment_shader_file_path, sizeof(pipeline_fragment_shader_file_path));
 
+      static uint8_t auto_create = 1;
+      static uint8_t auto_vertex_input_buffer = 1;
+      static uint8_t interleaved_vertex_input = 1;
+
+      ImGui::Checkbox("Auto Create", (bool *)&auto_create);
+      ImGui::Checkbox("Auto Vertex Input Buffer", (bool *)&auto_vertex_input_buffer);
+      ImGui::Checkbox("Interleaved Vertex Input", (bool *)&interleaved_vertex_input);
+
       if (ImGui::Button("Create Pipeline")) {
-        importer_import_graphic_pipeline(pipeline_name, pipeline_vertex_shader_file_path, pipeline_fragment_shader_file_path);
+        graphic_pipeline_import_settings_t import_settings = {0};
+
+        import_settings.pipeline_name = pipeline_name;
+        import_settings.vertex_shader_file_path = pipeline_vertex_shader_file_path;
+        import_settings.fragment_shader_file_path = pipeline_fragment_shader_file_path;
+        import_settings.auto_create = auto_create;
+        import_settings.auto_vertex_input_buffer = auto_vertex_input_buffer;
+        import_settings.interleaved_vertex_input = interleaved_vertex_input;
+
+        importer_import_graphic_pipeline(&import_settings);
 
         ui_pipeline_refresh();
       }
@@ -323,7 +344,12 @@ static void ui_pipeline_draw_insert() {
       ImGui::InputText("Compute File", pipeline_compute_shader_file_path, sizeof(pipeline_compute_shader_file_path));
 
       if (ImGui::Button("Create Pipeline")) {
-        importer_import_compute_pipeline(pipeline_name, pipeline_compute_shader_file_path);
+        compute_pipeline_import_settings_t import_settings = {0};
+
+        import_settings.pipeline_name = pipeline_name;
+        import_settings.compute_shader_file_path = pipeline_compute_shader_file_path;
+
+        importer_import_compute_pipeline(&import_settings);
 
         ui_pipeline_refresh();
       }

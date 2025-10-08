@@ -7,10 +7,9 @@
 
 static void player_handle_position(player_t *player);
 static void player_handle_rotation(player_t *player);
-static void player_handle_raycast(player_t *player); // TODO
 
 player_t *player_create(void) {
-  player_t *player = (player_t *)heap_alloc(sizeof(player_t));
+  player_t *player = (player_t *)heap_alloc(sizeof(player_t), 0, 0);
 
   memset(player, 0, sizeof(player_t));
 
@@ -33,7 +32,6 @@ player_t *player_create(void) {
 void player_update(player_t *player) {
   player_handle_position(player);
   player_handle_rotation(player);
-  player_handle_raycast(player);
 }
 void player_destroy(player_t *player) {
   camera_destroy(player->camera);
@@ -150,13 +148,4 @@ static void player_handle_rotation(player_t *player) {
   mouse_damping = vector3_muls(mouse_damping, (float)g_globals.context_delta_time);
 
   player->mouse_begin = vector3_sub(player->mouse_begin, mouse_damping);
-}
-static void player_handle_raycast(player_t *player) {
-  {
-    vector3_t position = {0.0F, 0.0F, 0.0F};
-    vector3_t size = {32.0F, 32.0F, 32.0F};
-    vector4_t color = {0.5F, 0.8F, 0.0F, 1.0F};
-
-    renderer_draw_debug_box(position, size, color);
-  }
 }

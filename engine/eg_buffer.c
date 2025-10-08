@@ -26,8 +26,7 @@ buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffe
 
   VULKAN_CHECK(vkAllocateMemory(g_globals.context_device, &memory_allocate_info, 0, &buffer.device_memory));
   VULKAN_CHECK(vkBindBufferMemory(g_globals.context_device, buffer.buffer, buffer.device_memory, 0));
-
-  VULKAN_CHECK(vkMapMemory(g_globals.context_device, buffer.device_memory, 0, buffer.buffer_size, 0, &mapped_buffer));
+  VULKAN_CHECK(vkMapMemory(g_globals.context_device, buffer.device_memory, 0, buffer.buffer_size, 0, mapped_buffer));
 
   return buffer;
 }

@@ -134,8 +134,8 @@ static void swapchain_create_render_pass(void) {
   VULKAN_CHECK(vkCreateRenderPass(g_globals.context_device, &render_pass_create_info, 0, &g_globals.swapchain_render_pass));
 }
 static void swapchain_create_color_images(void) {
-  s_swapchain_color_image = (VkImage *)heap_alloc(sizeof(VkImage) * g_globals.swapchain_image_count);
-  s_swapchain_color_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * g_globals.swapchain_image_count);
+  s_swapchain_color_image = (VkImage *)heap_alloc(sizeof(VkImage) * g_globals.swapchain_image_count, 0, 0);
+  s_swapchain_color_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * g_globals.swapchain_image_count, 0, 0);
 
   VULKAN_CHECK(vkGetSwapchainImagesKHR(g_globals.context_device, g_globals.swapchain, &g_globals.swapchain_image_count, s_swapchain_color_image));
 
@@ -158,9 +158,9 @@ static void swapchain_create_color_images(void) {
   }
 }
 static void swapchain_create_depth_images(void) {
-  s_swapchain_depth_image = (VkImage *)heap_alloc(sizeof(VkImage) * g_globals.swapchain_image_count);
-  s_swapchain_depth_image_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * g_globals.swapchain_image_count);
-  s_swapchain_depth_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * g_globals.swapchain_image_count);
+  s_swapchain_depth_image = (VkImage *)heap_alloc(sizeof(VkImage) * g_globals.swapchain_image_count, 0, 0);
+  s_swapchain_depth_image_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * g_globals.swapchain_image_count, 0, 0);
+  s_swapchain_depth_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * g_globals.swapchain_image_count, 0, 0);
 
   uint32_t image_index = 0;
   while (image_index < g_globals.swapchain_image_count) {
@@ -212,7 +212,7 @@ static void swapchain_create_depth_images(void) {
   }
 }
 static void swapchain_create_frame_buffer(void) {
-  g_globals.swapchain_frame_buffers = (VkFramebuffer *)heap_alloc(sizeof(VkFramebuffer) * g_globals.swapchain_image_count);
+  g_globals.swapchain_frame_buffers = (VkFramebuffer *)heap_alloc(sizeof(VkFramebuffer) * g_globals.swapchain_image_count, 0, 0);
 
   uint32_t image_index = 0;
   while (image_index < g_globals.swapchain_image_count) {

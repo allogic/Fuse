@@ -46,9 +46,9 @@ static VkSemaphore *s_renderer_image_available_semaphores = 0;
 
 static VkFence *s_renderer_frame_fences = 0;
 
-static time_info_t *s_renderer_time_infos = 0;
-static screen_info_t *s_renderer_screen_infos = 0;
-static camera_info_t *s_renderer_camera_infos = 0;
+static time_info_t **s_renderer_time_infos = 0;
+static screen_info_t **s_renderer_screen_infos = 0;
+static camera_info_t **s_renderer_camera_infos = 0;
 
 static buffer_t *s_renderer_time_info_buffers = 0;
 static buffer_t *s_renderer_screen_info_buffers = 0;
@@ -79,12 +79,6 @@ void renderer_create(void) {
   memset(s_renderer_pipeline_types, 0, sizeof(s_renderer_pipeline_types));
   memset(s_renderer_pipeline_links, 0, sizeof(s_renderer_pipeline_links));
 
-  s_renderer_debug_line_vertex_offsets = (uint32_t *)heap_alloc(sizeof(uint32_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_debug_line_index_offsets = (uint32_t *)heap_alloc(sizeof(uint32_t) * g_globals.renderer_frames_in_flight);
-
-  memset(s_renderer_debug_line_vertex_offsets, 0, sizeof(uint32_t) * g_globals.renderer_frames_in_flight);
-  memset(s_renderer_debug_line_index_offsets, 0, sizeof(uint32_t) * g_globals.renderer_frames_in_flight);
-
   renderer_create_global_buffers();
   renderer_create_debug_buffers();
   renderer_create_pipelines();
@@ -98,20 +92,20 @@ void renderer_create(void) {
 void renderer_update(void) {
   if (g_globals.renderer_enable_debug) {
     vector3_t right_position = {0.0F, 0.0F, 0.0F};
-    vector3_t right_direction = {1.0F, 0.0F, 0.0F};
-    vector4_t right_color = {1.0F, 0.0F, 0.0F, 1.0F};
+    vector3_t right_direction = {6.0F, 0.0F, 0.0F};
+    vector4_t right_color = {666.0F, 0.0F, 0.0F, 1.0F};
 
     renderer_draw_debug_line(right_position, right_direction, right_color);
 
     vector3_t up_position = {0.0F, 0.0F, 0.0F};
-    vector3_t up_direction = {0.0F, 1.0F, 0.0F};
-    vector4_t up_color = {0.0F, 1.0F, 0.0F, 1.0F};
+    vector3_t up_direction = {0.0F, 5.0F, 0.0F};
+    vector4_t up_color = {0.0F, 555.0F, 0.0F, 1.0F};
 
     renderer_draw_debug_line(up_position, up_direction, up_color);
 
     vector3_t front_position = {0.0F, 0.0F, 0.0F};
-    vector3_t front_direction = {0.0F, 0.0F, 1.0F};
-    vector4_t front_color = {0.0F, 0.0F, 1.0F, 1.0F};
+    vector3_t front_direction = {0.0F, 0.0F, 4.0F};
+    vector4_t front_color = {0.0F, 0.0F, 444.0F, 1.0F};
 
     renderer_draw_debug_line(front_position, front_direction, front_color);
   }
@@ -261,9 +255,6 @@ void renderer_destroy(void) {
 
   UI_DESTROY();
 
-  heap_free(s_renderer_debug_line_vertex_offsets);
-  heap_free(s_renderer_debug_line_index_offsets);
-
   renderer_destroy_global_buffers();
   renderer_destroy_debug_buffers();
   renderer_destroy_pipelines();
@@ -276,26 +267,24 @@ void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color) {
     graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
-      /*
-            uint64_t vertex_offset = *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index);
-            uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index);
+      uint32_t vertex_offset = s_renderer_debug_line_vertex_offsets[g_globals.renderer_frame_index];
+      uint32_t index_offset = s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index];
 
-            vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 0);
-            vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 1);
-            uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, g_globals.renderer_frame_index);
+      vector3_t *world_positions = s_renderer_debug_line_world_positions[g_globals.renderer_frame_index];
+      vector4_t *colors = s_renderer_debug_line_colors[g_globals.renderer_frame_index];
+      uint32_t *indices = s_renderer_debug_line_indices[g_globals.renderer_frame_index];
 
-            world_positions[vertex_offset + 0] = (vector3_t){from.x, from.y, from.z};
-            world_positions[vertex_offset + 1] = (vector3_t){to.x, to.y, to.z};
+      world_positions[vertex_offset + 0] = from;
+      world_positions[vertex_offset + 1] = to;
 
-            colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
+      colors[vertex_offset + 0] = color;
+      colors[vertex_offset + 1] = color;
 
-            indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
-            indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
 
-            *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index) += 2;
-            *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index) += 2;
-      */
+      s_renderer_debug_line_vertex_offsets[g_globals.renderer_frame_index] += 2;
+      s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index] += 2;
     }
   }
 }
@@ -304,60 +293,58 @@ void renderer_draw_debug_box(vector3_t position, vector3_t size, vector4_t color
     graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
-      /*
-            uint64_t vertex_offset = *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index);
-            uint64_t index_offset = *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index);
+      uint32_t vertex_offset = s_renderer_debug_line_vertex_offsets[g_globals.renderer_frame_index];
+      uint32_t index_offset = s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index];
 
-            vector3_t *world_positions = (vector3_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 0);
-            vector4_t *colors = (vector4_t *)graphic_pipeline_vertex_buffer(debug_pipeline, g_globals.renderer_frame_index, 1);
-            uint32_t *indices = (uint32_t *)graphic_pipeline_index_buffer(debug_pipeline, g_globals.renderer_frame_index);
+      vector3_t *world_positions = s_renderer_debug_line_world_positions[g_globals.renderer_frame_index];
+      vector4_t *colors = s_renderer_debug_line_colors[g_globals.renderer_frame_index];
+      uint32_t *indices = s_renderer_debug_line_indices[g_globals.renderer_frame_index];
 
-            world_positions[vertex_offset + 0] = (vector3_t){position.x, position.y, position.z};
-            world_positions[vertex_offset + 1] = (vector3_t){position.x, position.y + size.y, position.z};
-            world_positions[vertex_offset + 2] = (vector3_t){position.x + size.x, position.y, position.z};
-            world_positions[vertex_offset + 3] = (vector3_t){position.x + size.x, position.y + size.y, position.z};
-            world_positions[vertex_offset + 4] = (vector3_t){position.x, position.y, position.z + size.z};
-            world_positions[vertex_offset + 5] = (vector3_t){position.x, position.y + size.y, position.z + size.z};
-            world_positions[vertex_offset + 6] = (vector3_t){position.x + size.x, position.y, position.z + size.z};
-            world_positions[vertex_offset + 7] = (vector3_t){position.x + size.x, position.y + size.y, position.z + size.z};
+      world_positions[vertex_offset + 0] = (vector3_t){position.x, position.y, position.z};
+      world_positions[vertex_offset + 1] = (vector3_t){position.x, position.y + size.y, position.z};
+      world_positions[vertex_offset + 2] = (vector3_t){position.x + size.x, position.y, position.z};
+      world_positions[vertex_offset + 3] = (vector3_t){position.x + size.x, position.y + size.y, position.z};
+      world_positions[vertex_offset + 4] = (vector3_t){position.x, position.y, position.z + size.z};
+      world_positions[vertex_offset + 5] = (vector3_t){position.x, position.y + size.y, position.z + size.z};
+      world_positions[vertex_offset + 6] = (vector3_t){position.x + size.x, position.y, position.z + size.z};
+      world_positions[vertex_offset + 7] = (vector3_t){position.x + size.x, position.y + size.y, position.z + size.z};
 
-            colors[vertex_offset + 0] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 1] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 2] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 3] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 4] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 5] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 6] = (vector4_t){color.x, color.y, color.z, color.w};
-            colors[vertex_offset + 7] = (vector4_t){color.x, color.y, color.z, color.w};
+      colors[vertex_offset + 0] = color;
+      colors[vertex_offset + 1] = color;
+      colors[vertex_offset + 2] = color;
+      colors[vertex_offset + 3] = color;
+      colors[vertex_offset + 4] = color;
+      colors[vertex_offset + 5] = color;
+      colors[vertex_offset + 6] = color;
+      colors[vertex_offset + 7] = color;
 
-            indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
-            indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
-            indices[index_offset + 2] = (uint32_t)(vertex_offset + 1);
-            indices[index_offset + 3] = (uint32_t)(vertex_offset + 3);
-            indices[index_offset + 4] = (uint32_t)(vertex_offset + 3);
-            indices[index_offset + 5] = (uint32_t)(vertex_offset + 2);
-            indices[index_offset + 6] = (uint32_t)(vertex_offset + 2);
-            indices[index_offset + 7] = (uint32_t)(vertex_offset + 0);
-            indices[index_offset + 8] = (uint32_t)(vertex_offset + 4);
-            indices[index_offset + 9] = (uint32_t)(vertex_offset + 5);
-            indices[index_offset + 10] = (uint32_t)(vertex_offset + 5);
-            indices[index_offset + 11] = (uint32_t)(vertex_offset + 7);
-            indices[index_offset + 12] = (uint32_t)(vertex_offset + 7);
-            indices[index_offset + 13] = (uint32_t)(vertex_offset + 6);
-            indices[index_offset + 14] = (uint32_t)(vertex_offset + 6);
-            indices[index_offset + 15] = (uint32_t)(vertex_offset + 4);
-            indices[index_offset + 16] = (uint32_t)(vertex_offset + 0);
-            indices[index_offset + 17] = (uint32_t)(vertex_offset + 4);
-            indices[index_offset + 18] = (uint32_t)(vertex_offset + 1);
-            indices[index_offset + 19] = (uint32_t)(vertex_offset + 5);
-            indices[index_offset + 20] = (uint32_t)(vertex_offset + 2);
-            indices[index_offset + 21] = (uint32_t)(vertex_offset + 6);
-            indices[index_offset + 22] = (uint32_t)(vertex_offset + 3);
-            indices[index_offset + 23] = (uint32_t)(vertex_offset + 7);
+      indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 2] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 3] = (uint32_t)(vertex_offset + 3);
+      indices[index_offset + 4] = (uint32_t)(vertex_offset + 3);
+      indices[index_offset + 5] = (uint32_t)(vertex_offset + 2);
+      indices[index_offset + 6] = (uint32_t)(vertex_offset + 2);
+      indices[index_offset + 7] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 8] = (uint32_t)(vertex_offset + 4);
+      indices[index_offset + 9] = (uint32_t)(vertex_offset + 5);
+      indices[index_offset + 10] = (uint32_t)(vertex_offset + 5);
+      indices[index_offset + 11] = (uint32_t)(vertex_offset + 7);
+      indices[index_offset + 12] = (uint32_t)(vertex_offset + 7);
+      indices[index_offset + 13] = (uint32_t)(vertex_offset + 6);
+      indices[index_offset + 14] = (uint32_t)(vertex_offset + 6);
+      indices[index_offset + 15] = (uint32_t)(vertex_offset + 4);
+      indices[index_offset + 16] = (uint32_t)(vertex_offset + 0);
+      indices[index_offset + 17] = (uint32_t)(vertex_offset + 4);
+      indices[index_offset + 18] = (uint32_t)(vertex_offset + 1);
+      indices[index_offset + 19] = (uint32_t)(vertex_offset + 5);
+      indices[index_offset + 20] = (uint32_t)(vertex_offset + 2);
+      indices[index_offset + 21] = (uint32_t)(vertex_offset + 6);
+      indices[index_offset + 22] = (uint32_t)(vertex_offset + 3);
+      indices[index_offset + 23] = (uint32_t)(vertex_offset + 7);
 
-            *graphic_pipeline_vertex_offset(debug_pipeline, g_globals.renderer_frame_index) += 8;
-            *graphic_pipeline_index_offset(debug_pipeline, g_globals.renderer_frame_index) += 24;
-      */
+      s_renderer_debug_line_vertex_offsets[g_globals.renderer_frame_index] += 8;
+      s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index] += 24;
     }
   }
 }
@@ -384,18 +371,19 @@ static void renderer_link_pipeline(uint32_t link_index, uint32_t pipeline_type, 
 }
 
 static void renderer_create_global_buffers(void) {
-  s_renderer_time_infos = (time_info_t *)heap_alloc(sizeof(time_info_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_screen_infos = (screen_info_t *)heap_alloc(sizeof(screen_info_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_camera_infos = (camera_info_t *)heap_alloc(sizeof(camera_info_t) * g_globals.renderer_frames_in_flight);
+  s_renderer_time_infos = (time_info_t **)heap_alloc(sizeof(time_info_t *) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_screen_infos = (screen_info_t **)heap_alloc(sizeof(screen_info_t *) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_camera_infos = (camera_info_t **)heap_alloc(sizeof(camera_info_t *) * g_globals.renderer_frames_in_flight, 0, 0);
 
-  s_renderer_time_info_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_screen_info_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_camera_info_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight);
+  s_renderer_time_info_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_screen_info_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_camera_info_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
   uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
   while (frame_index < frame_count) {
+
     s_renderer_time_info_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &s_renderer_time_infos[frame_index], sizeof(time_info_t));
     s_renderer_screen_info_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &s_renderer_screen_infos[frame_index], sizeof(screen_info_t));
     s_renderer_camera_info_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, &s_renderer_camera_infos[frame_index], sizeof(camera_info_t));
@@ -404,29 +392,29 @@ static void renderer_create_global_buffers(void) {
   }
 }
 static void renderer_create_debug_buffers(void) {
+  s_renderer_debug_line_vertex_offsets = (uint32_t *)heap_alloc(sizeof(uint32_t) * g_globals.renderer_frames_in_flight, 1, 0);
+  s_renderer_debug_line_index_offsets = (uint32_t *)heap_alloc(sizeof(uint32_t) * g_globals.renderer_frames_in_flight, 1, 0);
+
   uint64_t world_position_buffer_size = sizeof(vector3_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT;
   uint64_t color_buffer_size = sizeof(vector4_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT;
   uint64_t index_buffer_size = sizeof(uint32_t) * RENDERER_DEBUG_LINE_INDEX_COUNT;
 
-  s_renderer_debug_line_world_positions = (vector3_t **)heap_alloc(sizeof(vector3_t *) * g_globals.renderer_frames_in_flight);
-  s_renderer_debug_line_colors = (vector4_t **)heap_alloc(sizeof(vector4_t *) * g_globals.renderer_frames_in_flight);
-  s_renderer_debug_line_indices = (uint32_t **)heap_alloc(sizeof(uint32_t *) * g_globals.renderer_frames_in_flight);
+  s_renderer_debug_line_world_positions = (vector3_t **)heap_alloc(sizeof(vector3_t *) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_debug_line_colors = (vector4_t **)heap_alloc(sizeof(vector4_t *) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_debug_line_indices = (uint32_t **)heap_alloc(sizeof(uint32_t *) * g_globals.renderer_frames_in_flight, 0, 0);
 
-  s_renderer_debug_line_world_position_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_debug_line_color_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight);
-  s_renderer_debug_line_index_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight);
+  s_renderer_debug_line_world_position_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_debug_line_color_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_debug_line_index_buffers = (buffer_t *)heap_alloc(sizeof(buffer_t) * g_globals.renderer_frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
   uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
   while (frame_index < frame_count) {
-    s_renderer_debug_line_world_positions[frame_index] = (vector3_t *)heap_alloc(world_position_buffer_size);
-    s_renderer_debug_line_colors[frame_index] = (vector4_t *)heap_alloc(color_buffer_size);
-    s_renderer_debug_line_indices[frame_index] = (uint32_t *)heap_alloc(index_buffer_size);
 
-    s_renderer_debug_line_world_position_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, s_renderer_debug_line_world_positions[frame_index], world_position_buffer_size);
-    s_renderer_debug_line_color_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, s_renderer_debug_line_colors[frame_index], color_buffer_size);
-    s_renderer_debug_line_index_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, s_renderer_debug_line_indices[frame_index], index_buffer_size);
+    s_renderer_debug_line_world_position_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, &s_renderer_debug_line_world_positions[frame_index], world_position_buffer_size);
+    s_renderer_debug_line_color_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, &s_renderer_debug_line_colors[frame_index], color_buffer_size);
+    s_renderer_debug_line_index_buffers[frame_index] = buffer_create(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, &s_renderer_debug_line_indices[frame_index], index_buffer_size);
 
     frame_index++;
   }
@@ -441,7 +429,7 @@ static void renderer_create_pipelines(void) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&graphic_pipeline_assets, graphic_pipeline_asset_index);
 
     if (pipeline_asset->auto_create) {
-      graphic_pipeline_t *pipeline = graphic_pipeline_create(g_globals.renderer_frames_in_flight, pipeline_asset->id);
+      graphic_pipeline_t *pipeline = graphic_pipeline_create(pipeline_asset);
 
       uint64_t frame_index = 0;
       uint64_t frame_count = g_globals.renderer_frames_in_flight;
@@ -453,9 +441,7 @@ static void renderer_create_pipelines(void) {
 
         graphic_pipeline_link_index_buffer(pipeline, frame_index, buffer_handle(&s_renderer_debug_line_index_buffers[frame_index]));
 
-        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 0, buffer_handle(&s_renderer_time_info_buffers[frame_index]));
-        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 1, buffer_handle(&s_renderer_screen_info_buffers[frame_index]));
-        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 2, buffer_handle(&s_renderer_camera_info_buffers[frame_index]));
+        graphic_pipeline_link_descriptor_binding_buffer(pipeline, frame_index, 0, buffer_handle(&s_renderer_camera_info_buffers[frame_index]));
 
         frame_index++;
       }
@@ -480,7 +466,7 @@ static void renderer_create_pipelines(void) {
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&compute_pipeline_assets, compute_pipeline_asset_index);
 
     if (pipeline_asset->auto_create) {
-      compute_pipeline_t *pipeline = compute_pipeline_create(g_globals.renderer_frames_in_flight, pipeline_asset->id);
+      compute_pipeline_t *pipeline = compute_pipeline_create(pipeline_asset);
 
       // TODO
       // compute_pipeline_allocate_descriptor_sets(&pipeline, 1);
@@ -495,9 +481,9 @@ static void renderer_create_pipelines(void) {
   database_destroy_pipeline_assets(&compute_pipeline_assets);
 }
 static void renderer_create_sync_objects(void) {
-  s_renderer_render_finished_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.swapchain_image_count);
-  s_renderer_image_available_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.renderer_frames_in_flight);
-  s_renderer_frame_fences = (VkFence *)heap_alloc(sizeof(VkFence) * g_globals.renderer_frames_in_flight);
+  s_renderer_render_finished_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.swapchain_image_count, 0, 0);
+  s_renderer_image_available_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * g_globals.renderer_frames_in_flight, 0, 0);
+  s_renderer_frame_fences = (VkFence *)heap_alloc(sizeof(VkFence) * g_globals.renderer_frames_in_flight, 0, 0);
 
   VkSemaphoreCreateInfo semaphore_create_info = {0};
   semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -507,15 +493,19 @@ static void renderer_create_sync_objects(void) {
   fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  uint32_t image_index = 0;
-  while (image_index < g_globals.swapchain_image_count) {
+  uint64_t image_index = 0;
+  uint64_t image_count = g_globals.swapchain_image_count;
+
+  while (image_index < image_count) {
     VULKAN_CHECK(vkCreateSemaphore(g_globals.context_device, &semaphore_create_info, 0, &s_renderer_render_finished_semaphores[image_index]));
 
     image_index++;
   }
 
-  uint32_t frame_index = 0;
-  while (frame_index < g_globals.renderer_frames_in_flight) {
+  uint64_t frame_index = 0;
+  uint64_t frame_count = g_globals.renderer_frames_in_flight;
+
+  while (frame_index < frame_count) {
     VULKAN_CHECK(vkCreateSemaphore(g_globals.context_device, &semaphore_create_info, 0, &s_renderer_image_available_semaphores[frame_index]));
 
     VULKAN_CHECK(vkCreateFence(g_globals.context_device, &fence_create_info, 0, &s_renderer_frame_fences[frame_index]));
@@ -524,7 +514,7 @@ static void renderer_create_sync_objects(void) {
   }
 }
 static void renderer_create_command_buffer(void) {
-  g_globals.renderer_graphic_command_buffers = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * g_globals.renderer_frames_in_flight);
+  g_globals.renderer_graphic_command_buffers = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * g_globals.renderer_frames_in_flight, 0, 0);
 
   VkCommandBufferAllocateInfo command_buffer_alloc_create_info = {0};
   command_buffer_alloc_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -536,19 +526,18 @@ static void renderer_create_command_buffer(void) {
 }
 
 static void renderer_update_uniform_buffers(transform_t *transform, camera_t *camera) {
-  graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
-  graphic_pipeline_t *pbr_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_PBR];
+  s_renderer_time_infos[g_globals.renderer_frame_index]->time = (float)g_globals.context_time;
+  s_renderer_time_infos[g_globals.renderer_frame_index]->delta_time = (float)g_globals.context_delta_time;
 
-  // frame->time_info.time = (float)g_context_time;
-  // frame->time_info.delta_time = (float)g_context_delta_time;
+  vector2_t resolution = vector2_xy((float)g_globals.context_surface_width, (float)g_globals.context_surface_height);
 
-  // frame->screen_info.resolution = vector2_xy((float)g_context_surface_width, (float)g_context_surface_height);
+  s_renderer_screen_infos[g_globals.renderer_frame_index]->resolution = resolution;
 
   vector3_t eye = transform->world_position;
   vector3_t center = vector3_add(transform->world_position, transform->local_front);
   vector3_t up = vector3_down();
 
-  float fov = math_deg_to_rad(camera->fov);
+  float fov = deg_to_rad(camera->fov);
   float aspect_ratio = (float)g_globals.context_surface_width / (float)g_globals.context_surface_height;
   float near_z = camera->near_z;
   float far_z = camera->far_z;
@@ -558,12 +547,11 @@ static void renderer_update_uniform_buffers(transform_t *transform, camera_t *ca
   matrix4_t view_projection = matrix4_mul(view, projection);
   matrix4_t view_projection_inv = matrix4_inverse(view_projection);
 
-  // frame->camera_info.world_position = transform->world_position;
-  // frame->camera_info.view = view;
-  // frame->camera_info.projection = projection;
-  // frame->camera_info.view_projection = view_projection;
-  // frame->camera_info.view_projection_inv = view_projection_inv;
-  // frame->camera_info.max_ray_steps = camera->ray_steps;
+  s_renderer_camera_infos[g_globals.renderer_frame_index]->world_position = transform->world_position;
+  s_renderer_camera_infos[g_globals.renderer_frame_index]->view = view;
+  s_renderer_camera_infos[g_globals.renderer_frame_index]->projection = projection;
+  s_renderer_camera_infos[g_globals.renderer_frame_index]->view_projection = view_projection;
+  s_renderer_camera_infos[g_globals.renderer_frame_index]->view_projection_inv = view_projection_inv;
 }
 
 static void renderer_record_compute_commands(void) {
@@ -632,7 +620,11 @@ static void renderer_record_graphic_commands(void) {
       graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)s_renderer_pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
       if (debug_pipeline) {
-        graphic_pipeline_execute(debug_pipeline, g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index], s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index]);
+        VkCommandBuffer command_buffer = g_globals.renderer_graphic_command_buffers[g_globals.renderer_frame_index];
+
+        uint32_t index_count = s_renderer_debug_line_index_offsets[g_globals.renderer_frame_index];
+
+        graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
       }
 
       s_renderer_debug_line_vertex_offsets[g_globals.renderer_frame_index] = 0;
@@ -650,6 +642,7 @@ static void renderer_destroy_global_buffers(void) {
   uint64_t frame_count = g_globals.renderer_frames_in_flight;
 
   while (frame_index < frame_count) {
+
     buffer_destroy(&s_renderer_time_info_buffers[frame_index]);
     buffer_destroy(&s_renderer_screen_info_buffers[frame_index]);
     buffer_destroy(&s_renderer_camera_info_buffers[frame_index]);
@@ -675,10 +668,6 @@ static void renderer_destroy_debug_buffers(void) {
     buffer_destroy(&s_renderer_debug_line_color_buffers[frame_index]);
     buffer_destroy(&s_renderer_debug_line_index_buffers[frame_index]);
 
-    heap_free(s_renderer_debug_line_world_positions[frame_index]);
-    heap_free(s_renderer_debug_line_colors[frame_index]);
-    heap_free(s_renderer_debug_line_indices[frame_index]);
-
     frame_index++;
   }
 
@@ -689,6 +678,9 @@ static void renderer_destroy_debug_buffers(void) {
   heap_free(s_renderer_debug_line_world_positions);
   heap_free(s_renderer_debug_line_colors);
   heap_free(s_renderer_debug_line_indices);
+
+  heap_free(s_renderer_debug_line_vertex_offsets);
+  heap_free(s_renderer_debug_line_index_offsets);
 }
 static void renderer_destroy_pipelines(void) {
   uint64_t pipeline_link_index = 0;
@@ -716,15 +708,19 @@ static void renderer_destroy_pipelines(void) {
   }
 }
 static void renderer_destroy_sync_objects(void) {
-  uint32_t image_index = 0;
-  while (image_index < g_globals.swapchain_image_count) {
+  uint64_t image_index = 0;
+  uint64_t image_count = g_globals.swapchain_image_count;
+
+  while (image_index < image_count) {
     vkDestroySemaphore(g_globals.context_device, s_renderer_render_finished_semaphores[image_index], 0);
 
     image_index++;
   }
 
-  uint32_t frame_index = 0;
-  while (frame_index < g_globals.renderer_frames_in_flight) {
+  uint64_t frame_index = 0;
+  uint64_t frame_count = g_globals.renderer_frames_in_flight;
+
+  while (frame_index < frame_count) {
     vkDestroySemaphore(g_globals.context_device, s_renderer_image_available_semaphores[frame_index], 0);
 
     vkDestroyFence(g_globals.context_device, s_renderer_frame_fences[frame_index], 0);

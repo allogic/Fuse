@@ -9,7 +9,7 @@
 string_t string_create(void) {
   string_t string = {0};
 
-  string.buffer = (char *)heap_alloc(ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT));
+  string.buffer = (char *)heap_alloc(ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT), 1, 0);
   string.buffer_capacity = ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT);
   string.buffer_size = 0;
   string.buffer[0] = 0;
@@ -57,10 +57,9 @@ void string_to_file(string_t *string, char const *output_file) {
 string_t string_copy(string_t *reference) {
   string_t string = {0};
 
-  string.buffer = (char *)heap_alloc(reference->buffer_capacity);
+  string.buffer = (char *)heap_alloc(reference->buffer_capacity, 0, reference->buffer);
   string.buffer_capacity = reference->buffer_capacity;
   string.buffer_size = reference->buffer_size;
-  memcpy(string.buffer, reference->buffer, reference->buffer_size);
 
   return string;
 }

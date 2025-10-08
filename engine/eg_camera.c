@@ -2,7 +2,7 @@
 #include <engine/eg_camera.h>
 
 camera_t *camera_create(void) {
-  camera_t *camera = (camera_t *)heap_alloc(sizeof(camera_t));
+  camera_t *camera = (camera_t *)heap_alloc(sizeof(camera_t), 0, 0);
 
   memset(camera, 0, sizeof(camera_t));
 

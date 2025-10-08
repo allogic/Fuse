@@ -6,7 +6,7 @@
 uint64_t g_heap_allocated_bytes = 0;
 #endif // BUILD_DEBUG
 
-void *heap_alloc(uint64_t size) {
+void *heap_alloc(uint64_t size, uint8_t zero_block, void const *reference) {
 #ifdef BUILD_DEBUG
   uint64_t new_size = sizeof(uint64_t) + size;
 
@@ -18,9 +18,27 @@ void *heap_alloc(uint64_t size) {
 
   new_block++;
 
+  if (zero_block) {
+    memset(new_block, 0, size);
+  }
+
+  if (reference) {
+    memcpy(new_block, reference, size);
+  }
+
   return new_block;
 #else
-  return malloc(size);
+  uint64_t *new_block = malloc(size);
+
+  if (zero_block) {
+    memset(new_block, 0, size);
+  }
+
+  if (reference) {
+    memcpy(new_block, reference, size);
+  }
+
+  return new_block;
 #endif // BUILD_DEBUG
 }
 void *heap_realloc(void *block, uint64_t size) {
@@ -45,7 +63,7 @@ void *heap_realloc(void *block, uint64_t size) {
 
     return new_block;
   } else {
-    return heap_alloc(size);
+    return heap_alloc(size, 0, 0);
   }
 #else
   return realloc(block, size);

@@ -9,7 +9,7 @@ extern "C" {
 extern uint64_t g_heap_allocated_bytes;
 #endif // BUILD_DEBUG
 
-void *heap_alloc(uint64_t size);
+void *heap_alloc(uint64_t size, uint8_t zero_block, void const *reference);
 void *heap_realloc(void *block, uint64_t size);
 void heap_free(void *block);
 void heap_reset(void);

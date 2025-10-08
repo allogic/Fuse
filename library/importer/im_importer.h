@@ -5,10 +5,10 @@
 extern "C" {
 #endif // __cplusplus
 
-void importer_import_graphic_pipeline(char const *pipeline_name, char const *vertex_shader_file_path, char const *fragment_shader_file_path);
-void importer_import_compute_pipeline(char const *pipeline_name, char const *compute_shader_file_path);
+void importer_import_graphic_pipeline(graphic_pipeline_import_settings_t *import_settings);
+void importer_import_compute_pipeline(compute_pipeline_import_settings_t *import_settings);
 
-void importer_import_model(char const *model_name, char const *model_file_path);
+void importer_import_model(model_import_settings_t *import_settings);
 
 #ifdef __cplusplus
 }

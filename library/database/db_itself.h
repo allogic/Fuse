@@ -1,5 +1,5 @@
-#ifndef DB_H
-#define DB_H
+#ifndef DB_ITSELF_H
+#define DB_ITSELF_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,8 +11,8 @@ void database_destroy(void);
 swapchain_asset_t database_load_swapchain_default_asset(void);
 renderer_asset_t database_load_renderer_default_asset(void);
 
-uint64_t database_load_vertex_input_binding_count(pipeline_asset_id_t pipeline_asset_id);
-uint64_t database_load_descriptor_binding_count(pipeline_asset_id_t pipeline_asset_id);
+uint64_t database_load_vertex_input_binding_count_by_id(pipeline_asset_id_t pipeline_asset_id);
+uint64_t database_load_descriptor_binding_count_by_id(pipeline_asset_id_t pipeline_asset_id);
 
 vector_t database_load_pipeline_assets(void);
 vector_t database_load_pipeline_assets_by_type(uint32_t pipeline_type);
@@ -22,16 +22,16 @@ vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pi
 
 vector_t database_load_model_assets(void);
 
-pipeline_asset_id_t database_store_pipeline_asset(char const *pipeline_name, uint32_t pipeline_type, uint32_t pipeline_link_index, uint32_t pipeline_auto_create);
-pipeline_resource_id_t database_store_pipeline_resource(pipeline_asset_id_t pipeline_asset_id, char const *vertex_shader_file_path, char const *fragment_shader_file_path, char const *compute_shader_file_path, uint8_t *vertex_shader_bytes, uint8_t *fragment_shader_bytes, uint8_t *compute_shader_bytes, uint64_t vertex_shader_size, uint64_t fragment_shader_size, uint64_t compute_shader_size);
-pipeline_vertex_input_binding_id_t database_store_pipeline_vertex_input_binding(pipeline_asset_id_t pipeline_asset_id, char const *binding_name, uint32_t binding, uint32_t location, uint32_t stride, uint32_t format, uint32_t offset, uint32_t input_rate);
-pipeline_descriptor_binding_id_t database_store_pipeline_descriptor_binding(pipeline_asset_id_t pipeline_asset_id, char const *binding_name, uint32_t binding, uint32_t descriptor_type, uint32_t descriptor_count, uint32_t stage_flags, uint8_t auto_buffer);
+void database_store_pipeline_asset(pipeline_asset_t *pipeline_asset);
+void database_store_pipeline_resource(pipeline_resource_t *pipeline_resource);
+void database_store_pipeline_vertex_input_binding(pipeline_vertex_input_binding_t *pipeline_vertex_input_binding);
+void database_store_pipeline_descriptor_binding(pipeline_descriptor_binding_t *pipeline_descriptor_binding);
 
-model_asset_id_t database_store_model_asset(char const *model_name);
-model_resource_id_t database_store_model_resource(model_asset_id_t model_asset_id, char const *model_file_path, uint8_t *model_bytes, uint64_t model_size);
-model_mesh_id_t database_store_model_mesh(model_asset_id_t model_asset_id);
-model_primitive_id_t database_store_model_primitive(model_mesh_id_t model_mesh_id);
-model_attribute_id_t database_store_model_attribute(model_primitive_id_t model_primitive_id, char const *attribute_name, uint32_t attribute_type, uint8_t *value_bytes, uint64_t value_size);
+void database_store_model_asset(model_asset_t *model_asset);
+void database_store_model_resource(model_resource_t *model_resource);
+void database_store_model_mesh(model_mesh_t *model_mesh);
+void database_store_model_primitive(model_primitive_t *model_primitive);
+void database_store_model_attribute(model_attribute_t *model_attribute);
 
 void database_destroy_swapchain_asset(swapchain_asset_t *swapchain_asset);
 
@@ -48,4 +48,4 @@ void database_destroy_model_assets(vector_t *model_assets);
 }
 #endif // __cplusplus
 
-#endif // DB_H
+#endif // DB_ITSELF_H

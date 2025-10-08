@@ -60,7 +60,7 @@ void ui_model_draw() {
         ImGui::Text("%d", model_asset->id);
 
         ImGui::TableSetColumnIndex(1);
-        if (ImGui::Selectable(string_buffer(&model_asset->name), (model_asset_index == s_ui_selected_model_asset), ImGuiSelectableFlags_SpanAllColumns)) {
+        if (ImGui::Selectable(model_asset->name, (model_asset_index == s_ui_selected_model_asset), ImGuiSelectableFlags_SpanAllColumns)) {
           // TODO
           // ui_model_select_new_asset(model_asset_index);
         }
@@ -100,7 +100,12 @@ static void ui_model_draw_insert() {
   ImGui::InputText("Model File", model_file_path, sizeof(model_file_path));
 
   if (ImGui::Button("Create Model")) {
-    importer_import_model(model_name, model_file_path);
+    model_import_settings_t import_settings = {0};
+
+    import_settings.model_name = model_name;
+    import_settings.model_file_path = model_file_path;
+
+    importer_import_model(&import_settings);
 
     ui_model_refresh();
   }

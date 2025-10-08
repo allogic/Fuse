@@ -85,7 +85,6 @@ typedef struct graphic_pipeline_t {
 } graphic_pipeline_t;
 
 typedef struct compute_pipeline_t {
-  uint32_t frames_in_flight;
   vector_t descriptor_pool_sizes;
   vector_t descriptor_set_layout_bindings;
   vector_t descriptor_sets;

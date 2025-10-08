@@ -18,22 +18,20 @@ set_entry_t *set_entry_next(set_entry_t *entry) {
 set_t set_create(void) {
   set_t set = {0};
 
-  set.table = (set_entry_t **)heap_alloc(SET_TABLE_COUNT * sizeof(set_entry_t *));
+  set.table = (set_entry_t **)heap_alloc(SET_TABLE_COUNT * sizeof(set_entry_t *), 1, 0);
   set.table_size = SET_TABLE_COUNT * sizeof(set_entry_t *);
   set.table_count = SET_TABLE_COUNT;
   set.entry_count = 0;
-  memset(set.table, 0, SET_TABLE_COUNT * sizeof(set_entry_t *));
 
   return set;
 }
 set_t set_copy(set_t *reference) {
   set_t set = {0};
 
-  set.table = (set_entry_t **)heap_alloc(reference->table_size);
+  set.table = (set_entry_t **)heap_alloc(reference->table_size, 1, 0);
   set.table_size = reference->table_size;
   set.table_count = reference->table_count;
   set.entry_count = reference->entry_count;
-  memset(set.table, 0, reference->table_size);
 
   uint64_t table_index = 0;
   while (table_index < set.table_count) {
@@ -43,15 +41,11 @@ set_t set_copy(set_t *reference) {
     if (curr_reference) {
       uint64_t hash = set_hash(&set, curr_reference->key, curr_reference->key_size, set.table_count);
 
-      curr = (set_entry_t *)heap_alloc(sizeof(set_entry_t));
-
-      memset(curr, 0, sizeof(set_entry_t));
+      curr = (set_entry_t *)heap_alloc(sizeof(set_entry_t), 1, 0);
 
       curr->next = set.table[hash];
-      curr->key = (uint8_t *)heap_alloc(curr_reference->key_size);
+      curr->key = (uint8_t *)heap_alloc(curr_reference->key_size, 0, curr_reference->key);
       curr->key_size = curr_reference->key_size;
-
-      memcpy(curr->key, curr_reference->key, curr_reference->key_size);
 
       set.table[hash] = curr;
     }
@@ -113,14 +107,11 @@ uint8_t set_insert(set_t *set, void const *key, uint64_t key_size) {
   }
 
   if (key_exists == 0) {
-    curr = (set_entry_t *)heap_alloc(sizeof(set_entry_t));
-
-    memset(curr, 0, sizeof(set_entry_t));
+    curr = (set_entry_t *)heap_alloc(sizeof(set_entry_t), 1, 0);
 
     curr->next = set->table[hash];
-    curr->key = (uint8_t *)heap_alloc(key_size);
+    curr->key = (uint8_t *)heap_alloc(key_size, 0, key);
     curr->key_size = key_size;
-    memcpy(curr->key, key, key_size);
 
     set->table[hash] = curr;
     set->entry_count++;
@@ -186,9 +177,7 @@ void set_expand(set_t *set) {
   uint64_t table_size = set->table_size * 2;
   uint64_t table_count = set->table_count * 2;
 
-  set_entry_t **table = (set_entry_t **)heap_alloc(table_size);
-
-  memset(table, 0, table_size);
+  set_entry_t **table = (set_entry_t **)heap_alloc(table_size, 1, 0);
 
   while (table_index < set->table_count) {
     set_entry_t *curr = set->table[table_index];

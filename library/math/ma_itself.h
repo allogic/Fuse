@@ -5,10 +5,10 @@
 extern "C" {
 #endif // __cplusplus
 
-__forceinline float math_deg_to_rad(float a);
-__forceinline float math_rad_to_deg(float a);
+__forceinline float deg_to_rad(float a);
+__forceinline float rad_to_deg(float a);
 
-__forceinline float math_clamp(float a, float min, float max);
+__forceinline float clamp(float a, float min, float max);
 
 #ifdef __cplusplus
 }

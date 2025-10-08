@@ -2,12 +2,12 @@
 #include <engine/eg_transform.h>
 
 transform_t *transform_create(transform_t *parent) {
-  transform_t *transform = (transform_t *)heap_alloc(sizeof(transform_t));
+  transform_t *transform = (transform_t *)heap_alloc(sizeof(transform_t), 0, 0);
 
   memset(transform, 0, sizeof(transform_t));
 
   transform->parent = parent;
-  transform->children = (transform_t **)heap_alloc(sizeof(transform_t *) * 16);
+  transform->children = (transform_t **)heap_alloc(sizeof(transform_t *) * 16, 0, 0);
   transform->child_count = 0;
   transform->local_right = vector3_right();
   transform->local_up = vector3_up();
@@ -154,9 +154,9 @@ void transform_set_relative_rotation_xyzw(transform_t *transform, float x, float
   transform_compute_world_position(transform);
 }
 void transform_set_euler_angles(transform_t *transform, vector3_t rotation) {
-  float p = math_deg_to_rad(rotation.x);
-  float y = math_deg_to_rad(rotation.y);
-  float r = math_deg_to_rad(rotation.z);
+  float p = deg_to_rad(rotation.x);
+  float y = deg_to_rad(rotation.y);
+  float r = deg_to_rad(rotation.z);
 
   if (transform->parent) {
     quaternion_t qx = quaternion_angle_axis(p, transform->parent->local_right);
@@ -194,9 +194,9 @@ void transform_set_euler_angles(transform_t *transform, vector3_t rotation) {
   transform_compute_world_position(transform);
 }
 void transform_set_euler_angles_pyr(transform_t *transform, float p, float y, float r) {
-  p = math_deg_to_rad(p);
-  y = math_deg_to_rad(y);
-  r = math_deg_to_rad(r);
+  p = deg_to_rad(p);
+  y = deg_to_rad(y);
+  r = deg_to_rad(r);
 
   if (transform->parent) {
     quaternion_t qx = quaternion_angle_axis(p, transform->parent->local_right);
@@ -234,9 +234,9 @@ void transform_set_euler_angles_pyr(transform_t *transform, float p, float y, fl
   transform_compute_world_position(transform);
 }
 void transform_set_relative_euler_angles(transform_t *transform, vector3_t rotation) {
-  float p = math_deg_to_rad(rotation.x);
-  float y = math_deg_to_rad(rotation.y);
-  float r = math_deg_to_rad(rotation.z);
+  float p = deg_to_rad(rotation.x);
+  float y = deg_to_rad(rotation.y);
+  float r = deg_to_rad(rotation.z);
 
   if (transform->parent) {
     quaternion_t qx = quaternion_angle_axis(p, transform->parent->local_right);
@@ -274,9 +274,9 @@ void transform_set_relative_euler_angles(transform_t *transform, vector3_t rotat
   transform_compute_world_position(transform);
 }
 void transform_set_relative_euler_angles_pyr(transform_t *transform, float p, float y, float r) {
-  p = math_deg_to_rad(p);
-  y = math_deg_to_rad(y);
-  r = math_deg_to_rad(r);
+  p = deg_to_rad(p);
+  y = deg_to_rad(y);
+  r = deg_to_rad(r);
 
   if (transform->parent) {
     quaternion_t qx = quaternion_angle_axis(p, transform->parent->local_right);
