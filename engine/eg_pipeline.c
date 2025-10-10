@@ -11,7 +11,7 @@ static vector_t pipeline_create_vertex_input_attribute_descriptions(pipeline_ass
 static vector_t pipeline_create_descriptor_pool_sizes(pipeline_asset_t *pipeline_asset);
 static vector_t pipeline_create_descriptor_set_layout_bindings(pipeline_asset_t *pipeline_asset);
 
-static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline);
+static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline, pipeline_asset_t *pipeline_asset);
 static void graphic_pipeline_build(graphic_pipeline_t *pipeline, pipeline_resource_t *pipeline_resource);
 
 static void graphic_pipeline_destroy_frame_dependant_buffers(graphic_pipeline_t *pipeline);
@@ -37,7 +37,7 @@ graphic_pipeline_t *graphic_pipeline_create(pipeline_asset_t *pipeline_asset) {
   pipeline->descriptor_sets = vector_create(sizeof(VkDescriptorSet));
   pipeline->write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
 
-  graphic_pipeline_create_frame_dependant_buffers(pipeline);
+  graphic_pipeline_create_frame_dependant_buffers(pipeline, &pipeline_asset);
 
   graphic_pipeline_build(pipeline, &pipeline_resource);
 
@@ -459,7 +459,7 @@ static vector_t pipeline_create_descriptor_set_layout_bindings(pipeline_asset_t 
   return descriptor_set_layout_bindings;
 }
 
-static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
+static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline, pipeline_asset_t *pipeline_asset) {
   vector_resize(&pipeline->vertex_input_binding_buffers, g_globals.renderer_frames_in_flight);
   vector_resize(&pipeline->vertex_input_binding_offsets, g_globals.renderer_frames_in_flight);
   vector_resize(&pipeline->index_buffers, g_globals.renderer_frames_in_flight);
@@ -481,6 +481,13 @@ static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *
     vector_set(&pipeline->vertex_input_binding_buffers, frame_index, &curr_frame_vertex_input_binding_buffers);
     vector_set(&pipeline->vertex_input_binding_offsets, frame_index, &curr_frame_vertex_input_binding_offsets);
     vector_set(&pipeline->descriptor_binding_buffers, frame_index, &curr_frame_descriptor_binding_buffers);
+
+    if (pipeline_asset->auto_vertex_input_buffer) {
+      if (pipeline_asset->interleaved_vertex_input_buffer) {
+        vector_set(&pipeline->vertex_input_binding_buffers, frame_index, &curr_frame_vertex_input_binding_buffers);
+      } else {
+      }
+    }
 
     frame_index++;
   }
