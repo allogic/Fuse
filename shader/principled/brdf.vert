@@ -27,8 +27,6 @@ layout (binding = 2) uniform camera_info_t
 	mat4 projection;
 	mat4 view_projection;
 	mat4 view_projection_inv;
-	uint max_chunk_ray_steps;
-	uint max_voxel_ray_steps;
 } camera_info;
 
 void main()

@@ -5,8 +5,9 @@ typedef struct graphic_pipeline_import_settings_t {
   char *pipeline_name;
   char *vertex_shader_file_path;
   char *fragment_shader_file_path;
-  uint8_t auto_create;
-  uint8_t auto_vertex_input_buffer;
+  uint8_t auto_create_pipeline;
+  uint8_t auto_create_vertex_input_buffer;
+  uint8_t auto_link_descriptor_bindings;
   uint8_t interleaved_vertex_input;
 } graphic_pipeline_import_settings_t;
 

@@ -12,6 +12,10 @@ void ui_db_create() {
 void ui_db_draw() {
   ImGui::Begin("Database");
 
+  if (ImGui::Button("Import Default Assets")) {
+    importer_import_default_assets();
+  }
+
   ui_pipeline_draw();
   ui_model_draw();
 

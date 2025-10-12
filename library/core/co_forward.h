@@ -46,6 +46,7 @@ typedef struct map_iter_t {
   map_record_t *table_record;
   uint64_t table_index;
   uint64_t table_count;
+  uint8_t initialized;
 } map_iter_t;
 
 typedef struct vector_t {

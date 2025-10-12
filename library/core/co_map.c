@@ -90,7 +90,9 @@ uint8_t map_insert(map_t *map, void const *key, uint64_t key_size, void const *v
   uint64_t hash = map_hash(map, key, key_size, map->table_count);
 
   map_record_t *curr = map->table[hash];
+
   while (curr) {
+
     if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
       key_exists = 1;
 
@@ -120,8 +122,11 @@ uint8_t map_remove(map_t *map, void const *key, uint64_t key_size, void *value, 
 
   map_record_t *curr = map->table[hash];
   map_record_t *prev = 0;
+
   while (curr) {
+
     if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
+
       if (prev) {
         prev->next = curr->next;
       } else {
@@ -151,7 +156,9 @@ uint8_t map_contains(map_t *map, void const *key, uint64_t key_size) {
   uint64_t hash = map_hash(map, key, key_size, map->table_count);
 
   map_record_t *curr = map->table[hash];
+
   while (curr) {
+
     if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
       return 1;
     }
@@ -168,7 +175,9 @@ void *map_at(map_t *map, void const *key, uint64_t key_size) {
   uint64_t hash = map_hash(map, key, key_size, map->table_count);
 
   map_record_t *curr = map->table[hash];
+
   while (curr) {
+
     if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
       return curr->value;
     }
@@ -186,7 +195,9 @@ void map_expand(map_t *map) {
   map_record_t **table = (map_record_t **)heap_alloc(table_size, 1, 0);
 
   while (table_index < map->table_count) {
+
     map_record_t *curr = map->table[table_index];
+
     while (curr) {
       uint64_t hash = map_hash(map, curr->key, curr->key_size, table_count);
 
@@ -206,9 +217,13 @@ void map_expand(map_t *map) {
 }
 void map_clear(map_t *map) {
   uint64_t table_index = 0;
+
   while (table_index < map->table_count) {
+
     map_record_t *curr = map->table[table_index];
+
     while (curr) {
+
       map_record_t *tmp = curr;
 
       curr = curr->next;
@@ -230,6 +245,7 @@ uint64_t map_hash(map_t *map, void const *key, uint64_t key_size, uint64_t modul
   uint64_t key_index = 0;
 
   while (key_index < key_size) {
+
     hash = ((hash << 5) + hash) + *(((uint8_t *)key) + key_index);
 
     key_index++;
@@ -242,9 +258,13 @@ uint8_t map_load_factor(map_t *map) {
 }
 void map_destroy(map_t *map) {
   uint64_t table_index = 0;
+
   while (table_index < map->table_count) {
+
     map_record_t *curr = map->table[table_index];
+
     while (curr) {
+
       map_record_t *tmp = curr;
 
       curr = curr->next;
@@ -273,49 +293,51 @@ uint64_t map_record_value_size(map_record_t *record) {
   return record->value_size;
 }
 
-map_iter_t map_iter_create_from(map_t *map) {
-  map_iter_t iter = {0};
-
-  iter.table = map->table;
-  iter.table_count = map->table_count;
-
-  uint64_t table_index = 0;
-  while (table_index < map->table_count) {
-
-    map_record_t *curr = map->table[table_index];
-    if (curr) {
-      iter.table_index = table_index;
-      iter.table_record = curr;
-
-      break;
+uint8_t map_iter_step(map_iter_t *iter, map_t *map) {
+  if (iter->initialized) {
+    if (iter->table_record) {
+      iter->table_record = iter->table_record->next;
     }
 
-    table_index++;
-  }
+    if (iter->table_record == 0) {
+      iter->table_index++;
 
-  return iter;
-}
-uint8_t map_iter_valid(map_iter_t *iter) {
-  return (iter->table_index < iter->table_count) && iter->table_record;
-}
-void map_iter_advance(map_iter_t *iter) {
-  if (iter->table_record) {
-    iter->table_record = iter->table_record->next;
-  }
+      while (iter->table_index < iter->table_count) {
 
-  if (iter->table_record == 0) {
-    iter->table_index++;
+        iter->table_record = iter->table[iter->table_index];
 
-    while (iter->table_index < iter->table_count) {
-      iter->table_record = iter->table[iter->table_index];
+        if (iter->table_record) {
+          break;
+        }
 
-      if (iter->table_record) {
+        iter->table_index++;
+      }
+    }
+  } else {
+    iter->table = map->table;
+    iter->table_count = map->table_count;
+    iter->initialized = 1;
+
+    uint64_t table_index = 0;
+
+    while (table_index < map->table_count) {
+
+      map_record_t *curr = map->table[table_index];
+
+      if (curr) {
+        iter->table_index = table_index;
+        iter->table_record = curr;
+
         break;
       }
 
-      iter->table_index++;
+      table_index++;
     }
   }
+
+  return (iter->table_index < iter->table_count) && iter->table_record;
+}
+void map_iter_advance(map_iter_t *iter) {
 }
 void *map_iter_key(map_iter_t *iter) {
   return iter->table_record->key;

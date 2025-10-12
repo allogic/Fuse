@@ -2,6 +2,7 @@
 
 #include <library/core/co_api.h>
 #include <library/database/db_api.h>
+#include <library/importer/im_api.h>
 
 #include <spirv_reflect/spirv_reflect.h>
 
@@ -10,6 +11,32 @@
 
 static void importer_process_pipeline_vertex_input_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module);
 static void importer_process_pipeline_descriptor_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module, VkShaderStageFlags stage_flag);
+
+void importer_import_default_assets(void) {
+  graphic_pipeline_import_settings_t debug_line_import_settings = {0};
+
+  debug_line_import_settings.pipeline_name = "debug_line";
+  debug_line_import_settings.vertex_shader_file_path = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.vert.spv";
+  debug_line_import_settings.fragment_shader_file_path = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
+  debug_line_import_settings.auto_create_pipeline = 1;
+  debug_line_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
+  debug_line_import_settings.auto_link_descriptor_bindings = 1;
+  debug_line_import_settings.interleaved_vertex_input = 1;
+
+  importer_import_graphic_pipeline(&debug_line_import_settings);
+
+  graphic_pipeline_import_settings_t principled_brdf_import_settings = {0};
+
+  principled_brdf_import_settings.pipeline_name = "principled_brdf";
+  principled_brdf_import_settings.vertex_shader_file_path = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\principled\\brdf.vert.spv";
+  principled_brdf_import_settings.fragment_shader_file_path = "C:\\Users\\mialb\\Downloads\\fuse\\shader\\principled\\brdf.frag.spv";
+  principled_brdf_import_settings.auto_create_pipeline = 1;
+  principled_brdf_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
+  principled_brdf_import_settings.auto_link_descriptor_bindings = 1;
+  principled_brdf_import_settings.interleaved_vertex_input = 1;
+
+  importer_import_graphic_pipeline(&principled_brdf_import_settings);
+}
 
 void importer_import_graphic_pipeline(graphic_pipeline_import_settings_t *import_settings) {
   SpvReflectShaderModule reflect_vertex_shader_module = {0};
@@ -32,8 +59,9 @@ void importer_import_graphic_pipeline(graphic_pipeline_import_settings_t *import
   pipeline_asset.name = import_settings->pipeline_name;
   pipeline_asset.type = 0;
   pipeline_asset.link_index = 0;
-  pipeline_asset.auto_create = import_settings->auto_create;
-  pipeline_asset.auto_vertex_input_buffer = import_settings->auto_vertex_input_buffer;
+  pipeline_asset.auto_create_pipeline = import_settings->auto_create_pipeline;
+  pipeline_asset.auto_create_vertex_input_buffer = import_settings->auto_create_vertex_input_buffer;
+  pipeline_asset.auto_link_descriptor_bindings = import_settings->auto_link_descriptor_bindings;
   pipeline_asset.interleaved_vertex_input_buffer = import_settings->interleaved_vertex_input;
 
   database_store_pipeline_asset(&pipeline_asset);
@@ -73,9 +101,10 @@ void importer_import_compute_pipeline(compute_pipeline_import_settings_t *import
   pipeline_asset.name = import_settings->pipeline_name;
   pipeline_asset.type = 1;
   pipeline_asset.link_index = 0;
-  pipeline_asset.auto_create = 1;
-  pipeline_asset.auto_vertex_input_buffer = 1;
-  pipeline_asset.interleaved_vertex_input_buffer = 1;
+  pipeline_asset.auto_create_pipeline = 1;
+  pipeline_asset.auto_create_vertex_input_buffer = 0;
+  pipeline_asset.auto_link_descriptor_bindings = 1;
+  pipeline_asset.interleaved_vertex_input_buffer = 0;
 
   database_store_pipeline_asset(&pipeline_asset);
 

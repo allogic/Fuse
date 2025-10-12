@@ -36,8 +36,11 @@ swapchain_asset_t database_load_swapchain_default_asset(void) {
     int32_t image_count = sqlite3_column_int(stmt, 2);
     int32_t depth_format = sqlite3_column_int(stmt, 3);
 
+    uint64_t name_size = strlen(name) + 1;
+
     swapchain_asset.id = id;
-    swapchain_asset.name = heap_alloc(strlen(name) + 1, 1, name);
+    swapchain_asset.name = heap_alloc(name_size, 1, name);
+    swapchain_asset.name_size = name_size;
     swapchain_asset.image_count = image_count;
     swapchain_asset.depth_format = depth_format;
   }
@@ -66,8 +69,11 @@ renderer_asset_t database_load_renderer_default_asset(void) {
     char const *name = sqlite3_column_text(stmt, 1);
     uint32_t frames_in_flight = (uint32_t)sqlite3_column_int(stmt, 2);
 
+    uint64_t name_size = strlen(name) + 1;
+
     renderer_asset.id = id;
-    renderer_asset.name = heap_alloc(strlen(name) + 1, 1, name);
+    renderer_asset.name = heap_alloc(name_size, 1, name);
+    renderer_asset.name_size = name_size;
     renderer_asset.frames_in_flight = frames_in_flight;
   }
 
@@ -143,16 +149,21 @@ vector_t database_load_pipeline_assets(void) {
     char const *name = sqlite3_column_text(stmt, 1);
     uint32_t type = (uint32_t)sqlite3_column_int(stmt, 2);
     uint32_t link_index = (uint32_t)sqlite3_column_int(stmt, 3);
-    uint8_t auto_create = (uint8_t)sqlite3_column_int(stmt, 4);
-    uint8_t auto_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
-    uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 6);
+    uint8_t auto_create_pipeline = (uint8_t)sqlite3_column_int(stmt, 4);
+    uint8_t auto_create_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
+    uint8_t auto_link_descriptor_bindings = (uint8_t)sqlite3_column_int(stmt, 6);
+    uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 7);
+
+    uint64_t name_size = strlen(name) + 1;
 
     pipeline_asset.id = id;
-    pipeline_asset.name = heap_alloc(strlen(name) + 1, 1, name);
+    pipeline_asset.name = heap_alloc(name_size, 1, name);
+    pipeline_asset.name_size = name_size;
     pipeline_asset.type = type;
     pipeline_asset.link_index = link_index;
-    pipeline_asset.auto_create = auto_create;
-    pipeline_asset.auto_vertex_input_buffer = auto_vertex_input_buffer;
+    pipeline_asset.auto_create_pipeline = auto_create_pipeline;
+    pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
+    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
     pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
 
     vector_push(&pipeline_assets, &pipeline_asset);
@@ -182,16 +193,21 @@ vector_t database_load_pipeline_assets_by_type(uint32_t pipeline_type) {
     char const *name = sqlite3_column_text(stmt, 1);
     uint32_t type = (uint32_t)sqlite3_column_int(stmt, 2);
     uint32_t link_index = (uint32_t)sqlite3_column_int(stmt, 3);
-    uint8_t auto_create = (uint8_t)sqlite3_column_int(stmt, 4);
-    uint8_t auto_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
-    uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 6);
+    uint8_t auto_create_pipeline = (uint8_t)sqlite3_column_int(stmt, 4);
+    uint8_t auto_create_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
+    uint8_t auto_link_descriptor_bindings = (uint8_t)sqlite3_column_int(stmt, 6);
+    uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 7);
+
+    uint64_t name_size = strlen(name) + 1;
 
     pipeline_asset.id = id;
-    pipeline_asset.name = heap_alloc(strlen(name) + 1, 1, name);
+    pipeline_asset.name = heap_alloc(name_size, 1, name);
+    pipeline_asset.name_size = name_size;
     pipeline_asset.type = type;
     pipeline_asset.link_index = link_index;
-    pipeline_asset.auto_create = auto_create;
-    pipeline_asset.auto_vertex_input_buffer = auto_vertex_input_buffer;
+    pipeline_asset.auto_create_pipeline = auto_create_pipeline;
+    pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
+    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
     pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
 
     vector_push(&pipeline_assets, &pipeline_asset);
@@ -224,11 +240,18 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_asset_id_t pi
     char const *fragment_shader_file_path = sqlite3_column_text(stmt, 2);
     char const *compute_shader_file_path = sqlite3_column_text(stmt, 3);
 
+    uint64_t vertex_shader_file_path_size = vertex_shader_file_path ? strlen(vertex_shader_file_path) + 1 : 0;
+    uint64_t fragment_shader_file_path_size = fragment_shader_file_path ? strlen(fragment_shader_file_path) + 1 : 0;
+    uint64_t compute_shader_file_path_size = compute_shader_file_path ? strlen(compute_shader_file_path) + 1 : 0;
+
     pipeline_resource.id = id;
     pipeline_resource.pipeline_asset_id = pipeline_asset_id;
-    pipeline_resource.vertex_shader_file_path = vertex_shader_file_path ? (heap_alloc(strlen(vertex_shader_file_path) + 1, 1, vertex_shader_file_path)) : (0);
-    pipeline_resource.fragment_shader_file_path = fragment_shader_file_path ? (heap_alloc(strlen(fragment_shader_file_path) + 1, 1, fragment_shader_file_path)) : (0);
-    pipeline_resource.compute_shader_file_path = compute_shader_file_path ? (heap_alloc(strlen(compute_shader_file_path) + 1, 1, compute_shader_file_path)) : (0);
+    pipeline_resource.vertex_shader_file_path = vertex_shader_file_path ? heap_alloc(vertex_shader_file_path_size, 1, vertex_shader_file_path) : 0;
+    pipeline_resource.fragment_shader_file_path = fragment_shader_file_path ? heap_alloc(fragment_shader_file_path_size, 1, fragment_shader_file_path) : 0;
+    pipeline_resource.compute_shader_file_path = compute_shader_file_path ? heap_alloc(compute_shader_file_path_size, 1, compute_shader_file_path) : 0;
+    pipeline_resource.vertex_shader_file_path_size = vertex_shader_file_path_size;
+    pipeline_resource.fragment_shader_file_path_size = fragment_shader_file_path_size;
+    pipeline_resource.compute_shader_file_path_size = compute_shader_file_path_size;
   }
 
   sqlite3_finalize(stmt);
@@ -263,9 +286,12 @@ vector_t database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset_id_t 
     uint32_t format = (uint32_t)sqlite3_column_int(stmt, 5);
     uint32_t input_rate = (uint32_t)sqlite3_column_int(stmt, 6);
 
+    uint64_t binding_name_size = binding_name ? strlen(binding_name) + 1 : 0;
+
     pipeline_vertex_input_binding.id = id;
     pipeline_vertex_input_binding.pipeline_asset_id = pipeline_asset_id;
-    pipeline_vertex_input_binding.binding_name = heap_alloc(strlen(binding_name) + 1, 1, binding_name);
+    pipeline_vertex_input_binding.binding_name = heap_alloc(binding_name_size, 1, binding_name);
+    pipeline_vertex_input_binding.binding_name_size = binding_name_size;
     pipeline_vertex_input_binding.location = location;
     pipeline_vertex_input_binding.size = size;
     pipeline_vertex_input_binding.component_count = component_count;
@@ -307,9 +333,12 @@ vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pi
     uint32_t stage_flags = (uint32_t)sqlite3_column_int(stmt, 5);
     uint8_t auto_buffer = (uint8_t)sqlite3_column_int(stmt, 6);
 
+    uint64_t binding_name_size = binding_name ? strlen(binding_name) + 1 : 0;
+
     pipeline_descriptor_binding.id = id;
     pipeline_descriptor_binding.pipeline_asset_id = pipeline_asset_id;
-    pipeline_descriptor_binding.binding_name = heap_alloc(strlen(binding_name) + 1, 1, binding_name);
+    pipeline_descriptor_binding.binding_name = heap_alloc(binding_name_size, 1, binding_name);
+    pipeline_descriptor_binding.binding_name_size = binding_name_size;
     pipeline_descriptor_binding.binding = binding;
     pipeline_descriptor_binding.descriptor_type = descriptor_type;
     pipeline_descriptor_binding.descriptor_count = descriptor_count;
@@ -343,8 +372,11 @@ vector_t database_load_model_assets(void) {
     model_asset_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
 
+    uint64_t name_size = name ? strlen(name) + 1 : 0;
+
     model_asset.id = id;
-    model_asset.name = heap_alloc(strlen(name) + 1, 1, name);
+    model_asset.name = heap_alloc(name_size, 1, name);
+    model_asset.name_size = name_size;
 
     vector_push(&model_assets, &model_asset);
   }
@@ -360,8 +392,8 @@ vector_t database_load_model_assets(void) {
 void database_store_pipeline_asset(pipeline_asset_t *pipeline_asset) {
   string_t sql = string_create();
 
-  string_appendf(&sql, "INSERT INTO PIPELINE_ASSETS (NAME, TYPE, LINK_INDEX, AUTO_CREATE, AUTO_VERTEX_INPUT_BUFFER, INTERLEAVED_VERTEX_INPUT_BUFFER)\n");
-  string_appendf(&sql, "VALUES (?, ?, ?, ?, ?, ?)\n");
+  string_appendf(&sql, "INSERT INTO PIPELINE_ASSETS (NAME, TYPE, LINK_INDEX, AUTO_CREATE_PIPELINE, AUTO_CREATE_VERTEX_INPUT_BUFFER, AUTO_LINK_DESCRIPTOR_BINDINGS, INTERLEAVED_VERTEX_INPUT_BUFFER)\n");
+  string_appendf(&sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
   string_appendf(&sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
   string_appendf(&sql, "ID = PIPELINE_ASSETS.ID,\n");
   string_appendf(&sql, "NAME = PIPELINE_ASSETS.NAME\n");
@@ -373,9 +405,10 @@ void database_store_pipeline_asset(pipeline_asset_t *pipeline_asset) {
   sqlite3_bind_text(stmt, 1, pipeline_asset->name, -1, SQLITE_STATIC);
   sqlite3_bind_int(stmt, 2, pipeline_asset->type);
   sqlite3_bind_int(stmt, 3, pipeline_asset->link_index);
-  sqlite3_bind_int(stmt, 4, pipeline_asset->auto_create);
-  sqlite3_bind_int(stmt, 5, pipeline_asset->auto_vertex_input_buffer);
-  sqlite3_bind_int(stmt, 6, pipeline_asset->interleaved_vertex_input_buffer);
+  sqlite3_bind_int(stmt, 4, pipeline_asset->auto_create_pipeline);
+  sqlite3_bind_int(stmt, 5, pipeline_asset->auto_create_vertex_input_buffer);
+  sqlite3_bind_int(stmt, 6, pipeline_asset->auto_link_descriptor_bindings);
+  sqlite3_bind_int(stmt, 7, pipeline_asset->interleaved_vertex_input_buffer);
 
   SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 

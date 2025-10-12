@@ -21,6 +21,7 @@ vector_t database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset_id_t 
 vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pipeline_asset_id);
 
 vector_t database_load_model_assets(void);
+// TODO
 
 void database_store_pipeline_asset(pipeline_asset_t *pipeline_asset);
 void database_store_pipeline_resource(pipeline_resource_t *pipeline_resource);

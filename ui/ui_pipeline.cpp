@@ -64,13 +64,14 @@ void ui_pipeline_draw() {
       ImGuiTableFlags_SizingStretchProp;
 
     ImGui::Text("Assets");
-    if (ImGui::BeginTable("##PipelineAssetTable", 7, pipeline_table_flags)) {
+    if (ImGui::BeginTable("##PipelineAssetTable", 8, pipeline_table_flags)) {
       ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
       ImGui::TableSetupColumn("TYPE", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("LINK_INDEX", ImGuiTableColumnFlags_WidthFixed);
-      ImGui::TableSetupColumn("AUTO_CREATE", ImGuiTableColumnFlags_WidthFixed);
-      ImGui::TableSetupColumn("AUTO_VERTEX_INPUT_BUFFER", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("AUTO_CREATE_PIPELINE", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("AUTO_CREATE_VERTEX_INPUT_BUFFER", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("AUTO_LINK_DESCRIPTOR_BINDINGS", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableSetupColumn("INTERLEAVED_VERTEX_INPUT_BUFFER", ImGuiTableColumnFlags_WidthFixed);
       ImGui::TableHeadersRow();
 
@@ -99,12 +100,15 @@ void ui_pipeline_draw() {
         ImGui::Text("%d", pipeline_asset->link_index);
 
         ImGui::TableSetColumnIndex(4);
-        ImGui::Text("%d", pipeline_asset->auto_create);
+        ImGui::Text("%d", pipeline_asset->auto_create_pipeline);
 
         ImGui::TableSetColumnIndex(5);
-        ImGui::Text("%d", pipeline_asset->auto_vertex_input_buffer);
+        ImGui::Text("%d", pipeline_asset->auto_create_vertex_input_buffer);
 
         ImGui::TableSetColumnIndex(6);
+        ImGui::Text("%d", pipeline_asset->auto_link_descriptor_bindings);
+
+        ImGui::TableSetColumnIndex(7);
         ImGui::Text("%d", pipeline_asset->interleaved_vertex_input_buffer);
 
         ImGui::PopID();
@@ -303,20 +307,22 @@ static void ui_pipeline_draw_insert() {
   switch (selected_pipline_type_index) {
     case 0: {
       // TODO
-      static char pipeline_name[0xFF] = "debug_line";
-      static char pipeline_vertex_shader_file_path[0xFF] = "C:\\Users\\burm\\Downloads\\fuse\\shader\\debug\\line.vert.spv";
-      static char pipeline_fragment_shader_file_path[0xFF] = "C:\\Users\\burm\\Downloads\\fuse\\shader\\debug\\line.frag.spv";
+      static char pipeline_name[0xFF] = "";
+      static char pipeline_vertex_shader_file_path[0xFF] = "";
+      static char pipeline_fragment_shader_file_path[0xFF] = "";
 
       ImGui::InputText("Pipeline Name", pipeline_name, sizeof(pipeline_name));
       ImGui::InputText("Vertex File", pipeline_vertex_shader_file_path, sizeof(pipeline_vertex_shader_file_path));
       ImGui::InputText("Fragment File", pipeline_fragment_shader_file_path, sizeof(pipeline_fragment_shader_file_path));
 
-      static uint8_t auto_create = 1;
-      static uint8_t auto_vertex_input_buffer = 1;
+      static uint8_t auto_create_pipeline = 1;
+      static uint8_t auto_create_vertex_input_buffer = 1;
+      static uint8_t auto_link_descriptor_bindings = 1;
       static uint8_t interleaved_vertex_input = 1;
 
-      ImGui::Checkbox("Auto Create", (bool *)&auto_create);
-      ImGui::Checkbox("Auto Vertex Input Buffer", (bool *)&auto_vertex_input_buffer);
+      ImGui::Checkbox("Auto Create Pipeline", (bool *)&auto_create_pipeline);
+      ImGui::Checkbox("Auto Create Vertex Input Buffer", (bool *)&auto_create_vertex_input_buffer);
+      ImGui::Checkbox("Auto Link Descriptor Bindings", (bool *)&auto_link_descriptor_bindings);
       ImGui::Checkbox("Interleaved Vertex Input", (bool *)&interleaved_vertex_input);
 
       if (ImGui::Button("Create Pipeline")) {
@@ -325,8 +331,9 @@ static void ui_pipeline_draw_insert() {
         import_settings.pipeline_name = pipeline_name;
         import_settings.vertex_shader_file_path = pipeline_vertex_shader_file_path;
         import_settings.fragment_shader_file_path = pipeline_fragment_shader_file_path;
-        import_settings.auto_create = auto_create;
-        import_settings.auto_vertex_input_buffer = auto_vertex_input_buffer;
+        import_settings.auto_create_pipeline = auto_create_pipeline;
+        import_settings.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
+        import_settings.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
         import_settings.interleaved_vertex_input = interleaved_vertex_input;
 
         importer_import_graphic_pipeline(&import_settings);
