@@ -10,4 +10,6 @@
 
 #include <engine/eg_forward.h>
 
+#include <flecs/flecs.h>
+
 #endif // EG_PCH_H

@@ -3,12 +3,14 @@
 #include <engine/eg_player.h>
 #include <engine/eg_itself.h>
 #include <engine/eg_renderer.h>
+#include <engine/eg_scene.h>
 #include <engine/eg_transform.h>
 
 player_t *g_player_0 = {0};
 
 int32_t main(int32_t argc, char **argv, char **envp) {
   context_create(1920, 1080); // TODO
+  scene_create();
 
   g_globals.renderer_enable_debug = 1; // TODO
   g_player_0 = player_create();
@@ -28,6 +30,7 @@ int32_t main(int32_t argc, char **argv, char **envp) {
 
   player_destroy(g_player_0);
 
+  scene_destroy();
   context_destroy();
 
   heap_reset();
