@@ -5,8 +5,6 @@
 extern "C" {
 #endif // __cplusplus
 
-extern player_t *g_player_0;
-
 #ifdef __cplusplus
 }
 #endif // __cplusplus

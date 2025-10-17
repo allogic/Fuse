@@ -4,6 +4,7 @@
 #include <engine/eg_pipeline.h>
 #include <engine/eg_renderer.h>
 #include <engine/eg_swapchain.h>
+#include <engine/eg_scene_manager.h>
 
 #include <ui/ui_itself.h>
 
@@ -27,7 +28,7 @@ static void renderer_create_pipelines(void);
 static void renderer_create_sync_objects(void);
 static void renderer_create_command_buffer(void);
 
-static void renderer_update_uniform_buffers(transform_t *transform, camera_t *camera);
+static void renderer_update_uniform_buffers(void);
 
 static void renderer_record_compute_commands(void);
 static void renderer_record_graphic_commands(void);
@@ -65,6 +66,8 @@ static buffer_t *s_renderer_debug_line_index_buffers = 0;
 static uint32_t *s_renderer_debug_line_vertex_offsets = 0;
 static uint32_t *s_renderer_debug_line_index_offsets = 0;
 
+static scene_t *s_renderer_active_scene = 0;
+
 void renderer_create(void) {
   renderer_asset_t renderer_asset = database_load_renderer_default_asset();
 
@@ -89,6 +92,9 @@ void renderer_create(void) {
 
   database_destroy_renderer_asset(&renderer_asset);
 }
+void renderer_begin_frame(void) {
+  s_renderer_active_scene = scene_manager_active_scene();
+}
 void renderer_update(void) {
   if (g_globals.renderer_enable_debug) {
     vector3_t right_position = {0.0F, 0.0F, 0.0F};
@@ -110,7 +116,7 @@ void renderer_update(void) {
     renderer_draw_debug_line(front_position, front_direction, front_color);
   }
 }
-void renderer_draw(transform_t *transform, camera_t *camera) {
+void renderer_draw(void) {
   VkResult result = VK_SUCCESS;
 
   result = vkWaitForFences(g_globals.context_device, 1, &s_renderer_frame_fences[g_globals.renderer_frame_index], 1, UINT64_MAX);
@@ -177,7 +183,7 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
 #endif // BUILD_DEBUG
   }
 
-  renderer_update_uniform_buffers(transform, camera);
+  renderer_update_uniform_buffers();
 
   VkCommandBufferBeginInfo command_buffer_begin_info = {0};
   command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -248,6 +254,9 @@ void renderer_draw(transform_t *transform, camera_t *camera) {
   }
 
   g_globals.renderer_frame_index = (g_globals.renderer_frame_index + 1) % g_globals.renderer_frames_in_flight;
+}
+void renderer_end_frame(void) {
+  // TODO: maybe dont do it this way.. with begin and end...
 }
 void renderer_destroy(void) {
   VULKAN_CHECK(vkQueueWaitIdle(g_globals.context_graphic_queue));
@@ -531,33 +540,38 @@ static void renderer_create_command_buffer(void) {
   VULKAN_CHECK(vkAllocateCommandBuffers(g_globals.context_device, &command_buffer_alloc_create_info, g_globals.renderer_graphic_command_buffers));
 }
 
-static void renderer_update_uniform_buffers(transform_t *transform, camera_t *camera) {
-  s_renderer_time_infos[g_globals.renderer_frame_index]->time = (float)g_globals.context_time;
-  s_renderer_time_infos[g_globals.renderer_frame_index]->delta_time = (float)g_globals.context_delta_time;
+static void renderer_update_uniform_buffers(void) {
+  if (s_renderer_active_scene) {
+    transform_t const *transform = ecs_get(s_renderer_active_scene->ecs, s_renderer_active_scene->player, transform_t);
+    camera_t const *camera = ecs_get(s_renderer_active_scene->ecs, s_renderer_active_scene->player, camera_t);
 
-  vector2_t resolution = vector2_xy((float)g_globals.context_surface_width, (float)g_globals.context_surface_height);
+    s_renderer_time_infos[g_globals.renderer_frame_index]->time = (float)g_globals.context_time;
+    s_renderer_time_infos[g_globals.renderer_frame_index]->delta_time = (float)g_globals.context_delta_time;
 
-  s_renderer_screen_infos[g_globals.renderer_frame_index]->resolution = resolution;
+    vector2_t resolution = vector2_xy((float)g_globals.context_surface_width, (float)g_globals.context_surface_height);
 
-  vector3_t eye = transform->world_position;
-  vector3_t center = vector3_add(transform->world_position, transform->local_front);
-  vector3_t up = vector3_down();
+    s_renderer_screen_infos[g_globals.renderer_frame_index]->resolution = resolution;
 
-  float fov = deg_to_rad(camera->fov);
-  float aspect_ratio = (float)g_globals.context_surface_width / (float)g_globals.context_surface_height;
-  float near_z = camera->near_z;
-  float far_z = camera->far_z;
+    vector3_t eye = transform->world_position;
+    vector3_t center = vector3_add(transform->world_position, transform->local_front);
+    vector3_t up = vector3_down();
 
-  matrix4_t view = matrix4_look_at(eye, center, up);
-  matrix4_t projection = matrix4_persp(fov, aspect_ratio, near_z, far_z);
-  matrix4_t view_projection = matrix4_mul(view, projection);
-  matrix4_t view_projection_inv = matrix4_inverse(view_projection);
+    float fov = deg_to_rad(camera->fov);
+    float aspect_ratio = (float)g_globals.context_surface_width / (float)g_globals.context_surface_height;
+    float near_z = camera->near_z;
+    float far_z = camera->far_z;
 
-  s_renderer_camera_infos[g_globals.renderer_frame_index]->world_position = transform->world_position;
-  s_renderer_camera_infos[g_globals.renderer_frame_index]->view = view;
-  s_renderer_camera_infos[g_globals.renderer_frame_index]->projection = projection;
-  s_renderer_camera_infos[g_globals.renderer_frame_index]->view_projection = view_projection;
-  s_renderer_camera_infos[g_globals.renderer_frame_index]->view_projection_inv = view_projection_inv;
+    matrix4_t view = matrix4_look_at(eye, center, up);
+    matrix4_t projection = matrix4_persp(fov, aspect_ratio, near_z, far_z);
+    matrix4_t view_projection = matrix4_mul(view, projection);
+    matrix4_t view_projection_inv = matrix4_inverse(view_projection);
+
+    s_renderer_camera_infos[g_globals.renderer_frame_index]->world_position = transform->world_position;
+    s_renderer_camera_infos[g_globals.renderer_frame_index]->view = view;
+    s_renderer_camera_infos[g_globals.renderer_frame_index]->projection = projection;
+    s_renderer_camera_infos[g_globals.renderer_frame_index]->view_projection = view_projection;
+    s_renderer_camera_infos[g_globals.renderer_frame_index]->view_projection_inv = view_projection_inv;
+  }
 }
 
 static void renderer_record_compute_commands(void) {

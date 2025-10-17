@@ -1,46 +1,32 @@
 #include <engine/eg_pch.h>
-#include <engine/eg_camera.h>
-#include <engine/eg_context.h>
-#include <engine/eg_player.h>
-#include <engine/eg_renderer.h>
-#include <engine/eg_transform.h>
 
-static void player_handle_position(player_t *player);
-static void player_handle_rotation(player_t *player);
+#include <engine/components/eg_editor_controller.h>
 
-player_t *player_create(void) {
-  player_t *player = (player_t *)heap_alloc(sizeof(player_t), 0, 0);
+static void editor_controller_handle_position(editor_controller_t *editor_controller);
+static void editor_controller_handle_rotation(editor_controller_t *editor_controller);
 
-  memset(player, 0, sizeof(player_t));
+editor_controller_t editor_controller_create(void) {
+  editor_controller_t editor_controller = {0};
 
-  player->camera = camera_create();
-  player->transform = transform_create(0);
-  player->velocity = vector3_zero();
-  player->mouse_begin = vector3_zero();
-  player->mouse_end = vector3_zero();
-  player->mouse_delta = vector3_zero();
-  player->keyboard_move_speed_fast = 50.0F;
-  player->keyboard_move_speed_normal = 5.0F;
-  player->mouse_move_speed_fast = 5.0F;
-  player->mouse_move_speed_normal = 0.005F;
-  player->mouse_rotation_speed = 0.1F;
-  player->move_drag = 2.5F;
-  player->rotation_drag = 50.0F;
+  editor_controller.mouse_begin = vector3_zero();
+  editor_controller.mouse_end = vector3_zero();
+  editor_controller.mouse_delta = vector3_zero();
+  editor_controller.keyboard_move_speed_fast = 50.0F;
+  editor_controller.keyboard_move_speed_normal = 5.0F;
+  editor_controller.mouse_move_speed_fast = 5.0F;
+  editor_controller.mouse_move_speed_normal = 0.005F;
+  editor_controller.mouse_rotation_speed = 0.1F;
+  editor_controller.move_drag = 2.5F;
+  editor_controller.rotation_drag = 50.0F;
 
-  return player;
+  return editor_controller;
 }
-void player_update(player_t *player) {
-  player_handle_position(player);
-  player_handle_rotation(player);
-}
-void player_destroy(player_t *player) {
-  camera_destroy(player->camera);
-  transform_destroy(player->transform);
-
-  heap_free(player);
+void editor_controller_update(editor_controller_t *editor_controller) {
+  editor_controller_handle_position(editor_controller);
+  editor_controller_handle_rotation(editor_controller);
 }
 
-static void player_handle_position(player_t *player) {
+static void editor_controller_handle_position(editor_controller_t *editor_controller) {
   float keyboard_move_speed = context_is_keyboard_key_held(KEYBOARD_KEY_LEFT_SHIFT)
                                 ? player->keyboard_move_speed_fast
                                 : player->keyboard_move_speed_normal;
@@ -106,7 +92,7 @@ static void player_handle_position(player_t *player) {
   transform_set_relative_position(transform, rotated_velocity);
   */
 }
-static void player_handle_rotation(player_t *player) {
+static void editor_controller_handle_rotation(editor_controller_t *editor_controller) {
   if (context_is_mouse_key_pressed(MOUSE_KEY_RIGHT)) {
     player->mouse_begin = vector3_xyz((float)g_globals.context_mouse_position_x, (float)g_globals.context_mouse_position_y, 0.0F);
   } else if (context_is_mouse_key_held(MOUSE_KEY_RIGHT) && context_is_mouse_key_held(MOUSE_KEY_LEFT)) {

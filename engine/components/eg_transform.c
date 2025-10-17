@@ -1,14 +1,10 @@
 #include <engine/eg_pch.h>
-#include <engine/eg_transform.h>
 
-transform_t *transform_create(transform_t *parent) {
-  transform_t *transform = (transform_t *)heap_alloc(sizeof(transform_t), 0, 0);
+#include <engine/components/eg_transform.h>
 
-  memset(transform, 0, sizeof(transform_t));
+transform_t transform_create(void) {
+  transform_t transform = {0};
 
-  transform->parent = parent;
-  transform->children = (transform_t **)heap_alloc(sizeof(transform_t *) * 16, 0, 0);
-  transform->child_count = 0;
   transform->local_right = vector3_right();
   transform->local_up = vector3_up();
   transform->local_front = vector3_front();
@@ -21,10 +17,6 @@ transform_t *transform_create(transform_t *parent) {
   transform->world_position = vector3_zero();
   transform->world_rotation = quaternion_identity();
   transform->world_scale = vector3_one();
-
-  if (parent) {
-    parent->children[parent->child_count++] = transform;
-  }
 
   return transform;
 }
@@ -61,10 +53,6 @@ matrix4_t transform_matrix(transform_t *transform) {
   };
 
   return r;
-}
-void transform_destroy(transform_t *transform) {
-  heap_free(transform->children);
-  heap_free(transform);
 }
 
 void transform_set_position(transform_t *transform, vector3_t position) {

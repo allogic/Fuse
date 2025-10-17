@@ -1,36 +1,33 @@
 ﻿#include <engine/eg_pch.h>
 #include <engine/eg_context.h>
-#include <engine/eg_player.h>
 #include <engine/eg_itself.h>
 #include <engine/eg_renderer.h>
-#include <engine/eg_scene.h>
-#include <engine/eg_transform.h>
+#include <engine/eg_scene_manager.h>
 
-player_t *g_player_0 = {0};
+#include <engine/scenes/eg_game_scene.h>
 
 int32_t main(int32_t argc, char **argv, char **envp) {
-  context_create(1920, 1080); // TODO
-  scene_create();
-
   g_globals.renderer_enable_debug = 1; // TODO
-  g_player_0 = player_create();
 
-  transform_set_position_xyz(g_player_0->transform, 0.0F, 0.0F, -10.0F);
+  context_create(1920, 1080);
+  scene_manager_create();
+
+  scene_t *game_scene = game_scene_create();
+
+  scene_manager_set_active_scene(0);
 
   while (context_is_running()) {
     context_begin_frame();
-
-    player_update(g_player_0);
+    renderer_begin_frame();
 
     renderer_update();
-    renderer_draw(g_player_0->transform, g_player_0->camera);
+    renderer_draw();
 
+    renderer_end_frame();
     context_end_frame();
   }
 
-  player_destroy(g_player_0);
-
-  scene_destroy();
+  scene_manager_create();
   context_destroy();
 
   heap_reset();

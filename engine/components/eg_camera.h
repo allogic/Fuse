@@ -5,8 +5,15 @@
 extern "C" {
 #endif // __cplusplus
 
-camera_t *camera_create(void);
-void camera_destroy(camera_t *camera);
+typedef struct camera_t {
+  float fov;
+  float near_z;
+  float far_z;
+} camera_t;
+
+ECS_COMPONENT_DECLARE(camera_t);
+
+camera_t camera_create(void);
 
 #ifdef __cplusplus
 }

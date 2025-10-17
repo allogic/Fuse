@@ -10,6 +10,8 @@
 
 #include <engine/eg_forward.h>
 
-#include <flecs/flecs.h>
+#include <engine/components/eg_camera.h>
+#include <engine/components/eg_editor_controller.h>
+#include <engine/components/eg_transform.h>
 
 #endif // EG_PCH_H
