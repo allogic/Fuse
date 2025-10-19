@@ -3,6 +3,7 @@
 add_executable (engine ${SRC_FILES})
 
 add_subdirectory (components)
+add_subdirectory (physics)
 add_subdirectory (scenes)
 add_subdirectory (systems)
 
