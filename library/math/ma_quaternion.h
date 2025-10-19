@@ -8,6 +8,8 @@ extern "C" {
 __forceinline quaternion_t quaternion_zero(void);
 __forceinline quaternion_t quaternion_identity(void);
 __forceinline quaternion_t quaternion_xyzw(float x, float y, float z, float w);
+__forceinline quaternion_t quaternion_add(quaternion_t a, quaternion_t b);
+__forceinline quaternion_t quaternion_adds(quaternion_t a, float b);
 __forceinline quaternion_t quaternion_mul(quaternion_t a, quaternion_t b);
 __forceinline quaternion_t quaternion_muls(quaternion_t a, float b);
 __forceinline quaternion_t quaternion_conjugate(quaternion_t a);

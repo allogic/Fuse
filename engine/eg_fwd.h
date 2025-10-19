@@ -1,5 +1,5 @@
-#ifndef EG_FORWARD_H
-#define EG_FORWARD_H
+#ifndef EG_FWD_H
+#define EG_FWD_H
 
 typedef struct buffer_t {
   uint64_t buffer_size;
@@ -72,10 +72,4 @@ typedef struct debug_vertex_t {
   vector4_t color;
 } debug_vertex_t;
 
-typedef struct scene_t {
-  ecs_world_t *ecs;
-  ecs_query_t *query;
-  ecs_entity_t player;
-} scene_t;
-
-#endif // EG_FORWARD_H
+#endif // EG_FWD_H

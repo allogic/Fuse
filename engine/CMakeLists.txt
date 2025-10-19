@@ -4,6 +4,7 @@ add_executable (engine ${SRC_FILES})
 
 add_subdirectory (components)
 add_subdirectory (scenes)
+add_subdirectory (systems)
 
 target_link_libraries (engine PUBLIC library)
 target_link_libraries (engine PUBLIC ui)

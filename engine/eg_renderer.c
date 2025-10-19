@@ -4,7 +4,6 @@
 #include <engine/eg_pipeline.h>
 #include <engine/eg_renderer.h>
 #include <engine/eg_swapchain.h>
-#include <engine/eg_scene_manager.h>
 
 #include <ui/ui_itself.h>
 
@@ -66,8 +65,6 @@ static buffer_t *s_renderer_debug_line_index_buffers = 0;
 static uint32_t *s_renderer_debug_line_vertex_offsets = 0;
 static uint32_t *s_renderer_debug_line_index_offsets = 0;
 
-static scene_t *s_renderer_active_scene = 0;
-
 void renderer_create(void) {
   renderer_asset_t renderer_asset = database_load_renderer_default_asset();
 
@@ -92,26 +89,23 @@ void renderer_create(void) {
 
   database_destroy_renderer_asset(&renderer_asset);
 }
-void renderer_begin_frame(void) {
-  s_renderer_active_scene = scene_manager_active_scene();
-}
 void renderer_update(void) {
   if (g_globals.renderer_enable_debug) {
     vector3_t right_position = {0.0F, 0.0F, 0.0F};
-    vector3_t right_direction = {6.0F, 0.0F, 0.0F};
-    vector4_t right_color = {666.0F, 0.0F, 0.0F, 1.0F};
+    vector3_t right_direction = {1.0F, 0.0F, 0.0F};
+    vector4_t right_color = {1.0F, 0.0F, 0.0F, 1.0F};
 
     renderer_draw_debug_line(right_position, right_direction, right_color);
 
     vector3_t up_position = {0.0F, 0.0F, 0.0F};
-    vector3_t up_direction = {0.0F, 5.0F, 0.0F};
-    vector4_t up_color = {0.0F, 555.0F, 0.0F, 1.0F};
+    vector3_t up_direction = {0.0F, 1.0F, 0.0F};
+    vector4_t up_color = {0.0F, 1.0F, 0.0F, 1.0F};
 
     renderer_draw_debug_line(up_position, up_direction, up_color);
 
     vector3_t front_position = {0.0F, 0.0F, 0.0F};
-    vector3_t front_direction = {0.0F, 0.0F, 4.0F};
-    vector4_t front_color = {0.0F, 0.0F, 444.0F, 1.0F};
+    vector3_t front_direction = {0.0F, 0.0F, 1.0F};
+    vector4_t front_color = {0.0F, 0.0F, 1.0F, 1.0F};
 
     renderer_draw_debug_line(front_position, front_direction, front_color);
   }
@@ -254,9 +248,6 @@ void renderer_draw(void) {
   }
 
   g_globals.renderer_frame_index = (g_globals.renderer_frame_index + 1) % g_globals.renderer_frames_in_flight;
-}
-void renderer_end_frame(void) {
-  // TODO: maybe dont do it this way.. with begin and end...
 }
 void renderer_destroy(void) {
   VULKAN_CHECK(vkQueueWaitIdle(g_globals.context_graphic_queue));
@@ -541,9 +532,14 @@ static void renderer_create_command_buffer(void) {
 }
 
 static void renderer_update_uniform_buffers(void) {
-  if (s_renderer_active_scene) {
-    transform_t const *transform = ecs_get(s_renderer_active_scene->ecs, s_renderer_active_scene->player, transform_t);
-    camera_t const *camera = ecs_get(s_renderer_active_scene->ecs, s_renderer_active_scene->player, camera_t);
+  if (g_globals.scene_curr_active) {
+    // TODO: find an easier way to compute world position's automatically..
+    transform_compute_world_position(g_globals.scene_curr_active->world, g_globals.scene_curr_active->player);
+    transform_compute_world_rotation(g_globals.scene_curr_active->world, g_globals.scene_curr_active->player);
+    transform_compute_world_scale(g_globals.scene_curr_active->world, g_globals.scene_curr_active->player);
+
+    transform_t *transform = ecs_get_mut(g_globals.scene_curr_active->world, g_globals.scene_curr_active->player, transform_t);
+    camera_t *camera = ecs_get_mut(g_globals.scene_curr_active->world, g_globals.scene_curr_active->player, camera_t);
 
     s_renderer_time_infos[g_globals.renderer_frame_index]->time = (float)g_globals.context_time;
     s_renderer_time_infos[g_globals.renderer_frame_index]->delta_time = (float)g_globals.context_delta_time;
@@ -553,7 +549,7 @@ static void renderer_update_uniform_buffers(void) {
     s_renderer_screen_infos[g_globals.renderer_frame_index]->resolution = resolution;
 
     vector3_t eye = transform->world_position;
-    vector3_t center = vector3_add(transform->world_position, transform->local_front);
+    vector3_t center = vector3_add(transform->world_position, transform_local_front(transform));
     vector3_t up = vector3_down();
 
     float fov = deg_to_rad(camera->fov);

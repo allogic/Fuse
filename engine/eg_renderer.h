@@ -6,10 +6,8 @@ extern "C" {
 #endif // __cplusplus
 
 void renderer_create(void);
-void renderer_begin_frame(void);
 void renderer_update(void);
 void renderer_draw(void);
-void renderer_end_frame(void);
 void renderer_destroy(void);
 
 void renderer_draw_debug_line(vector3_t from, vector3_t to, vector4_t color);

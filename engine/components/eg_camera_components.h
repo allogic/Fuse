@@ -1,5 +1,5 @@
-#ifndef EG_CAMERA_H
-#define EG_CAMERA_H
+#ifndef EG_CAMERA_COMPONENTS_H
+#define EG_CAMERA_COMPONENTS_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,10 +13,10 @@ typedef struct camera_t {
 
 ECS_COMPONENT_DECLARE(camera_t);
 
-camera_t camera_create(void);
+void camera_init(camera_t *camera);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
-#endif // EG_CAMERA_H
+#endif // EG_CAMERA_COMPONENTS_H

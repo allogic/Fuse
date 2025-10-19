@@ -28,6 +28,26 @@ __forceinline quaternion_t quaternion_xyzw(float x, float y, float z, float w) {
 
   return q;
 }
+__forceinline quaternion_t quaternion_add(quaternion_t a, quaternion_t b) {
+  quaternion_t q = {
+    a.x + b.x,
+    a.y + b.y,
+    a.z + b.z,
+    a.w + b.w,
+  };
+
+  return q;
+}
+__forceinline quaternion_t quaternion_adds(quaternion_t a, float b) {
+  quaternion_t q = {
+    a.x + b,
+    a.y + b,
+    a.z + b,
+    a.w + b,
+  };
+
+  return q;
+}
 __forceinline quaternion_t quaternion_mul(quaternion_t a, quaternion_t b) {
   quaternion_t q = {
     (a.w * b.x) + (a.x * b.w) + (a.y * b.z) - (a.z * b.y),

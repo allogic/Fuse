@@ -56570,7 +56570,7 @@ char* ecs_meta_serializer_to_str(
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <winsock2.h>
+//#include <winsock2.h>
 #include <windows.h>
 
 typedef struct ecs_win_thread_t {

@@ -42,6 +42,8 @@ typedef struct globals_t {
   uint32_t renderer_frame_index;
   uint32_t renderer_image_index;
   VkCommandBuffer *renderer_graphic_command_buffers;
+
+  scene_t *scene_curr_active;
 } globals_t;
 
 #ifdef __cplusplus
