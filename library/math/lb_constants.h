@@ -9,6 +9,8 @@
 #define RAD_TO_DEG ((float)57.29577951308232286465)
 
 #define EPSILON_3 ((float)1.0E-3)
+#define EPSILON_4 ((float)1.0E-4)
+#define EPSILON_5 ((float)1.0E-5)
 #define EPSILON_6 ((float)1.0E-6)
 
 #endif // LB_MATH_CONSTANTS_H

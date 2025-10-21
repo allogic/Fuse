@@ -17,7 +17,7 @@ hit3_t sphere_triangle_collision(vector3_t p, float r, vector3_t a, vector3_t b,
 
     hit.collision = 1;
     hit.point = closest;
-    hit.normal = (dist > 0.0001F) ? vector3_muls(diff, 1.0F / dist) : vector3_up();
+    hit.normal = (dist > EPSILON_4) ? vector3_muls(diff, 1.0F / dist) : vector3_up();
     hit.penetration = r - dist;
   }
 
