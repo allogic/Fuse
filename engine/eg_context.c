@@ -3,7 +3,7 @@
 #include <engine/eg_swapchain.h>
 #include <engine/eg_renderer.h>
 
-#include <ui/ui_itself.h>
+#include <ui/ui_ui.h>
 
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -68,7 +68,7 @@ static VkDebugUtilsMessengerEXT s_context_debug_messenger = 0;
 #endif // BUILD_DEBUG
 
 void context_create(int32_t width, int32_t height) {
-  g_globals.context_module_handle = GetModuleHandleA(0);
+  g_context_module_handle = GetModuleHandleA(0);
 
   WNDCLASSEX window_class_ex = {0};
   window_class_ex.cbSize = sizeof(WNDCLASSEX);
@@ -76,7 +76,7 @@ void context_create(int32_t width, int32_t height) {
   window_class_ex.lpfnWndProc = context_window_message_proc;
   window_class_ex.cbClsExtra = 0;
   window_class_ex.cbWndExtra = 0;
-  window_class_ex.hInstance = g_globals.context_module_handle;
+  window_class_ex.hInstance = g_context_module_handle;
   window_class_ex.hIcon = LoadIconA(0, IDI_APPLICATION);
   window_class_ex.hCursor = LoadCursorA(0, IDC_ARROW);
   window_class_ex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -91,15 +91,15 @@ void context_create(int32_t width, int32_t height) {
   INT window_position_x = (screen_width - width) / 2;
   INT window_position_y = (screen_height - height) / 2;
 
-  g_globals.context_window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, width, height, 0, 0, g_globals.context_module_handle, 0);
+  g_context_window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, width, height, 0, 0, g_context_module_handle, 0);
 
   database_create();
 
   context_create_instance();
   context_create_surface();
 
-  g_globals.context_graphic_queue_index = -1;
-  g_globals.context_present_queue_index = -1;
+  g_context_graphic_queue_index = -1;
+  g_context_present_queue_index = -1;
 
   context_find_physical_device();
   context_find_physical_device_queue_families();
@@ -121,10 +121,10 @@ void context_create(int32_t width, int32_t height) {
   QueryPerformanceFrequency(&s_context_timer_freq);
 }
 uint8_t context_is_running(void) {
-  return g_globals.context_window_should_close == 0;
+  return g_context_window_should_close == 0;
 }
 void context_begin_frame(void) {
-  g_globals.context_mouse_wheel_delta = 0;
+  g_context_mouse_wheel_delta = 0;
 
   uint8_t keyboard_key_index = 0;
   uint8_t keyboard_key_count = 0xFF;
@@ -154,8 +154,8 @@ void context_begin_frame(void) {
     mouse_key_index++;
   }
 
-  if (g_globals.swapchain_is_dirty) {
-    g_globals.swapchain_is_dirty = 0;
+  if (g_swapchain_is_dirty) {
+    g_swapchain_is_dirty = 0;
 
     renderer_destroy();
     swapchain_destroy();
@@ -166,8 +166,8 @@ void context_begin_frame(void) {
     renderer_create();
   }
 
-  if (g_globals.renderer_is_dirty) {
-    g_globals.renderer_is_dirty = 0;
+  if (g_renderer_is_dirty) {
+    g_renderer_is_dirty = 0;
 
     renderer_destroy();
 
@@ -184,8 +184,8 @@ void context_begin_frame(void) {
 void context_end_frame(void) {
   QueryPerformanceCounter(&s_context_timer_end);
 
-  g_globals.context_delta_time = (((double)s_context_timer_end.QuadPart) - ((double)s_context_timer_begin.QuadPart)) / ((double)s_context_timer_freq.QuadPart);
-  g_globals.context_time += g_globals.context_delta_time;
+  g_context_delta_time = (((double)s_context_timer_end.QuadPart) - ((double)s_context_timer_begin.QuadPart)) / ((double)s_context_timer_freq.QuadPart);
+  g_context_time += g_context_delta_time;
 }
 void context_destroy(void) {
   renderer_destroy();
@@ -199,9 +199,9 @@ void context_destroy(void) {
 
   database_destroy();
 
-  DestroyWindow(g_globals.context_window_handle);
+  DestroyWindow(g_context_window_handle);
 
-  UnregisterClassA(s_context_window_class, g_globals.context_module_handle);
+  UnregisterClassA(s_context_window_class, g_context_module_handle);
 }
 
 uint8_t context_is_keyboard_key_pressed(keyboard_key_t key) {
@@ -229,9 +229,9 @@ int32_t context_find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags mem
 
   uint32_t memory_type_index = 0;
 
-  while (memory_type_index < g_globals.context_physical_device_memory_properties.memoryTypeCount) {
+  while (memory_type_index < g_context_physical_device_memory_properties.memoryTypeCount) {
 
-    if ((type_filter & (1 << memory_type_index)) && ((g_globals.context_physical_device_memory_properties.memoryTypes[memory_type_index].propertyFlags & memory_property_flags) == memory_property_flags)) {
+    if ((type_filter & (1 << memory_type_index)) && ((g_context_physical_device_memory_properties.memoryTypes[memory_type_index].propertyFlags & memory_property_flags) == memory_property_flags)) {
       memory_type = (int32_t)memory_type_index;
 
       break;
@@ -249,10 +249,10 @@ VkCommandBuffer context_begin_command_buffer(void) {
   VkCommandBufferAllocateInfo command_buffer_allocate_info = {0};
   command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  command_buffer_allocate_info.commandPool = g_globals.context_command_pool;
+  command_buffer_allocate_info.commandPool = g_context_command_pool;
   command_buffer_allocate_info.commandBufferCount = 1;
 
-  VULKAN_CHECK(vkAllocateCommandBuffers(g_globals.context_device, &command_buffer_allocate_info, &command_buffer));
+  VULKAN_CHECK(vkAllocateCommandBuffers(g_context_device, &command_buffer_allocate_info, &command_buffer));
 
   VkCommandBufferBeginInfo command_buffer_begin_info = {0};
   command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -270,10 +270,10 @@ void context_end_command_buffer(VkCommandBuffer command_buffer) {
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffer;
 
-  VULKAN_CHECK(vkQueueSubmit(g_globals.context_graphic_queue, 1, &submit_info, 0));
-  VULKAN_CHECK(vkQueueWaitIdle(g_globals.context_graphic_queue));
+  VULKAN_CHECK(vkQueueSubmit(g_context_graphic_queue, 1, &submit_info, 0));
+  VULKAN_CHECK(vkQueueWaitIdle(g_context_graphic_queue));
 
-  vkFreeCommandBuffers(g_globals.context_device, g_globals.context_command_pool, 1, &command_buffer);
+  vkFreeCommandBuffers(g_context_device, g_context_command_pool, 1, &command_buffer);
 }
 
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
@@ -286,7 +286,7 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       break;
     }
     case WM_CLOSE: {
-      g_globals.context_window_should_close = 1;
+      g_context_window_should_close = 1;
 
       break;
     }
@@ -395,13 +395,13 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       INT mouse_x = LOWORD(l_param);
       INT mouse_y = HIWORD(l_param);
 
-      g_globals.context_mouse_position_x = mouse_x;
-      g_globals.context_mouse_position_y = mouse_y;
+      g_context_mouse_position_x = mouse_x;
+      g_context_mouse_position_y = mouse_y;
 
       break;
     }
     case WM_MOUSEWHEEL: {
-      g_globals.context_mouse_wheel_delta = GET_WHEEL_DELTA_WPARAM(w_param);
+      g_context_mouse_wheel_delta = GET_WHEEL_DELTA_WPARAM(w_param);
 
       break;
     }
@@ -448,22 +448,22 @@ static void context_create_instance(void) {
   instance_create_info.ppEnabledLayerNames = s_context_validation_layers;
 #endif // BUILD_DEBUG
 
-  VULKAN_CHECK(vkCreateInstance(&instance_create_info, 0, &g_globals.context_instance));
+  VULKAN_CHECK(vkCreateInstance(&instance_create_info, 0, &g_context_instance));
 
 #ifdef BUILD_DEBUG
-  s_context_create_debug_utils_messenger_ext = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(g_globals.context_instance, "vkCreateDebugUtilsMessengerEXT");
-  s_context_destroy_debug_utils_messenger_ext = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(g_globals.context_instance, "vkDestroyDebugUtilsMessengerEXT");
+  s_context_create_debug_utils_messenger_ext = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(g_context_instance, "vkCreateDebugUtilsMessengerEXT");
+  s_context_destroy_debug_utils_messenger_ext = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(g_context_instance, "vkDestroyDebugUtilsMessengerEXT");
 
-  VULKAN_CHECK(s_context_create_debug_utils_messenger_ext(g_globals.context_instance, &debug_create_info, 0, &s_context_debug_messenger));
+  VULKAN_CHECK(s_context_create_debug_utils_messenger_ext(g_context_instance, &debug_create_info, 0, &s_context_debug_messenger));
 #endif // BUILD_DEBUG
 }
 static void context_create_surface(void) {
   VkWin32SurfaceCreateInfoKHR surface_create_info = {0};
   surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-  surface_create_info.hwnd = g_globals.context_window_handle;
-  surface_create_info.hinstance = g_globals.context_module_handle;
+  surface_create_info.hwnd = g_context_window_handle;
+  surface_create_info.hinstance = g_context_module_handle;
 
-  VULKAN_CHECK(vkCreateWin32SurfaceKHR(g_globals.context_instance, &surface_create_info, 0, &g_globals.context_surface));
+  VULKAN_CHECK(vkCreateWin32SurfaceKHR(g_context_instance, &surface_create_info, 0, &g_context_surface));
 }
 static void context_create_device(void) {
   VkDeviceQueueCreateInfo device_queue_create_infos[2] = {0};
@@ -471,12 +471,12 @@ static void context_create_device(void) {
   float queue_priority = 1.0F;
 
   device_queue_create_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  device_queue_create_infos[0].queueFamilyIndex = g_globals.context_graphic_queue_index;
+  device_queue_create_infos[0].queueFamilyIndex = g_context_graphic_queue_index;
   device_queue_create_infos[0].queueCount = 1;
   device_queue_create_infos[0].pQueuePriorities = &queue_priority;
 
   device_queue_create_infos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  device_queue_create_infos[1].queueFamilyIndex = g_globals.context_present_queue_index;
+  device_queue_create_infos[1].queueFamilyIndex = g_context_present_queue_index;
   device_queue_create_infos[1].queueCount = 1;
   device_queue_create_infos[1].pQueuePriorities = &queue_priority;
 
@@ -488,7 +488,7 @@ static void context_create_device(void) {
   physical_device_features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
   physical_device_features_2.pNext = &physical_device_descriptor_indexing_features;
 
-  vkGetPhysicalDeviceFeatures2(g_globals.context_physical_device, &physical_device_features_2);
+  vkGetPhysicalDeviceFeatures2(g_context_physical_device, &physical_device_features_2);
 
   if (!physical_device_descriptor_indexing_features.runtimeDescriptorArray) {
     // TODO: properly handle the lack of unsupported features..
@@ -512,56 +512,56 @@ static void context_create_device(void) {
   device_create_info.enabledLayerCount = ARRAY_COUNT(s_context_validation_layers);
 #endif // BUILD_DEBUG
 
-  VULKAN_CHECK(vkCreateDevice(g_globals.context_physical_device, &device_create_info, 0, &g_globals.context_device));
+  VULKAN_CHECK(vkCreateDevice(g_context_physical_device, &device_create_info, 0, &g_context_device));
 
-  vkGetDeviceQueue(g_globals.context_device, g_globals.context_graphic_queue_index, 0, &g_globals.context_graphic_queue);
-  vkGetDeviceQueue(g_globals.context_device, g_globals.context_present_queue_index, 0, &g_globals.context_present_queue);
+  vkGetDeviceQueue(g_context_device, g_context_graphic_queue_index, 0, &g_context_graphic_queue);
+  vkGetDeviceQueue(g_context_device, g_context_present_queue_index, 0, &g_context_present_queue);
 }
 static void context_create_command_pool(void) {
   VkCommandPoolCreateInfo command_pool_create_info = {0};
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  command_pool_create_info.queueFamilyIndex = g_globals.context_graphic_queue_index;
+  command_pool_create_info.queueFamilyIndex = g_context_graphic_queue_index;
 
-  VULKAN_CHECK(vkCreateCommandPool(g_globals.context_device, &command_pool_create_info, 0, &g_globals.context_command_pool));
+  VULKAN_CHECK(vkCreateCommandPool(g_context_device, &command_pool_create_info, 0, &g_context_command_pool));
 }
 
 static void context_destroy_instance(void) {
 #ifdef BUILD_DEBUG
-  s_context_destroy_debug_utils_messenger_ext(g_globals.context_instance, s_context_debug_messenger, 0);
+  s_context_destroy_debug_utils_messenger_ext(g_context_instance, s_context_debug_messenger, 0);
 #endif // BUILD_DEBUG
 
-  vkDestroyInstance(g_globals.context_instance, 0);
+  vkDestroyInstance(g_context_instance, 0);
 }
 static void context_destroy_surface(void) {
-  vkDestroySurfaceKHR(g_globals.context_instance, g_globals.context_surface, 0);
+  vkDestroySurfaceKHR(g_context_instance, g_context_surface, 0);
 }
 static void context_destroy_device(void) {
-  vkDestroyDevice(g_globals.context_device, 0);
+  vkDestroyDevice(g_context_device, 0);
 }
 static void context_destroy_command_pool(void) {
-  vkDestroyCommandPool(g_globals.context_device, g_globals.context_command_pool, 0);
+  vkDestroyCommandPool(g_context_device, g_context_command_pool, 0);
 }
 
 static void context_check_surface_capabilities(void) {
   int32_t surface_format_count = 0;
-  VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(g_globals.context_physical_device, g_globals.context_surface, &surface_format_count, 0));
+  VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(g_context_physical_device, g_context_surface, &surface_format_count, 0));
 
   VkSurfaceFormatKHR *surface_formats = (VkSurfaceFormatKHR *)heap_alloc(sizeof(VkSurfaceFormatKHR) * surface_format_count, 0, 0);
-  VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(g_globals.context_physical_device, g_globals.context_surface, &surface_format_count, surface_formats));
+  VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(g_context_physical_device, g_context_surface, &surface_format_count, surface_formats));
 
   int32_t present_mode_count = 0;
-  VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(g_globals.context_physical_device, g_globals.context_surface, &present_mode_count, 0));
+  VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(g_context_physical_device, g_context_surface, &present_mode_count, 0));
 
   VkPresentModeKHR *present_modes = (VkPresentModeKHR *)heap_alloc(sizeof(VkPresentModeKHR) * present_mode_count, 0, 0);
-  VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(g_globals.context_physical_device, g_globals.context_surface, &present_mode_count, present_modes));
+  VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(g_context_physical_device, g_context_surface, &present_mode_count, present_modes));
 
   uint64_t surface_format_index = 0;
   while (surface_format_index < surface_format_count) {
     VkSurfaceFormatKHR surface_format = surface_formats[surface_format_index];
 
     if ((surface_format.format == VK_FORMAT_B8G8R8A8_UNORM) && (surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)) {
-      g_globals.context_prefered_surface_format = surface_format;
+      g_context_prefered_surface_format = surface_format;
 
       break;
     }
@@ -574,7 +574,7 @@ static void context_check_surface_capabilities(void) {
     VkPresentModeKHR present_mode = present_modes[present_mode_index];
 
     if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
-      g_globals.context_prefered_present_mode = present_mode;
+      g_context_prefered_present_mode = present_mode;
 
       break;
     }
@@ -587,10 +587,10 @@ static void context_check_surface_capabilities(void) {
 }
 static void context_check_physical_device_extensions(void) {
   int32_t available_device_extension_count = 0;
-  VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(g_globals.context_physical_device, 0, &available_device_extension_count, 0));
+  VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(g_context_physical_device, 0, &available_device_extension_count, 0));
 
   VkExtensionProperties *available_device_extensions = (VkExtensionProperties *)heap_alloc(sizeof(VkExtensionProperties) * available_device_extension_count, 0, 0);
-  VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(g_globals.context_physical_device, 0, &available_device_extension_count, available_device_extensions));
+  VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(g_context_physical_device, 0, &available_device_extension_count, available_device_extensions));
 
   printf("Device Extensions\n");
 
@@ -629,32 +629,32 @@ static void context_check_physical_device_extensions(void) {
 }
 
 static void context_resize_surface(void) {
-  VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_globals.context_physical_device, g_globals.context_surface, &g_globals.context_surface_capabilities));
+  VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_context_physical_device, g_context_surface, &g_context_surface_capabilities));
 
-  g_globals.context_surface_width = g_globals.context_surface_capabilities.currentExtent.width;
-  g_globals.context_surface_height = g_globals.context_surface_capabilities.currentExtent.height;
+  g_context_surface_width = g_context_surface_capabilities.currentExtent.width;
+  g_context_surface_height = g_context_surface_capabilities.currentExtent.height;
 }
 
 static void context_find_physical_device(void) {
   int32_t physical_device_count = 0;
-  VULKAN_CHECK(vkEnumeratePhysicalDevices(g_globals.context_instance, &physical_device_count, 0));
+  VULKAN_CHECK(vkEnumeratePhysicalDevices(g_context_instance, &physical_device_count, 0));
 
   VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)heap_alloc(sizeof(VkPhysicalDevice) * physical_device_count, 0, 0);
-  VULKAN_CHECK(vkEnumeratePhysicalDevices(g_globals.context_instance, &physical_device_count, physical_devices));
+  VULKAN_CHECK(vkEnumeratePhysicalDevices(g_context_instance, &physical_device_count, physical_devices));
 
   uint64_t physical_device_index = 0;
   while (physical_device_index < physical_device_count) {
     VkPhysicalDevice physical_device = physical_devices[physical_device_index];
 
-    vkGetPhysicalDeviceProperties(physical_device, &g_globals.context_physical_device_properties);
-    vkGetPhysicalDeviceFeatures(physical_device, &g_globals.context_physical_device_features);
-    vkGetPhysicalDeviceMemoryProperties(physical_device, &g_globals.context_physical_device_memory_properties);
+    vkGetPhysicalDeviceProperties(physical_device, &g_context_physical_device_properties);
+    vkGetPhysicalDeviceFeatures(physical_device, &g_context_physical_device_features);
+    vkGetPhysicalDeviceMemoryProperties(physical_device, &g_context_physical_device_memory_properties);
 
-    if (g_globals.context_physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-      if (g_globals.context_physical_device_features.geometryShader &&
-          g_globals.context_physical_device_features.samplerAnisotropy &&
-          g_globals.context_physical_device_features.shaderFloat64) {
-        g_globals.context_physical_device = physical_device;
+    if (g_context_physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+      if (g_context_physical_device_features.geometryShader &&
+          g_context_physical_device_features.samplerAnisotropy &&
+          g_context_physical_device_features.shaderFloat64) {
+        g_context_physical_device = physical_device;
 
         break;
       }
@@ -667,10 +667,10 @@ static void context_find_physical_device(void) {
 }
 static void context_find_physical_device_queue_families(void) {
   int32_t queue_family_property_count = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(g_globals.context_physical_device, &queue_family_property_count, 0);
+  vkGetPhysicalDeviceQueueFamilyProperties(g_context_physical_device, &queue_family_property_count, 0);
 
   VkQueueFamilyProperties *queue_family_properties = (VkQueueFamilyProperties *)heap_alloc(sizeof(VkQueueFamilyProperties) * queue_family_property_count, 0, 0);
-  vkGetPhysicalDeviceQueueFamilyProperties(g_globals.context_physical_device, &queue_family_property_count, queue_family_properties);
+  vkGetPhysicalDeviceQueueFamilyProperties(g_context_physical_device, &queue_family_property_count, queue_family_properties);
 
   uint64_t physical_device_queue_family_property_index = 0;
   while (physical_device_queue_family_property_index < queue_family_property_count) {
@@ -683,15 +683,15 @@ static void context_find_physical_device_queue_families(void) {
     graphic_support = properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
     compute_support = properties.queueFlags & VK_QUEUE_COMPUTE_BIT;
 
-    VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(g_globals.context_physical_device, (uint32_t)physical_device_queue_family_property_index, g_globals.context_surface, &present_support));
+    VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(g_context_physical_device, (uint32_t)physical_device_queue_family_property_index, g_context_surface, &present_support));
 
-    if (graphic_support && compute_support && (g_globals.context_graphic_queue_index == -1)) {
-      g_globals.context_graphic_queue_index = (uint32_t)physical_device_queue_family_property_index;
-    } else if (present_support && (g_globals.context_present_queue_index == -1)) {
-      g_globals.context_present_queue_index = (uint32_t)physical_device_queue_family_property_index;
+    if (graphic_support && compute_support && (g_context_graphic_queue_index == -1)) {
+      g_context_graphic_queue_index = (uint32_t)physical_device_queue_family_property_index;
+    } else if (present_support && (g_context_present_queue_index == -1)) {
+      g_context_present_queue_index = (uint32_t)physical_device_queue_family_property_index;
     }
 
-    if ((g_globals.context_graphic_queue_index != -1) && (g_globals.context_present_queue_index != -1)) {
+    if ((g_context_graphic_queue_index != -1) && (g_context_present_queue_index != -1)) {
       break;
     }
 
@@ -701,7 +701,7 @@ static void context_find_physical_device_queue_families(void) {
   heap_free(queue_family_properties);
 
   printf("Queue Indices\n");
-  printf("  Graphic Queue Index %d\n", g_globals.context_graphic_queue_index);
-  printf("  Present Queue Index %d\n", g_globals.context_present_queue_index);
+  printf("  Graphic Queue Index %d\n", g_context_graphic_queue_index);
+  printf("  Present Queue Index %d\n", g_context_present_queue_index);
   printf("\n");
 }

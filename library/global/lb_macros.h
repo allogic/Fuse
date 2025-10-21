@@ -1,0 +1,4 @@
+#ifndef LB_GLOBAL_MACROS_H
+#define LB_GLOBAL_MACROS_H
+
+#endif // LB_GLOBAL_MACROS_H

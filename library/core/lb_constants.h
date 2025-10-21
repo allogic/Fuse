@@ -1,0 +1,4 @@
+#ifndef LB_CORE_CONSTANTS_H
+#define LB_CORE_CONSTANTS_H
+
+#endif // LB_CORE_CONSTANTS_H

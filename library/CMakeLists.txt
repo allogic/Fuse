@@ -2,11 +2,13 @@ file (GLOB SRC_FILES "*.c")
 
 add_library (library STATIC ${SRC_FILES})
 
+add_subdirectory (container)
 add_subdirectory (core)
 add_subdirectory (database)
-add_subdirectory (globals)
+add_subdirectory (global)
 add_subdirectory (importer)
 add_subdirectory (math)
+add_subdirectory (physic3)
 
 target_compile_definitions (library PUBLIC "_CRT_SECURE_NO_WARNINGS")
 

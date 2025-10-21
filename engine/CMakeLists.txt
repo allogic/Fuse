@@ -2,10 +2,9 @@
 
 add_executable (engine ${SRC_FILES})
 
-add_subdirectory (components)
-add_subdirectory (physics)
-add_subdirectory (scenes)
-add_subdirectory (systems)
+add_subdirectory (component)
+add_subdirectory (scene)
+add_subdirectory (system)
 
 target_link_libraries (engine PUBLIC library)
 target_link_libraries (engine PUBLIC ui)

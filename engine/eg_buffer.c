@@ -13,20 +13,20 @@ buffer_t buffer_create(VkBufferUsageFlags buffer_usage_flags, void *mapped_buffe
   buffer_create_info.usage = buffer_usage_flags;
   buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  VULKAN_CHECK(vkCreateBuffer(g_globals.context_device, &buffer_create_info, 0, &buffer.buffer));
+  VULKAN_CHECK(vkCreateBuffer(g_context_device, &buffer_create_info, 0, &buffer.buffer));
 
   VkMemoryRequirements memory_requirements = {0};
 
-  vkGetBufferMemoryRequirements(g_globals.context_device, buffer.buffer, &memory_requirements);
+  vkGetBufferMemoryRequirements(g_context_device, buffer.buffer, &memory_requirements);
 
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   memory_allocate_info.allocationSize = memory_requirements.size;
   memory_allocate_info.memoryTypeIndex = context_find_memory_type(memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
 
-  VULKAN_CHECK(vkAllocateMemory(g_globals.context_device, &memory_allocate_info, 0, &buffer.device_memory));
-  VULKAN_CHECK(vkBindBufferMemory(g_globals.context_device, buffer.buffer, buffer.device_memory, 0));
-  VULKAN_CHECK(vkMapMemory(g_globals.context_device, buffer.device_memory, 0, buffer.buffer_size, 0, mapped_buffer));
+  VULKAN_CHECK(vkAllocateMemory(g_context_device, &memory_allocate_info, 0, &buffer.device_memory));
+  VULKAN_CHECK(vkBindBufferMemory(g_context_device, buffer.buffer, buffer.device_memory, 0));
+  VULKAN_CHECK(vkMapMemory(g_context_device, buffer.device_memory, 0, buffer.buffer_size, 0, mapped_buffer));
 
   return buffer;
 }
@@ -34,9 +34,9 @@ VkBuffer buffer_handle(buffer_t *buffer) {
   return buffer->buffer;
 }
 void buffer_destroy(buffer_t *buffer) {
-  vkUnmapMemory(g_globals.context_device, buffer->device_memory);
+  vkUnmapMemory(g_context_device, buffer->device_memory);
 
-  vkFreeMemory(g_globals.context_device, buffer->device_memory, 0);
+  vkFreeMemory(g_context_device, buffer->device_memory, 0);
 
-  vkDestroyBuffer(g_globals.context_device, buffer->buffer, 0);
+  vkDestroyBuffer(g_context_device, buffer->buffer, 0);
 }

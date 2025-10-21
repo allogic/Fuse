@@ -1,0 +1,4 @@
+#ifndef LB_PHYSIC3_MACROS_H
+#define LB_PHYSIC3_MACROS_H
+
+#endif // LB_PHYSIC3_MACROS_H

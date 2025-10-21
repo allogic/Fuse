@@ -21,28 +21,12 @@
 
 #include <library/lb_fwd.h>
 
-#include <library/core/co_macros.h>
-#include <library/database/db_macros.h>
-#include <library/globals/go_macros.h>
-#include <library/importer/im_macros.h>
-#include <library/math/ma_macros.h>
-
-#include <library/core/co_config.h>
-#include <library/database/db_config.h>
-#include <library/globals/go_config.h>
-#include <library/importer/im_config.h>
-#include <library/math/ma_config.h>
-
-#include <library/core/co_forward.h>
-#include <library/database/db_forward.h>
-#include <library/globals/go_forward.h>
-#include <library/importer/im_forward.h>
-#include <library/math/ma_forward.h>
-
-#include <library/core/co_constants.h>
-#include <library/database/db_constants.h>
-#include <library/globals/go_constants.h>
-#include <library/importer/im_constants.h>
-#include <library/math/ma_constants.h>
+#include <library/container/lb_api.h>
+#include <library/core/lb_api.h>
+#include <library/database/lb_api.h>
+#include <library/global/lb_api.h>
+#include <library/importer/lb_api.h>
+#include <library/math/lb_api.h>
+#include <library/physic3/lb_api.h>
 
 #endif // LB_PCH_H

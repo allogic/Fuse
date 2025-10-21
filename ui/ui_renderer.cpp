@@ -12,7 +12,7 @@ void ui_renderer_draw() {
   ImGui::Dummy(ImVec2(0.0f, 10.0F));
 
   if (ImGui::Button("Rebuild")) {
-    g_globals.renderer_is_dirty = 1;
+    g_renderer_is_dirty = 1;
   }
 
   static ImGuiTableFlags pipeline_descriptor_binding_table_flags =
