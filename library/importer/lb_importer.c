@@ -36,6 +36,18 @@ void importer_import_default_assets(void) {
   principled_brdf_import_settings.interleaved_vertex_input = 1;
 
   importer_import_graphic_pipeline(&principled_brdf_import_settings);
+
+  graphic_pipeline_import_settings_t terrain_import_settings = {0};
+
+  terrain_import_settings.pipeline_name = "terrain";
+  terrain_import_settings.vertex_shader_file_path = "C:\\Users\\burm\\Downloads\\fuse\\shader\\terrain\\terrain.vert.spv";
+  terrain_import_settings.fragment_shader_file_path = "C:\\Users\\burm\\Downloads\\fuse\\shader\\terrain\\terrain.frag.spv";
+  terrain_import_settings.auto_create_pipeline = 0;
+  terrain_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
+  terrain_import_settings.auto_link_descriptor_bindings = 1;
+  terrain_import_settings.interleaved_vertex_input = 1;
+
+  importer_import_graphic_pipeline(&terrain_import_settings);
 }
 
 void importer_import_graphic_pipeline(graphic_pipeline_import_settings_t *import_settings) {

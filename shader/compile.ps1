@@ -3,3 +3,6 @@ glslangValidator.exe -I"." -V -o "principled/brdf.frag.spv" "principled/brdf.fra
 
 glslangValidator.exe -I"." -V -o "debug/line.vert.spv" "debug/line.vert"
 glslangValidator.exe -I"." -V -o "debug/line.frag.spv" "debug/line.frag"
+
+glslangValidator.exe -I"." -V -o "terrain/terrain.vert.spv" "terrain/terrain.vert"
+glslangValidator.exe -I"." -V -o "terrain/terrain.frag.spv" "terrain/terrain.frag"

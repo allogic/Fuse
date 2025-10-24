@@ -5,6 +5,7 @@ typedef struct buffer_t {
   uint64_t buffer_size;
   VkBuffer buffer;
   VkDeviceMemory device_memory;
+  void *mapped_memory;
 } buffer_t;
 
 typedef struct time_info_t {
@@ -15,7 +16,7 @@ typedef struct screen_info_t {
   vector2_t resolution;
 } screen_info_t;
 typedef struct camera_info_t {
-  vector3_t world_position;
+  vector3_t position;
   int32_t reserved;
   matrix4_t view;
   matrix4_t projection;
@@ -68,8 +69,17 @@ typedef struct compute_pipeline_t {
 } compute_pipeline_t;
 
 typedef struct debug_vertex_t {
-  vector3_t world_position;
+  vector3_t position;
   vector4_t color;
 } debug_vertex_t;
+typedef struct terrain_vertex_t {
+  vector3_t position;
+  vector3_t normal;
+  vector4_t color;
+} terrain_vertex_t;
+
+typedef struct terrain_t {
+  void *dummy; // TODO
+} terrain_t;
 
 #endif // EG_FWD_H

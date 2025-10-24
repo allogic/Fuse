@@ -108,7 +108,7 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
             VkDescriptorBufferInfo descriptor_buffer_info = {0};
 
             descriptor_buffer_info.offset = 0;
-            descriptor_buffer_info.buffer = auto_link_buffer ? buffer_handle(auto_link_buffer) : pipeline->descriptor_binding_buffers_per_frame[frame_index][descriptor_binding_index];
+            descriptor_buffer_info.buffer = auto_link_buffer ? auto_link_buffer->buffer : pipeline->descriptor_binding_buffers_per_frame[frame_index][descriptor_binding_index];
             descriptor_buffer_info.range = VK_WHOLE_SIZE;
 
             write_descriptor_set->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

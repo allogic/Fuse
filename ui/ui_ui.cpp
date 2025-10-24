@@ -9,6 +9,8 @@
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
+static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
+
 static VkDescriptorPoolSize const s_ui_descriptor_pool_sizes[] = {
   {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE},
 };
@@ -36,7 +38,11 @@ void ui_create(void) {
   ImGuiIO &io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   io.ConfigWindowsMoveFromTitleBarOnly = 1;
+
+  ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+  platform_io.Platform_CreateVkSurface = ImGui_CreateSurfaceDummy;
 
   ImGuiStyle &style = ImGui::GetStyle();
   style.WindowMinSize = ImVec2(160, 20);
@@ -102,11 +108,10 @@ void ui_create(void) {
   imgui_vulkan_init_info.Queue = g_context_graphic_queue;
   imgui_vulkan_init_info.PipelineCache = 0;
   imgui_vulkan_init_info.DescriptorPool = s_ui_descriptor_pool;
-  imgui_vulkan_init_info.RenderPass = g_swapchain_render_pass;
-  imgui_vulkan_init_info.Subpass = 0;
-  imgui_vulkan_init_info.MinImageCount = g_swapchain_image_count; // TODO
-  imgui_vulkan_init_info.ImageCount = g_swapchain_image_count;    // TODO
-  imgui_vulkan_init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = g_swapchain_render_pass;
+  imgui_vulkan_init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  imgui_vulkan_init_info.MinImageCount = g_context_surface_capabilities.minImageCount;
+  imgui_vulkan_init_info.ImageCount = g_swapchain_image_count;
   imgui_vulkan_init_info.Allocator = 0;
   imgui_vulkan_init_info.CheckVkResultFn = 0;
 
@@ -122,9 +127,50 @@ void ui_draw() {
 
   ImGui::NewFrame();
 
+  static uint8_t dockspace_open = 1;
+
+  ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+
+  window_flags |= ImGuiWindowFlags_NoTitleBar;
+  window_flags |= ImGuiWindowFlags_NoCollapse;
+  window_flags |= ImGuiWindowFlags_NoResize;
+  window_flags |= ImGuiWindowFlags_NoMove;
+  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+  window_flags |= ImGuiWindowFlags_NoNavFocus;
+
+  ImGuiViewport *viewport = ImGui::GetMainViewport();
+
+  ImGui::SetNextWindowPos(viewport->WorkPos);
+  ImGui::SetNextWindowSize(viewport->WorkSize);
+  ImGui::SetNextWindowViewport(viewport->ID);
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
+
+  ImGui::Begin("Root", (bool *)&dockspace_open, window_flags);
+
+  ImGui::PopStyleVar();
+  ImGui::PopStyleVar();
+  ImGui::PopStyleVar();
+
+  ImGuiID dockspace_id = ImGui::GetID("Root");
+
+  ImGui::DockSpace(dockspace_id, ImVec2(0.0F, 0.0F), ImGuiDockNodeFlags_PassthruCentralNode);
+
+  if (ImGui::BeginMenuBar()) {
+
+    if (ImGui::BeginMenu("File")) {
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndMenuBar();
+  }
+
   ui_db_draw();
   ui_renderer_draw();
 
+  ImGui::End();
   ImGui::Render();
 
   ImDrawData *draw_data = ImGui::GetDrawData();
@@ -146,4 +192,8 @@ void ui_destroy(void) {
 
 void ui_forward_message(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
   ImGui_ImplWin32_WndProcHandler(window_handle, message, w_param, l_param);
+}
+
+static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface) {
+  return 0;
 }
