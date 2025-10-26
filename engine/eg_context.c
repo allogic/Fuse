@@ -56,12 +56,13 @@ static char const *s_context_device_extensions[] = {
 context_t *context_create(int32_t width, int32_t height, uint8_t standalone) {
   context_t *context = (context_t *)heap_alloc(sizeof(context_t), 1, 0);
 
+  context->standalone = standalone;
   context->surface_width = width;
   context->surface_height = height;
   context->graphic_queue_index = -1;
   context->present_queue_index = -1;
 
-  if (standalone) {
+  if (context->standalone) {
     context_create_window(context);
   }
 
