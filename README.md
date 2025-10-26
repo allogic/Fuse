@@ -5,6 +5,7 @@ Fuse is a lightweight, dependency-free engine built in pure C11. It features a c
 ```
 flex --header-file="lexer.h" --outfile="lexer.c" --nounistd --noyywrap --yylineno "lexer.l"
 bison --header="parser.h" --output="parser.c" --locations "parser.y"
+javac -d "out/build/x64-debug/java_classes" -h "out/build/x64-debug/jni_headers" "editor/src/Context.java"
 ```
 
 ```

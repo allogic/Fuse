@@ -2,16 +2,14 @@
 #define UI_UI_H
 
 #ifdef BUILD_DEBUG
-#  define UI_CREATE(...) ui_create(__VA_ARGS__)
-#  define UI_DRAW(...) ui_draw(__VA_ARGS__)
-#  define UI_DESTROY(...) ui_destroy(__VA_ARGS__)
-
-#  define UI_FORWARD_MESSAGE(...) ui_forward_message(__VA_ARGS__)
+#  define UI_CREATE(...)
+#  define UI_DRAW(...)
+#  define UI_DESTROY(...)
+#  define UI_FORWARD_MESSAGE(...)
 #else
 #  define UI_CREATE(...)
 #  define UI_DRAW(...)
 #  define UI_DESTROY(...)
-
 #  define UI_FORWARD_MESSAGE(...)
 #endif // BUILD_DEBUG
 

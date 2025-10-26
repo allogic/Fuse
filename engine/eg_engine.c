@@ -8,24 +8,24 @@
 int32_t main(int32_t argc, char **argv, char **envp) {
   g_renderer_enable_debug = 1; // TODO
 
-  context_create(1920, 1080);
+  context_t *context = context_create(1920, 1080, 1);
 
   g_scene_curr_active = game_create();
 
-  while (context_is_running()) {
-    context_begin_frame();
+  while (context_is_running(context)) {
+    context_begin_frame(context);
 
     game_update(g_scene_curr_active);
 
     renderer_update();
     renderer_draw();
 
-    context_end_frame();
+    context_end_frame(context);
   }
 
   game_destroy(g_scene_curr_active);
 
-  context_destroy();
+  context_destroy(context);
 
   heap_reset();
 

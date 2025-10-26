@@ -3,6 +3,8 @@
 
 #include <library/lb_pch.h>
 
+#include <jni.h>
+
 #include <engine/eg_fwd.h>
 
 #include <engine/component/eg_camera.h>

@@ -9,22 +9,6 @@ import com.sun.jna.platform.win32.WinDef.*;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
 
-class Context {
-
-    static {
-        System.loadLibrary("engine");
-    }
-
-    public Context() {
-        System.out.println("Constructing new context");
-    }
-
-    public native void createContext();
-    public native void updateContext();
-    public native void destroyContext();
-
-}
-
 public class Main {
 
     static JMenuBar buildDefaultMenuBar() {
