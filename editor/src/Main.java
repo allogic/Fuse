@@ -137,11 +137,11 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Context context = new Context();
+        NativeContext nativeContext = new NativeContext();
 
-        context.createContext();
-        context.updateContext();
-        context.destroyContext();
+        nativeContext.createContext();
+        nativeContext.updateContext();
+        nativeContext.destroyContext();
 
         try {
             UIManager.setLookAndFeel(new FlatDarculaLaf());
