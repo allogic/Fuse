@@ -1,3 +1,3 @@
-file (GLOB SRC_FILES "*.c")
+file (GLOB C_SRC_FILES "*.c")
 
-target_sources (library PRIVATE ${SRC_FILES})
+target_sources (library PRIVATE ${C_SRC_FILES})

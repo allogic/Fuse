@@ -1,3 +1,3 @@
-file (GLOB SRC_FILES "*.c")
+FILE (GLOB C_SRC_FILES "*.c")
 
-target_sources (engine PRIVATE ${SRC_FILES})
+TARGET_SOURCES (engine PRIVATE ${C_SRC_FILES})

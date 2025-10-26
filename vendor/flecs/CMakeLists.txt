@@ -1,5 +1,6 @@
-add_library (flecs STATIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/src/flecs.c")
+FILE (GLOB C_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
-target_include_directories (flecs PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_include_directories (flecs PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/flecs")
+ADD_LIBRARY (flecs STATIC ${C_SRC_FILES})
+
+TARGET_INCLUDE_DIRECTORIES (flecs PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+TARGET_INCLUDE_DIRECTORIES (flecs PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/flecs")

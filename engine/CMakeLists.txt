@@ -1,12 +1,16 @@
-﻿file (GLOB SRC_FILES "*.c")
+﻿FILE (GLOB C_SRC_FILES "*.c" "${CMAKE_SOURCE_DIR}/binding/*.c")
 
-add_executable (engine ${SRC_FILES})
+ADD_LIBRARY (engine SHARED ${C_SRC_FILES})
 
-add_subdirectory (component)
-add_subdirectory (scene)
-add_subdirectory (system)
+ADD_SUBDIRECTORY (binding)
+ADD_SUBDIRECTORY (component)
+ADD_SUBDIRECTORY (scene)
+ADD_SUBDIRECTORY (system)
 
-target_link_libraries (engine PUBLIC library)
-target_link_libraries (engine PUBLIC ui)
+TARGET_INCLUDE_DIRECTORIES (engine PUBLIC ${JNI_INCLUDE_DIRS})
 
-target_precompile_headers (engine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/eg_pch.h")
+TARGET_LINK_LIBRARIES (engine PUBLIC library)
+TARGET_LINK_LIBRARIES (engine PUBLIC ui)
+TARGET_LINK_LIBRARIES (engine PUBLIC ${JNI_LIBRARIES})
+
+TARGET_PRECOMPILE_HEADERS (engine PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/eg_pch.h")

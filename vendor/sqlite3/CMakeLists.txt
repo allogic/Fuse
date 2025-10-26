@@ -1,4 +1,5 @@
-add_library (sqlite3 STATIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/src/sqlite3.c")
+FILE (GLOB C_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
-target_include_directories (sqlite3 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+ADD_LIBRARY (sqlite3 STATIC ${C_SRC_FILES})
+
+TARGET_INCLUDE_DIRECTORIES (sqlite3 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

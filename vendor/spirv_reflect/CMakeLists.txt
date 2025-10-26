@@ -1,5 +1,6 @@
-add_library (spirv_reflect STATIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/src/spirv_reflect.c")
+FILE (GLOB C_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
-target_include_directories (spirv_reflect PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_include_directories (spirv_reflect PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/spirv_reflect")
+ADD_LIBRARY (spirv_reflect STATIC ${C_SRC_FILES})
+
+TARGET_INCLUDE_DIRECTORIES (spirv_reflect PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+TARGET_INCLUDE_DIRECTORIES (spirv_reflect PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/spirv_reflect")
