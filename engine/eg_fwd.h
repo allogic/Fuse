@@ -162,9 +162,28 @@ typedef struct context_t {
   PFN_vkDestroyDebugUtilsMessengerEXT destroy_debug_utils_messenger_ext;
   VkDebugUtilsMessengerEXT debug_messenger;
 #endif // BUILD_DEBUG
+  struct swapchain_t *swapchain;
+  struct renderer_t *renderer;
 } context_t;
 
+typedef struct swapchain_t {
+  context_t *context;
+  uint8_t is_dirty;
+  uint64_t min_image_count;
+  uint64_t image_count;
+  VkFormat depth_format;
+  VkSwapchainKHR swapchain;
+  VkRenderPass render_pass;
+  VkFramebuffer *frame_buffers;
+  VkImage *color_image;
+  VkImage *depth_image;
+  VkDeviceMemory *depth_image_device_memory;
+  VkImageView *color_image_view;
+  VkImageView *depth_image_view;
+} swapchain_t;
+
 typedef struct buffer_t {
+  context_t *context;
   uint64_t buffer_size;
   VkBuffer buffer;
   VkDeviceMemory device_memory;
@@ -187,7 +206,55 @@ typedef struct camera_info_t {
   matrix4_t view_projection_inv;
 } camera_info_t;
 
+typedef struct debug_vertex_t {
+  vector3_t position;
+  vector4_t color;
+} debug_vertex_t;
+typedef struct terrain_vertex_t {
+  vector3_t position;
+  vector3_t normal;
+  vector4_t color;
+} terrain_vertex_t;
+
+typedef struct scene_t {
+  context_t *context;
+  ecs_world_t *world;
+  ecs_entity_t player;
+  ecs_entity_t controller_system;
+  ecs_entity_t rigidbody_system;
+} scene_t;
+
+typedef struct renderer_t {
+  context_t *context;
+  uint8_t is_dirty;
+  uint8_t enable_debug;
+  uint64_t frames_in_flight;
+  uint32_t frame_index;
+  uint32_t image_index;
+  VkCommandBuffer *graphic_command_buffers;
+  uint32_t pipeline_types[0xFF];
+  void *pipeline_links[0xFF];
+  VkSemaphore *render_finished_semaphores;
+  VkSemaphore *image_available_semaphores;
+  VkFence *frame_fences;
+  time_info_t **time_infos;
+  screen_info_t **screen_infos;
+  camera_info_t **camera_infos;
+  char time_info_descriptor_binding_name[0xFF];
+  char screen_info_descriptor_binding_name[0xFF];
+  char camera_info_descriptor_binding_name[0xFF];
+  map_t *descriptor_binding_buffers_per_frame;
+  debug_vertex_t **debug_line_vertices;
+  uint32_t **debug_line_indices;
+  buffer_t **debug_line_vertex_buffers;
+  buffer_t **debug_line_index_buffers;
+  uint32_t *debug_line_vertex_offsets;
+  uint32_t *debug_line_index_offsets;
+  scene_t *scene;
+} renderer_t;
+
 typedef struct graphic_pipeline_t {
+  context_t *context;
   pipeline_resource_t resource;
   uint64_t vertex_input_binding_count;
   uint64_t descriptor_binding_count;
@@ -214,6 +281,7 @@ typedef struct graphic_pipeline_t {
   VkPipeline pipeline;
 } graphic_pipeline_t;
 typedef struct compute_pipeline_t {
+  context_t *context;
   pipeline_resource_t resource;
   uint64_t descriptor_binding_count;
   uint64_t descriptor_pool_size_count;
@@ -230,16 +298,6 @@ typedef struct compute_pipeline_t {
   VkPipelineLayout pipeline_layout;
   VkPipeline pipeline;
 } compute_pipeline_t;
-
-typedef struct debug_vertex_t {
-  vector3_t position;
-  vector4_t color;
-} debug_vertex_t;
-typedef struct terrain_vertex_t {
-  vector3_t position;
-  vector3_t normal;
-  vector4_t color;
-} terrain_vertex_t;
 
 typedef struct terrain_t {
   void *dummy; // TODO

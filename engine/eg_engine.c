@@ -6,24 +6,24 @@
 #include <engine/scene/eg_game.h>
 
 int32_t main(int32_t argc, char **argv, char **envp) {
-  g_renderer_enable_debug = 1; // TODO
-
   context_t *context = context_create(1920, 1080, 1);
 
-  g_scene_curr_active = game_create();
+  // TODO: move scene stuff somewhere else
+  context->renderer->scene = game_create(context);
 
   while (context_is_running(context)) {
     context_begin_frame(context);
 
-    game_update(g_scene_curr_active);
+    game_update(context->renderer->scene);
 
-    renderer_update();
-    renderer_draw();
+    // TODO: remove these render calls, inline them into the context itself..
+    renderer_update(context->renderer);
+    renderer_draw(context->renderer);
 
     context_end_frame(context);
   }
 
-  game_destroy(g_scene_curr_active);
+  game_destroy(context->renderer->scene);
 
   context_destroy(context);
 

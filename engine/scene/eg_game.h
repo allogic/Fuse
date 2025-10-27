@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-scene_t *game_create(void);
+scene_t *game_create(context_t *context);
 void game_update(scene_t *scene);
 void game_destroy(scene_t *scene);
 

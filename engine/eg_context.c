@@ -83,8 +83,8 @@ context_t *context_create(int32_t width, int32_t height, uint8_t standalone) {
   context_create_command_pool(context);
 
   database_create();
-  swapchain_create();
-  renderer_create();
+  context->swapchain = swapchain_create(context);
+  context->renderer = renderer_create(context);
 
   QueryPerformanceFrequency(&context->timer_freq);
 
@@ -124,24 +124,24 @@ void context_begin_frame(context_t *context) {
     mouse_key_index++;
   }
 
-  if (g_swapchain_is_dirty) {
-    g_swapchain_is_dirty = 0;
+  if (context->swapchain->is_dirty) {
+    context->swapchain->is_dirty = 0;
 
-    renderer_destroy();
-    swapchain_destroy();
+    renderer_destroy(context->renderer);
+    swapchain_destroy(context->swapchain);
 
     context_resize_surface(context);
 
-    swapchain_create();
-    renderer_create();
+    context->swapchain = swapchain_create(context);
+    context->renderer = renderer_create(context);
   }
 
-  if (g_renderer_is_dirty) {
-    g_renderer_is_dirty = 0;
+  if (context->renderer->is_dirty) {
+    context->renderer->is_dirty = 0;
 
-    renderer_destroy();
+    renderer_destroy(context->renderer);
 
-    renderer_create();
+    context->renderer = renderer_create(context);
   }
 
   while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
@@ -158,8 +158,8 @@ void context_end_frame(context_t *context) {
   context->time += context->delta_time;
 }
 void context_destroy(context_t *context) {
-  renderer_destroy();
-  swapchain_destroy();
+  renderer_destroy(context->renderer);
+  swapchain_destroy(context->swapchain);
   database_destroy();
 
   context_destroy_command_pool(context);
@@ -170,22 +170,24 @@ void context_destroy(context_t *context) {
   if (context->standalone) {
     context_destroy_window(context);
   }
+
+  heap_free(context);
 }
 
 JNIEXPORT jlong JNICALL Java_NativeContext_contextCreate(JNIEnv *env, jobject obj, jint width, jint height, jboolean standalone) {
   return (jlong)context_create(width, height, standalone);
 }
 JNIEXPORT jboolean JNICALL Java_NativeContext_contextIsRunning(JNIEnv *env, jobject obj, jlong context) {
-  return (jboolean)context_is_running(context);
+  return (jboolean)context_is_running((context_t *)context);
 }
 JNIEXPORT void JNICALL Java_NativeContext_contextBeginFrame(JNIEnv *env, jobject obj, jlong context) {
-  context_begin_frame(context);
+  context_begin_frame((context_t *)context);
 }
 JNIEXPORT void JNICALL Java_NativeContext_contextEndFrame(JNIEnv *env, jobject obj, jlong context) {
-  context_end_frame(context);
+  context_end_frame((context_t *)context);
 }
 JNIEXPORT void JNICALL Java_NativeContext_contextDestroy(JNIEnv *env, jobject obj, jlong context) {
-  context_destroy(context);
+  context_destroy((context_t *)context);
 }
 
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key) {

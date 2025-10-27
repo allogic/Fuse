@@ -5,8 +5,8 @@
 extern "C" {
 #endif // __cplusplus
 
-void swapchain_create(void);
-void swapchain_destroy(void);
+swapchain_t *swapchain_create(context_t *context);
+void swapchain_destroy(swapchain_t *swapchain);
 
 #ifdef __cplusplus
 }

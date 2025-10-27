@@ -7,7 +7,7 @@
 
 static void game_create_player(scene_t *scene);
 
-scene_t *game_create(void) {
+scene_t *game_create(context_t *context) {
   scene_t *scene = (scene_t *)heap_alloc(sizeof(scene_t), 1, 0);
 
   scene->world = ecs_init_w_args(0, 0);
@@ -17,14 +17,16 @@ scene_t *game_create(void) {
   ECS_COMPONENT_DEFINE(scene->world, camera_t);
   ECS_COMPONENT_DEFINE(scene->world, editor_controller_t);
 
-  scene->controller_system = ecs_system(scene->world, {.entity = ecs_entity(scene->world, {.name = "controller system"}),
+  scene->controller_system = ecs_system(scene->world, {.ctx = context,
+                                                       .entity = ecs_entity(scene->world, {.name = "controller system"}),
                                                        .query.terms = {
                                                          {.id = ecs_id(transform_t)},
                                                          {.id = ecs_id(rigidbody_t)},
                                                          {.id = ecs_id(editor_controller_t)}},
                                                        .run = editor_controller_update});
 
-  scene->rigidbody_system = ecs_system(scene->world, {.entity = ecs_entity(scene->world, {.name = "rigidbody system"}),
+  scene->rigidbody_system = ecs_system(scene->world, {.ctx = context,
+                                                      .entity = ecs_entity(scene->world, {.name = "rigidbody system"}),
                                                       .query.terms = {
                                                         {.id = ecs_id(transform_t)},
                                                         {.id = ecs_id(rigidbody_t)}},

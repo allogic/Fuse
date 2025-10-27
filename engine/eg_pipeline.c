@@ -24,9 +24,10 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline);
 
 static void compute_pipeline_destroy_frame_dependant_buffers(compute_pipeline_t *pipeline);
 
-graphic_pipeline_t *graphic_pipeline_create(pipeline_asset_t *pipeline_asset) {
+graphic_pipeline_t *graphic_pipeline_create(context_t *context, pipeline_asset_t *pipeline_asset) {
   graphic_pipeline_t *pipeline = (graphic_pipeline_t *)heap_alloc(sizeof(graphic_pipeline_t), 1, 0);
 
+  pipeline->context = context;
   pipeline->resource = database_load_pipeline_resource_by_id(pipeline_asset->id);
   pipeline->interleaved_vertex_input_buffer = pipeline_asset->interleaved_vertex_input_buffer;
   pipeline->vertex_input_binding_count = database_load_vertex_input_binding_count_by_id(pipeline_asset->id);
@@ -64,9 +65,9 @@ void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uin
   pipeline->descriptor_set_count = descriptor_count;
 
   // TODO: double check these counts..
-  vector_resize(&pipeline->descriptor_set_layouts, g_renderer_frames_in_flight);
-  vector_resize(&pipeline->descriptor_sets, g_renderer_frames_in_flight);
-  vector_resize(&pipeline->write_descriptor_sets, g_renderer_frames_in_flight * descriptor_count * pipeline->descriptor_binding_count);
+  vector_resize(&pipeline->descriptor_set_layouts, pipeline->context->renderer->frames_in_flight);
+  vector_resize(&pipeline->descriptor_sets, pipeline->context->renderer->frames_in_flight);
+  vector_resize(&pipeline->write_descriptor_sets, pipeline->context->renderer->frames_in_flight * descriptor_count * pipeline->descriptor_binding_count);
 
   vector_fill(&pipeline->descriptor_set_layouts, &pipeline->descriptor_set_layout);
 
@@ -76,11 +77,11 @@ void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uin
   descriptor_set_allocate_info.descriptorSetCount = (uint32_t)vector_count(&pipeline->descriptor_set_layouts);
   descriptor_set_allocate_info.pSetLayouts = vector_buffer(&pipeline->descriptor_set_layouts);
 
-  VULKAN_CHECK(vkAllocateDescriptorSets(g_context_device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
+  VULKAN_CHECK(vkAllocateDescriptorSets(pipeline->context->device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
 }
 void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
-  uint64_t frame_count = g_renderer_frames_in_flight;
+  uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
@@ -135,15 +136,15 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
     frame_index++;
   }
 
-  vkUpdateDescriptorSets(g_context_device, (int32_t)vector_count(&pipeline->write_descriptor_sets), vector_buffer(&pipeline->write_descriptor_sets), 0, 0);
+  vkUpdateDescriptorSets(pipeline->context->device, (int32_t)vector_count(&pipeline->write_descriptor_sets), vector_buffer(&pipeline->write_descriptor_sets), 0, 0);
 }
 void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer command_buffer, uint32_t index_count) {
-  VkBuffer *vertex_buffers = pipeline->vertex_input_binding_buffers_per_frame[g_renderer_frame_index];
-  uint64_t *vertex_offsets = pipeline->vertex_input_binding_offsets_per_frame[g_renderer_frame_index];
+  VkBuffer *vertex_buffers = pipeline->vertex_input_binding_buffers_per_frame[pipeline->context->renderer->frame_index];
+  uint64_t *vertex_offsets = pipeline->vertex_input_binding_offsets_per_frame[pipeline->context->renderer->frame_index];
 
-  VkBuffer index_buffer = pipeline->index_buffer_per_frame[g_renderer_frame_index];
+  VkBuffer index_buffer = pipeline->index_buffer_per_frame[pipeline->context->renderer->frame_index];
 
-  VkDescriptorSet *descriptor_sets = (VkDescriptorSet *)vector_at(&pipeline->descriptor_sets, g_renderer_frame_index);
+  VkDescriptorSet *descriptor_sets = (VkDescriptorSet *)vector_at(&pipeline->descriptor_sets, pipeline->context->renderer->frame_index);
 
   uint64_t binding_count = pipeline->interleaved_vertex_input_buffer ? 1 : pipeline->vertex_input_binding_count;
 
@@ -166,10 +167,10 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   vector_destroy(&pipeline->descriptor_sets);
   vector_destroy(&pipeline->write_descriptor_sets);
 
-  vkDestroyDescriptorPool(g_context_device, pipeline->descriptor_pool, 0);
-  vkDestroyDescriptorSetLayout(g_context_device, pipeline->descriptor_set_layout, 0);
-  vkDestroyPipelineLayout(g_context_device, pipeline->pipeline_layout, 0);
-  vkDestroyPipeline(g_context_device, pipeline->pipeline, 0);
+  vkDestroyDescriptorPool(pipeline->context->device, pipeline->descriptor_pool, 0);
+  vkDestroyDescriptorSetLayout(pipeline->context->device, pipeline->descriptor_set_layout, 0);
+  vkDestroyPipelineLayout(pipeline->context->device, pipeline->pipeline_layout, 0);
+  vkDestroyPipeline(pipeline->context->device, pipeline->pipeline, 0);
 
   database_destroy_pipeline_resource(&pipeline->resource);
   database_destroy_pipeline_vertex_input_bindings(&pipeline->vertex_input_bindings);
@@ -178,9 +179,10 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   heap_free(pipeline);
 }
 
-compute_pipeline_t *compute_pipeline_create(pipeline_asset_t *pipeline_asset) {
+compute_pipeline_t *compute_pipeline_create(context_t *context, pipeline_asset_t *pipeline_asset) {
   compute_pipeline_t *pipeline = (compute_pipeline_t *)heap_alloc(sizeof(compute_pipeline_t), 1, 0);
 
+  pipeline->context = context;
   pipeline->resource = database_load_pipeline_resource_by_id(pipeline_asset->id);
   pipeline->descriptor_binding_count = database_load_descriptor_binding_count_by_id(pipeline_asset->id);
   pipeline->descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
@@ -224,10 +226,10 @@ void compute_pipeline_destroy(compute_pipeline_t *pipeline) {
   vector_destroy(&pipeline->descriptor_sets);
   vector_destroy(&pipeline->write_descriptor_sets);
 
-  vkDestroyDescriptorPool(g_context_device, pipeline->descriptor_pool, 0);
-  vkDestroyDescriptorSetLayout(g_context_device, pipeline->descriptor_set_layout, 0);
-  vkDestroyPipelineLayout(g_context_device, pipeline->pipeline_layout, 0);
-  vkDestroyPipeline(g_context_device, pipeline->pipeline, 0);
+  vkDestroyDescriptorPool(pipeline->context->device, pipeline->descriptor_pool, 0);
+  vkDestroyDescriptorSetLayout(pipeline->context->device, pipeline->descriptor_set_layout, 0);
+  vkDestroyPipelineLayout(pipeline->context->device, pipeline->pipeline_layout, 0);
+  vkDestroyPipeline(pipeline->context->device, pipeline->pipeline, 0);
 
   database_destroy_pipeline_resource(&pipeline->resource);
   database_destroy_pipeline_descriptor_bindings(&pipeline->descriptor_bindings);
@@ -356,14 +358,14 @@ static void graphic_pipeline_create_descriptor_set_layout_bindings(graphic_pipel
   }
 }
 static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
-  pipeline->vertex_input_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * g_renderer_frames_in_flight, 0, 0);
-  pipeline->vertex_input_binding_offsets_per_frame = (uint64_t **)heap_alloc(sizeof(uint64_t *) * g_renderer_frames_in_flight, 0, 0);
-  pipeline->descriptor_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * g_renderer_frames_in_flight, 0, 0);
+  pipeline->vertex_input_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * pipeline->context->renderer->frames_in_flight, 0, 0);
+  pipeline->vertex_input_binding_offsets_per_frame = (uint64_t **)heap_alloc(sizeof(uint64_t *) * pipeline->context->renderer->frames_in_flight, 0, 0);
+  pipeline->descriptor_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * pipeline->context->renderer->frames_in_flight, 0, 0);
 
-  pipeline->index_buffer_per_frame = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * g_renderer_frames_in_flight, 0, 0);
+  pipeline->index_buffer_per_frame = (VkBuffer *)heap_alloc(sizeof(VkBuffer) * pipeline->context->renderer->frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
-  uint64_t frame_count = g_renderer_frames_in_flight;
+  uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
@@ -392,9 +394,9 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.pPoolSizes = pipeline->descriptor_pool_sizes;
   descriptor_pool_create_info.poolSizeCount = (uint32_t)pipeline->descriptor_pool_size_count;
-  descriptor_pool_create_info.maxSets = g_renderer_frames_in_flight;
+  descriptor_pool_create_info.maxSets = (uint32_t)pipeline->context->renderer->frames_in_flight;
 
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &descriptor_pool_create_info, 0, &pipeline->descriptor_pool));
+  VULKAN_CHECK(vkCreateDescriptorPool(pipeline->context->device, &descriptor_pool_create_info, 0, &pipeline->descriptor_pool));
 
   VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {0};
   descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -402,7 +404,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   descriptor_set_layout_create_info.bindingCount = (uint32_t)pipeline->descriptor_binding_count;
   descriptor_set_layout_create_info.pNext = 0;
 
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &descriptor_set_layout_create_info, 0, &pipeline->descriptor_set_layout));
+  VULKAN_CHECK(vkCreateDescriptorSetLayout(pipeline->context->device, &descriptor_set_layout_create_info, 0, &pipeline->descriptor_set_layout));
 
   VkPipelineLayoutCreateInfo pipeline_layout_create_info = {0};
   pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -411,21 +413,21 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   pipeline_layout_create_info.pPushConstantRanges = 0;
   pipeline_layout_create_info.pushConstantRangeCount = 0;
 
-  VULKAN_CHECK(vkCreatePipelineLayout(g_context_device, &pipeline_layout_create_info, 0, &pipeline->pipeline_layout));
+  VULKAN_CHECK(vkCreatePipelineLayout(pipeline->context->device, &pipeline_layout_create_info, 0, &pipeline->pipeline_layout));
 
   VkShaderModuleCreateInfo vertex_shader_module_create_info = {0};
   vertex_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   vertex_shader_module_create_info.codeSize = vertex_shader_size;
   vertex_shader_module_create_info.pCode = (uint32_t const *)vertex_shader_bytes;
 
-  VULKAN_CHECK(vkCreateShaderModule(g_context_device, &vertex_shader_module_create_info, 0, &vertex_shader_module));
+  VULKAN_CHECK(vkCreateShaderModule(pipeline->context->device, &vertex_shader_module_create_info, 0, &vertex_shader_module));
 
   VkShaderModuleCreateInfo fragment_shader_module_create_info = {0};
   fragment_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   fragment_shader_module_create_info.codeSize = fragment_shader_size;
   fragment_shader_module_create_info.pCode = (uint32_t const *)fragment_shader_bytes;
 
-  VULKAN_CHECK(vkCreateShaderModule(g_context_device, &fragment_shader_module_create_info, 0, &fragment_shader_module));
+  VULKAN_CHECK(vkCreateShaderModule(pipeline->context->device, &fragment_shader_module_create_info, 0, &fragment_shader_module));
 
   VkPipelineShaderStageCreateInfo vertex_shader_stage_create_info = {0};
   vertex_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -456,16 +458,16 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   VkViewport viewport = {0};
   viewport.x = 0.0F;
   viewport.y = 0.0F;
-  viewport.width = (float)g_context_surface_width;
-  viewport.height = (float)g_context_surface_height;
+  viewport.width = (float)pipeline->context->surface_width;
+  viewport.height = (float)pipeline->context->surface_height;
   viewport.minDepth = 0.0F;
   viewport.maxDepth = 1.0F;
 
   VkRect2D scissor = {0};
   scissor.offset.x = 0;
   scissor.offset.y = 0;
-  scissor.extent.width = g_context_surface_width;
-  scissor.extent.height = g_context_surface_height;
+  scissor.extent.width = pipeline->context->surface_width;
+  scissor.extent.height = pipeline->context->surface_height;
 
   VkPipelineViewportStateCreateInfo viewport_state_create_info = {0};
   viewport_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -545,14 +547,14 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   graphic_pipeline_create_info.pColorBlendState = &color_blend_create_info;
   graphic_pipeline_create_info.pDynamicState = &dynamic_state_create_info;
   graphic_pipeline_create_info.layout = pipeline->pipeline_layout;
-  graphic_pipeline_create_info.renderPass = g_swapchain_render_pass;
+  graphic_pipeline_create_info.renderPass = pipeline->context->swapchain->render_pass;
   graphic_pipeline_create_info.subpass = 0;
   graphic_pipeline_create_info.basePipelineHandle = 0;
 
-  VULKAN_CHECK(vkCreateGraphicsPipelines(g_context_device, 0, 1, &graphic_pipeline_create_info, 0, &pipeline->pipeline));
+  VULKAN_CHECK(vkCreateGraphicsPipelines(pipeline->context->device, 0, 1, &graphic_pipeline_create_info, 0, &pipeline->pipeline));
 
-  vkDestroyShaderModule(g_context_device, vertex_shader_module, 0);
-  vkDestroyShaderModule(g_context_device, fragment_shader_module, 0);
+  vkDestroyShaderModule(pipeline->context->device, vertex_shader_module, 0);
+  vkDestroyShaderModule(pipeline->context->device, fragment_shader_module, 0);
 
   heap_free(vertex_shader_bytes);
   heap_free(fragment_shader_bytes);
@@ -560,7 +562,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
 
 static void graphic_pipeline_destroy_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
-  uint64_t frame_count = g_renderer_frames_in_flight;
+  uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
@@ -634,10 +636,10 @@ static void compute_pipeline_create_descriptor_set_layout_bindings(compute_pipel
   }
 }
 static void compute_pipeline_create_frame_dependant_buffers(compute_pipeline_t *pipeline) {
-  pipeline->descriptor_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * g_renderer_frames_in_flight, 0, 0);
+  pipeline->descriptor_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * pipeline->context->renderer->frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
-  uint64_t frame_count = g_renderer_frames_in_flight;
+  uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
@@ -660,9 +662,9 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline) {
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.pPoolSizes = pipeline->descriptor_pool_sizes;
   descriptor_pool_create_info.poolSizeCount = (uint32_t)pipeline->descriptor_pool_size_count;
-  descriptor_pool_create_info.maxSets = g_renderer_frames_in_flight;
+  descriptor_pool_create_info.maxSets = (uint32_t)pipeline->context->renderer->frames_in_flight;
 
-  VULKAN_CHECK(vkCreateDescriptorPool(g_context_device, &descriptor_pool_create_info, 0, &pipeline->descriptor_pool));
+  VULKAN_CHECK(vkCreateDescriptorPool(pipeline->context->device, &descriptor_pool_create_info, 0, &pipeline->descriptor_pool));
 
   VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {0};
   descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -670,7 +672,7 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline) {
   descriptor_set_layout_create_info.bindingCount = (uint32_t)pipeline->descriptor_binding_count;
   descriptor_set_layout_create_info.pNext = 0;
 
-  VULKAN_CHECK(vkCreateDescriptorSetLayout(g_context_device, &descriptor_set_layout_create_info, 0, &pipeline->descriptor_set_layout));
+  VULKAN_CHECK(vkCreateDescriptorSetLayout(pipeline->context->device, &descriptor_set_layout_create_info, 0, &pipeline->descriptor_set_layout));
 
   VkPipelineLayoutCreateInfo pipeline_layout_create_info = {0};
   pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -679,14 +681,14 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline) {
   pipeline_layout_create_info.pPushConstantRanges = 0;
   pipeline_layout_create_info.pushConstantRangeCount = 0;
 
-  VULKAN_CHECK(vkCreatePipelineLayout(g_context_device, &pipeline_layout_create_info, 0, &pipeline->pipeline_layout));
+  VULKAN_CHECK(vkCreatePipelineLayout(pipeline->context->device, &pipeline_layout_create_info, 0, &pipeline->pipeline_layout));
 
   VkShaderModuleCreateInfo compute_shader_module_create_info = {0};
   compute_shader_module_create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   compute_shader_module_create_info.codeSize = compute_shader_size;
   compute_shader_module_create_info.pCode = (uint32_t const *)compute_shader_bytes;
 
-  VULKAN_CHECK(vkCreateShaderModule(g_context_device, &compute_shader_module_create_info, 0, &compute_shader_module));
+  VULKAN_CHECK(vkCreateShaderModule(pipeline->context->device, &compute_shader_module_create_info, 0, &compute_shader_module));
 
   VkPipelineShaderStageCreateInfo compute_shader_stage_create_info = {0};
   compute_shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -699,16 +701,16 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline) {
   compute_pipeline_create_info.layout = pipeline->pipeline_layout;
   compute_pipeline_create_info.stage = compute_shader_stage_create_info;
 
-  VULKAN_CHECK(vkCreateComputePipelines(g_context_device, 0, 1, &compute_pipeline_create_info, 0, &pipeline->pipeline));
+  VULKAN_CHECK(vkCreateComputePipelines(pipeline->context->device, 0, 1, &compute_pipeline_create_info, 0, &pipeline->pipeline));
 
-  vkDestroyShaderModule(g_context_device, compute_shader_module, 0);
+  vkDestroyShaderModule(pipeline->context->device, compute_shader_module, 0);
 
   heap_free(compute_shader_bytes);
 }
 
 static void compute_pipeline_destroy_frame_dependant_buffers(compute_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
-  uint64_t frame_count = g_renderer_frames_in_flight;
+  uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
