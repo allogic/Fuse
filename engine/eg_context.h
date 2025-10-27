@@ -5,7 +5,12 @@
 extern "C" {
 #endif // __cplusplus
 
-context_t *context_create(int32_t width, int32_t height, uint8_t standalone);
+extern imgui_create_proc_t g_context_imgui_create_proc;
+extern imgui_draw_proc_t g_context_imgui_draw_proc;
+extern imgui_destroy_proc_t g_context_imgui_destroy_proc;
+extern imgui_message_proc_t g_context_imgui_message_proc;
+
+context_t *context_create(int32_t width, int32_t height);
 uint8_t context_is_running(context_t *context);
 void context_begin_frame(context_t *context);
 void context_end_frame(context_t *context);

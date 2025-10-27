@@ -1,13 +1,12 @@
 #include <engine/eg_pch.h>
-
-#include <engine/scene/eg_game.h>
+#include <engine/eg_scene.h>
 
 #include <engine/system/eg_controller.h>
 #include <engine/system/eg_rigidbody.h>
 
-static void game_create_player(scene_t *scene);
+static void scene_create_player(scene_t *scene);
 
-scene_t *game_create(context_t *context) {
+scene_t *scene_create(context_t *context) {
   scene_t *scene = (scene_t *)heap_alloc(sizeof(scene_t), 1, 0);
 
   scene->world = ecs_init_w_args(0, 0);
@@ -32,21 +31,21 @@ scene_t *game_create(context_t *context) {
                                                         {.id = ecs_id(rigidbody_t)}},
                                                       .run = rigidbody_update});
 
-  game_create_player(scene);
+  scene_create_player(scene);
 
   return scene;
 }
-void game_update(scene_t *scene) {
+void scene_update(scene_t *scene) {
   ecs_run(scene->world, scene->controller_system, 0.0F, 0);
   ecs_run(scene->world, scene->rigidbody_system, 0.0F, 0);
 }
-void game_destroy(scene_t *scene) {
+void scene_destroy(scene_t *scene) {
   ecs_fini(scene->world);
 
   heap_free(scene);
 }
 
-static void game_create_player(scene_t *scene) {
+static void scene_create_player(scene_t *scene) {
   scene->player = ecs_entity(scene->world, {.name = "player"});
 
   ecs_add(scene->world, scene->player, transform_t);

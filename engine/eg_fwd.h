@@ -124,8 +124,12 @@ typedef enum mouse_key_t {
   MOUSE_KEY_RIGHT,
 } mouse_key_t;
 
+typedef void (*imgui_create_proc_t)(struct context_t *context);
+typedef void (*imgui_draw_proc_t)(struct context_t *context);
+typedef void (*imgui_destroy_proc_t)(struct context_t *context);
+typedef LRESULT (*imgui_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
+
 typedef struct context_t {
-  uint8_t standalone;
   HMODULE module_handle;
   HWND window_handle;
   double time;
@@ -164,6 +168,7 @@ typedef struct context_t {
 #endif // BUILD_DEBUG
   struct swapchain_t *swapchain;
   struct renderer_t *renderer;
+  struct scene_t *scene;
 } context_t;
 
 typedef struct swapchain_t {
@@ -172,7 +177,7 @@ typedef struct swapchain_t {
   uint64_t min_image_count;
   uint64_t image_count;
   VkFormat depth_format;
-  VkSwapchainKHR swapchain;
+  VkSwapchainKHR handle;
   VkRenderPass render_pass;
   VkFramebuffer *frame_buffers;
   VkImage *color_image;
@@ -184,8 +189,8 @@ typedef struct swapchain_t {
 
 typedef struct buffer_t {
   context_t *context;
-  uint64_t buffer_size;
-  VkBuffer buffer;
+  uint64_t size;
+  VkBuffer handle;
   VkDeviceMemory device_memory;
   void *mapped_memory;
 } buffer_t;
@@ -250,7 +255,6 @@ typedef struct renderer_t {
   buffer_t **debug_line_index_buffers;
   uint32_t *debug_line_vertex_offsets;
   uint32_t *debug_line_index_offsets;
-  scene_t *scene;
 } renderer_t;
 
 typedef struct graphic_pipeline_t {
@@ -278,7 +282,7 @@ typedef struct graphic_pipeline_t {
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;
-  VkPipeline pipeline;
+  VkPipeline handle;
 } graphic_pipeline_t;
 typedef struct compute_pipeline_t {
   context_t *context;
@@ -296,7 +300,7 @@ typedef struct compute_pipeline_t {
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;
-  VkPipeline pipeline;
+  VkPipeline handle;
 } compute_pipeline_t;
 
 typedef struct terrain_t {

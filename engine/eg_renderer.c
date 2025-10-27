@@ -5,8 +5,6 @@
 #include <engine/eg_renderer.h>
 #include <engine/eg_swapchain.h>
 
-#include <ui/ui_ui.h>
-
 #define RENDERER_DEBUG_LINE_VERTEX_COUNT (1048576LL)
 #define RENDERER_DEBUG_LINE_INDEX_COUNT (1048576LL)
 
@@ -39,7 +37,7 @@ static void renderer_destroy_sync_objects(renderer_t *renderer);
 static void renderer_destroy_command_buffer(renderer_t *renderer);
 
 renderer_t *renderer_create(context_t *context) {
-  renderer_t *renderer = (renderer_t *)heap_alloc(sizeof(renderer_t *), 1, 0);
+  renderer_t *renderer = (renderer_t *)heap_alloc(sizeof(renderer_t), 1, 0);
 
   renderer->context = context;
   renderer->enable_debug = 1; // TODO
@@ -67,7 +65,9 @@ renderer_t *renderer_create(context_t *context) {
   renderer_create_sync_objects(renderer);
   renderer_create_command_buffer(renderer);
 
-  UI_CREATE();
+  if (g_context_imgui_create_proc) {
+    g_context_imgui_create_proc(renderer->context);
+  }
 
   database_destroy_renderer_asset(&renderer_asset);
 
@@ -137,7 +137,7 @@ void renderer_draw(renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  result = vkAcquireNextImageKHR(renderer->context->device, renderer->context->swapchain->swapchain, UINT64_MAX, renderer->image_available_semaphores[renderer->frame_index], 0, &renderer->image_index);
+  result = vkAcquireNextImageKHR(renderer->context->device, renderer->context->swapchain->handle, UINT64_MAX, renderer->image_available_semaphores[renderer->frame_index], 0, &renderer->image_index);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -206,7 +206,7 @@ void renderer_draw(renderer_t *renderer) {
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.pWaitSemaphores = &renderer->render_finished_semaphores[renderer->image_index];
   present_info.waitSemaphoreCount = 1;
-  present_info.pSwapchains = &renderer->context->swapchain->swapchain;
+  present_info.pSwapchains = &renderer->context->swapchain->handle;
   present_info.swapchainCount = 1;
   present_info.pImageIndices = &renderer->image_index;
 
@@ -235,7 +235,9 @@ void renderer_destroy(renderer_t *renderer) {
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->graphic_queue));
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->present_queue));
 
-  UI_DESTROY();
+  if (g_context_imgui_destroy_proc) {
+    g_context_imgui_destroy_proc(renderer->context);
+  }
 
   renderer_destroy_global_buffers(renderer);
   renderer_destroy_debug_buffers(renderer);
@@ -374,9 +376,9 @@ static void renderer_create_global_buffers(renderer_t *renderer) {
     renderer->screen_infos[frame_index] = screen_info_descriptor_binding_buffer->mapped_memory;
     renderer->camera_infos[frame_index] = camera_info_descriptor_binding_buffer->mapped_memory;
 
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, sizeof(renderer->time_info_descriptor_binding_name), &time_info_descriptor_binding_buffer, sizeof(buffer_t *));
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, sizeof(renderer->screen_info_descriptor_binding_name), &screen_info_descriptor_binding_buffer, sizeof(buffer_t *));
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, sizeof(renderer->camera_info_descriptor_binding_name), &camera_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name), &time_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name), &screen_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name), &camera_info_descriptor_binding_buffer, sizeof(buffer_t *));
 
     frame_index++;
   }
@@ -425,8 +427,8 @@ static void renderer_create_pipelines(renderer_t *renderer) {
       while (frame_index < frame_count) {
 
         // TODO: remove this!
-        graphic_pipeline_link_vertex_input_binding_buffer(pipeline, frame_index, 0, renderer->debug_line_vertex_buffers[frame_index]->buffer, 0);
-        graphic_pipeline_link_index_buffer(pipeline, frame_index, renderer->debug_line_index_buffers[frame_index]->buffer);
+        graphic_pipeline_link_vertex_input_binding_buffer(pipeline, frame_index, 0, renderer->debug_line_vertex_buffers[frame_index]->handle, 0);
+        graphic_pipeline_link_index_buffer(pipeline, frame_index, renderer->debug_line_index_buffers[frame_index]->handle);
 
         if (pipeline_asset->auto_link_descriptor_bindings) {
           graphic_pipeline_set_auto_link_descriptor_bindings(pipeline, renderer->descriptor_binding_buffers_per_frame);
@@ -529,15 +531,17 @@ static void renderer_create_command_buffer(renderer_t *renderer) {
 }
 
 static void renderer_update_uniform_buffers(renderer_t *renderer) {
-  if (renderer->scene) {
+  scene_t *scene = renderer->context->scene;
+
+  if (scene) {
 
     // TODO: find an easier way to compute world position's automatically..
-    transform_compute_world_position(renderer->scene->world, renderer->scene->player);
-    transform_compute_world_rotation(renderer->scene->world, renderer->scene->player);
-    transform_compute_world_scale(renderer->scene->world, renderer->scene->player);
+    transform_compute_world_position(scene->world, scene->player);
+    transform_compute_world_rotation(scene->world, scene->player);
+    transform_compute_world_scale(scene->world, scene->player);
 
-    transform_t *transform = ecs_get_mut(renderer->scene->world, renderer->scene->player, transform_t);
-    camera_t *camera = ecs_get_mut(renderer->scene->world, renderer->scene->player, camera_t);
+    transform_t *transform = ecs_get_mut(scene->world, scene->player, transform_t);
+    camera_t *camera = ecs_get_mut(scene->world, scene->player, camera_t);
 
     renderer->time_infos[renderer->frame_index]->time = (float)renderer->context->time;
     renderer->time_infos[renderer->frame_index]->delta_time = (float)renderer->context->delta_time;
@@ -648,7 +652,9 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
     }
   }
 
-  UI_DRAW();
+  if (g_context_imgui_draw_proc) {
+    g_context_imgui_draw_proc(renderer->context);
+  }
 
   vkCmdEndRenderPass(renderer->graphic_command_buffers[renderer->frame_index]);
 }
@@ -662,7 +668,10 @@ static void renderer_destroy_global_buffers(renderer_t *renderer) {
     map_iter_t iter = map_iter(&renderer->descriptor_binding_buffers_per_frame[frame_index]);
 
     while (map_iter_step(&iter)) {
-      buffer_destroy(map_iter_value(&iter));
+
+      buffer_t *buffer = *(buffer_t **)map_iter_value(&iter);
+
+      buffer_destroy(buffer);
     }
 
     map_destroy(&renderer->descriptor_binding_buffers_per_frame[frame_index]);

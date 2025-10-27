@@ -3,8 +3,6 @@
 #include <engine/eg_swapchain.h>
 #include <engine/eg_renderer.h>
 
-#include <ui/ui_ui.h>
-
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 #ifdef BUILD_DEBUG
@@ -53,19 +51,20 @@ static char const *s_context_device_extensions[] = {
   "VK_EXT_descriptor_indexing",
 };
 
-context_t *context_create(int32_t width, int32_t height, uint8_t standalone) {
+imgui_create_proc_t g_context_imgui_create_proc = 0;
+imgui_draw_proc_t g_context_imgui_draw_proc = 0;
+imgui_destroy_proc_t g_context_imgui_destroy_proc = 0;
+imgui_message_proc_t g_context_imgui_message_proc = 0;
+
+context_t *context_create(int32_t width, int32_t height) {
   context_t *context = (context_t *)heap_alloc(sizeof(context_t), 1, 0);
 
-  context->standalone = standalone;
   context->surface_width = width;
   context->surface_height = height;
   context->graphic_queue_index = -1;
   context->present_queue_index = -1;
 
-  if (context->standalone) {
-    context_create_window(context);
-  }
-
+  context_create_window(context);
   context_create_instance(context);
   context_create_surface(context);
 
@@ -83,6 +82,7 @@ context_t *context_create(int32_t width, int32_t height, uint8_t standalone) {
   context_create_command_pool(context);
 
   database_create();
+
   context->swapchain = swapchain_create(context);
   context->renderer = renderer_create(context);
 
@@ -160,34 +160,16 @@ void context_end_frame(context_t *context) {
 void context_destroy(context_t *context) {
   renderer_destroy(context->renderer);
   swapchain_destroy(context->swapchain);
+
   database_destroy();
 
   context_destroy_command_pool(context);
   context_destroy_device(context);
   context_destroy_surface(context);
   context_destroy_instance(context);
-
-  if (context->standalone) {
-    context_destroy_window(context);
-  }
+  context_destroy_window(context);
 
   heap_free(context);
-}
-
-JNIEXPORT jlong JNICALL Java_NativeContext_contextCreate(JNIEnv *env, jobject obj, jint width, jint height, jboolean standalone) {
-  return (jlong)context_create(width, height, standalone);
-}
-JNIEXPORT jboolean JNICALL Java_NativeContext_contextIsRunning(JNIEnv *env, jobject obj, jlong context) {
-  return (jboolean)context_is_running((context_t *)context);
-}
-JNIEXPORT void JNICALL Java_NativeContext_contextBeginFrame(JNIEnv *env, jobject obj, jlong context) {
-  context_begin_frame((context_t *)context);
-}
-JNIEXPORT void JNICALL Java_NativeContext_contextEndFrame(JNIEnv *env, jobject obj, jlong context) {
-  context_end_frame((context_t *)context);
-}
-JNIEXPORT void JNICALL Java_NativeContext_contextDestroy(JNIEnv *env, jobject obj, jlong context) {
-  context_destroy((context_t *)context);
 }
 
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key) {
@@ -263,9 +245,11 @@ void context_end_command_buffer(context_t *context, VkCommandBuffer command_buff
 }
 
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
-  UI_FORWARD_MESSAGE(window_handle, message, w_param, l_param);
+  if (g_context_imgui_message_proc) {
+    g_context_imgui_message_proc(window_handle, message, w_param, l_param);
+  }
 
-  // TODO: de-designe event handling for standalone and embedded modes
+  context_t *context = (context_t *)GetWindowLongPtr(window_handle, GWLP_USERDATA);
 
   switch (message) {
     case WM_CREATE: {
@@ -274,103 +258,109 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       break;
     }
     case WM_CLOSE: {
-      // context->window_should_close = 1;
+      context->window_should_close = 1;
+
+      break;
+    }
+    case WM_NCCREATE: {
+      SetWindowLongPtr(window_handle, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT *)l_param)->lpCreateParams);
+
+      return TRUE;
+    }
+    case WM_NCDESTROY: {
+      SetWindowLongPtr(window_handle, GWLP_USERDATA, 0);
 
       break;
     }
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN: {
-      /*
       UINT scan_code = MapVirtualKeyA((UINT)w_param, MAPVK_VK_TO_VSC);
       UINT virtual_key = MapVirtualKeyExA(scan_code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
 
       switch (virtual_key) {
         case KEYBOARD_KEY_LEFT_SHIFT:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
         case KEYBOARD_KEY_RIGHT_SHIFT:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
         case KEYBOARD_KEY_LEFT_CONTROL:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
         case KEYBOARD_KEY_RIGHT_CONTROL:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
         case KEYBOARD_KEY_LEFT_MENU:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
         case KEYBOARD_KEY_RIGHT_MENU:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
         default:
-          s_context_event_keyboard_key_states[virtual_key] = ((s_context_event_keyboard_key_states[virtual_key] == KEY_STATE_UP) || (s_context_event_keyboard_key_states[virtual_key] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[virtual_key] = ((context->event_keyboard_key_states[virtual_key] == KEY_STATE_UP) || (context->event_keyboard_key_states[virtual_key] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
           break;
       }
-          */
 
       break;
     }
     case WM_KEYUP:
     case WM_SYSKEYUP: {
-      /*
       UINT scan_code = MapVirtualKeyA((UINT)w_param, MAPVK_VK_TO_VSC);
       UINT virtual_key = MapVirtualKeyExA(scan_code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
 
       switch (virtual_key) {
         case KEYBOARD_KEY_LEFT_SHIFT:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
         case KEYBOARD_KEY_RIGHT_SHIFT:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
         case KEYBOARD_KEY_LEFT_CONTROL:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
         case KEYBOARD_KEY_RIGHT_CONTROL:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
         case KEYBOARD_KEY_LEFT_MENU:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
         case KEYBOARD_KEY_RIGHT_MENU:
-          s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] = ((s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
         default:
-          s_context_event_keyboard_key_states[virtual_key] = ((s_context_event_keyboard_key_states[virtual_key] == KEY_STATE_DOWN) || (s_context_event_keyboard_key_states[virtual_key] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[virtual_key] = ((context->event_keyboard_key_states[virtual_key] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[virtual_key] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
           break;
       }
-          */
 
       break;
     }
     case WM_LBUTTONDOWN: {
-      // s_context_event_mouse_key_states[MOUSE_KEY_LEFT] = ((s_context_event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_UP) || (s_context_event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+      context->event_mouse_key_states[MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
 
       break;
     }
     case WM_LBUTTONUP: {
-      // s_context_event_mouse_key_states[MOUSE_KEY_LEFT] = ((s_context_event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_DOWN) || (s_context_event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+      context->event_mouse_key_states[MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
 
       break;
     }
     case WM_MBUTTONDOWN: {
-      // s_context_event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((s_context_event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_UP) || (s_context_event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+      context->event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
 
       break;
     }
     case WM_MBUTTONUP: {
-      // s_context_event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((s_context_event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_DOWN) || (s_context_event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+      context->event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
 
       break;
     }
     case WM_RBUTTONDOWN: {
-      // s_context_event_mouse_key_states[MOUSE_KEY_RIGHT] = ((s_context_event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_UP) || (s_context_event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+      context->event_mouse_key_states[MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
 
       break;
     }
     case WM_RBUTTONUP: {
-      // s_context_event_mouse_key_states[MOUSE_KEY_RIGHT] = ((s_context_event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_DOWN) || (s_context_event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+      context->event_mouse_key_states[MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
 
       break;
     }
@@ -387,13 +377,13 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       INT mouse_x = LOWORD(l_param);
       INT mouse_y = HIWORD(l_param);
 
-      // g_context_mouse_position_x = mouse_x;
-      // g_context_mouse_position_y = mouse_y;
+      context->mouse_position_x = mouse_x;
+      context->mouse_position_y = mouse_y;
 
       break;
     }
     case WM_MOUSEWHEEL: {
-      // g_context_mouse_wheel_delta = GET_WHEEL_DELTA_WPARAM(w_param);
+      context->mouse_wheel_delta = GET_WHEEL_DELTA_WPARAM(w_param);
 
       break;
     }
@@ -437,7 +427,7 @@ static void context_create_window(context_t *context) {
   INT window_position_x = (screen_width - context->surface_width) / 2;
   INT window_position_y = (screen_height - context->surface_height) / 2;
 
-  context->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, context->surface_width, context->surface_height, 0, 0, context->module_handle, 0);
+  context->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, context->surface_width, context->surface_height, 0, 0, context->module_handle, context);
 }
 static void context_create_instance(context_t *context) {
   VkApplicationInfo app_info = {0};

@@ -104,12 +104,12 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
 
         switch (pipeline->descriptor_set_layout_bindings[descriptor_binding_index].descriptorType) {
           case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-            buffer_t *auto_link_buffer = (buffer_t *)map_at(&pipeline->auto_link_descriptor_binding_buffers_per_frame[frame_index], descriptor_binding->binding_name, descriptor_binding->binding_name_size);
+            buffer_t *auto_link_buffer = *(buffer_t **)map_at(&pipeline->auto_link_descriptor_binding_buffers_per_frame[frame_index], descriptor_binding->binding_name, descriptor_binding->binding_name_size);
 
             VkDescriptorBufferInfo descriptor_buffer_info = {0};
 
             descriptor_buffer_info.offset = 0;
-            descriptor_buffer_info.buffer = auto_link_buffer ? auto_link_buffer->buffer : pipeline->descriptor_binding_buffers_per_frame[frame_index][descriptor_binding_index];
+            descriptor_buffer_info.buffer = auto_link_buffer ? auto_link_buffer->handle : pipeline->descriptor_binding_buffers_per_frame[frame_index][descriptor_binding_index];
             descriptor_buffer_info.range = VK_WHOLE_SIZE;
 
             write_descriptor_set->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -148,7 +148,7 @@ void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer comm
 
   uint64_t binding_count = pipeline->interleaved_vertex_input_buffer ? 1 : pipeline->vertex_input_binding_count;
 
-  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);
+  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
   vkCmdBindVertexBuffers(command_buffer, 0, (uint32_t)binding_count, vertex_buffers, vertex_offsets);
   vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT32);
   vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline_layout, 0, 1, descriptor_sets, 0, 0);
@@ -170,7 +170,7 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   vkDestroyDescriptorPool(pipeline->context->device, pipeline->descriptor_pool, 0);
   vkDestroyDescriptorSetLayout(pipeline->context->device, pipeline->descriptor_set_layout, 0);
   vkDestroyPipelineLayout(pipeline->context->device, pipeline->pipeline_layout, 0);
-  vkDestroyPipeline(pipeline->context->device, pipeline->pipeline, 0);
+  vkDestroyPipeline(pipeline->context->device, pipeline->handle, 0);
 
   database_destroy_pipeline_resource(&pipeline->resource);
   database_destroy_pipeline_vertex_input_bindings(&pipeline->vertex_input_bindings);
@@ -229,7 +229,7 @@ void compute_pipeline_destroy(compute_pipeline_t *pipeline) {
   vkDestroyDescriptorPool(pipeline->context->device, pipeline->descriptor_pool, 0);
   vkDestroyDescriptorSetLayout(pipeline->context->device, pipeline->descriptor_set_layout, 0);
   vkDestroyPipelineLayout(pipeline->context->device, pipeline->pipeline_layout, 0);
-  vkDestroyPipeline(pipeline->context->device, pipeline->pipeline, 0);
+  vkDestroyPipeline(pipeline->context->device, pipeline->handle, 0);
 
   database_destroy_pipeline_resource(&pipeline->resource);
   database_destroy_pipeline_descriptor_bindings(&pipeline->descriptor_bindings);
@@ -551,7 +551,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   graphic_pipeline_create_info.subpass = 0;
   graphic_pipeline_create_info.basePipelineHandle = 0;
 
-  VULKAN_CHECK(vkCreateGraphicsPipelines(pipeline->context->device, 0, 1, &graphic_pipeline_create_info, 0, &pipeline->pipeline));
+  VULKAN_CHECK(vkCreateGraphicsPipelines(pipeline->context->device, 0, 1, &graphic_pipeline_create_info, 0, &pipeline->handle));
 
   vkDestroyShaderModule(pipeline->context->device, vertex_shader_module, 0);
   vkDestroyShaderModule(pipeline->context->device, fragment_shader_module, 0);
@@ -701,7 +701,7 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline) {
   compute_pipeline_create_info.layout = pipeline->pipeline_layout;
   compute_pipeline_create_info.stage = compute_shader_stage_create_info;
 
-  VULKAN_CHECK(vkCreateComputePipelines(pipeline->context->device, 0, 1, &compute_pipeline_create_info, 0, &pipeline->pipeline));
+  VULKAN_CHECK(vkCreateComputePipelines(pipeline->context->device, 0, 1, &compute_pipeline_create_info, 0, &pipeline->handle));
 
   vkDestroyShaderModule(pipeline->context->device, compute_shader_module, 0);
 

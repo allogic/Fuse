@@ -1,4 +1,0 @@
-#ifndef LB_GLOBAL_CONFIG_H
-#define LB_GLOBAL_CONFIG_H
-
-#endif // LB_GLOBAL_CONFIG_H

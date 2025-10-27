@@ -1,35 +1,66 @@
-#include <ui/ui_pch.h>
-#include <ui/ui_db.h>
-#include <ui/ui_ui.h>
-#include <ui/ui_renderer.h>
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_win32.h>
-#include <imgui/imgui_impl_vulkan.h>
+#include <editor/ed_pch.h>
+#include <editor/ed_main.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
+static void imgui_create(context_t *context);
+static void imgui_draw(context_t *context);
+static void imgui_destroy(context_t *context);
+
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
 
-static VkDescriptorPoolSize const s_ui_descriptor_pool_sizes[] = {
+static VkDescriptorPoolSize const s_editor_descriptor_pool_sizes[] = {
   {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE},
 };
 
-static VkDescriptorPool s_ui_descriptor_pool = 0;
+static VkDescriptorPool s_editor_descriptor_pool = 0;
 
-void ui_create(void) {
+int32_t main(int32_t argc, char **argv) {
+  g_context_imgui_create_proc = imgui_create;
+  g_context_imgui_draw_proc = imgui_draw;
+  g_context_imgui_destroy_proc = imgui_destroy;
+  g_context_imgui_message_proc = ImGui_ImplWin32_WndProcHandler;
+
+  context_t *context = context_create(1920, 1080);
+
+  // TODO: move scene stuff somewhere else
+  context->scene = scene_create(context);
+
+  while (context_is_running(context)) {
+
+    context_begin_frame(context);
+
+    scene_update(context->scene);
+
+    // TODO: remove these render calls, inline them into the context itself..
+    renderer_update(context->renderer);
+    renderer_draw(context->renderer);
+
+    context_end_frame(context);
+  }
+
+  scene_destroy(context->scene);
+
+  context_destroy(context);
+
+  heap_reset();
+
+  return 0;
+}
+
+static void imgui_create(context_t *context) {
   VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
-  for (VkDescriptorPoolSize const &descriptor_pool_size : s_ui_descriptor_pool_sizes) {
+  for (VkDescriptorPoolSize const &descriptor_pool_size : s_editor_descriptor_pool_sizes) {
     descriptor_pool_create_info.maxSets += descriptor_pool_size.descriptorCount;
   }
 
-  descriptor_pool_create_info.pPoolSizes = s_ui_descriptor_pool_sizes;
-  descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(s_ui_descriptor_pool_sizes);
+  descriptor_pool_create_info.pPoolSizes = s_editor_descriptor_pool_sizes;
+  descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(s_editor_descriptor_pool_sizes);
 
-  vkCreateDescriptorPool(g_context_device, &descriptor_pool_create_info, 0, &s_ui_descriptor_pool);
+  vkCreateDescriptorPool(context->device, &descriptor_pool_create_info, 0, &s_editor_descriptor_pool);
 
   IMGUI_CHECKVERSION();
 
@@ -98,36 +129,33 @@ void ui_create(void) {
   style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.92f, 0.18f, 0.29f, 0.43f);
   style.Colors[ImGuiCol_PopupBg] = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
 
-  ImGui_ImplWin32_Init(g_context_window_handle);
+  ImGui_ImplWin32_Init(context->window_handle);
 
   ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {};
-  imgui_vulkan_init_info.Instance = g_context_instance;
-  imgui_vulkan_init_info.PhysicalDevice = g_context_physical_device;
-  imgui_vulkan_init_info.Device = g_context_device;
-  imgui_vulkan_init_info.QueueFamily = g_context_graphic_queue_index;
-  imgui_vulkan_init_info.Queue = g_context_graphic_queue;
+  imgui_vulkan_init_info.Instance = context->instance;
+  imgui_vulkan_init_info.PhysicalDevice = context->physical_device;
+  imgui_vulkan_init_info.Device = context->device;
+  imgui_vulkan_init_info.QueueFamily = context->graphic_queue_index;
+  imgui_vulkan_init_info.Queue = context->graphic_queue;
   imgui_vulkan_init_info.PipelineCache = 0;
-  imgui_vulkan_init_info.DescriptorPool = s_ui_descriptor_pool;
-  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = g_swapchain_render_pass;
+  imgui_vulkan_init_info.DescriptorPool = s_editor_descriptor_pool;
+  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->render_pass;
   imgui_vulkan_init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-  imgui_vulkan_init_info.MinImageCount = g_context_surface_capabilities.minImageCount;
-  imgui_vulkan_init_info.ImageCount = g_swapchain_image_count;
+  imgui_vulkan_init_info.MinImageCount = context->surface_capabilities.minImageCount;
+  imgui_vulkan_init_info.ImageCount = (uint32_t)context->swapchain->image_count;
   imgui_vulkan_init_info.Allocator = 0;
   imgui_vulkan_init_info.CheckVkResultFn = 0;
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
-
-  ui_db_create();
-  ui_renderer_create();
 }
-void ui_draw() {
+static void imgui_draw(context_t *context) {
   ImGui_ImplVulkan_NewFrame();
 
   ImGui_ImplWin32_NewFrame();
 
   ImGui::NewFrame();
 
-  static uint8_t dockspace_open = 1;
+  static bool dockspace_open = true;
 
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 
@@ -148,7 +176,7 @@ void ui_draw() {
   ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
 
-  ImGui::Begin("Root", (bool *)&dockspace_open, window_flags);
+  ImGui::Begin("Root", &dockspace_open, window_flags);
 
   ImGui::PopStyleVar();
   ImGui::PopStyleVar();
@@ -167,31 +195,21 @@ void ui_draw() {
     ImGui::EndMenuBar();
   }
 
-  ui_db_draw();
-  ui_renderer_draw();
-
   ImGui::End();
   ImGui::Render();
 
   ImDrawData *draw_data = ImGui::GetDrawData();
 
-  ImGui_ImplVulkan_RenderDrawData(draw_data, g_renderer_graphic_command_buffers[g_renderer_frame_index]);
+  ImGui_ImplVulkan_RenderDrawData(draw_data, context->renderer->graphic_command_buffers[context->renderer->frame_index]);
 }
-void ui_destroy(void) {
-  ui_db_destroy();
-  ui_renderer_destroy();
-
+static void imgui_destroy(context_t *context) {
   ImGui_ImplVulkan_Shutdown();
 
   ImGui_ImplWin32_Shutdown();
 
   ImGui::DestroyContext();
 
-  vkDestroyDescriptorPool(g_context_device, s_ui_descriptor_pool, 0);
-}
-
-void ui_forward_message(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
-  ImGui_ImplWin32_WndProcHandler(window_handle, message, w_param, l_param);
+  vkDestroyDescriptorPool(context->device, s_editor_descriptor_pool, 0);
 }
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface) {

@@ -24,7 +24,6 @@
 #include <library/container/lb_api.h>
 #include <library/core/lb_api.h>
 #include <library/database/lb_api.h>
-#include <library/global/lb_api.h>
 #include <library/importer/lb_api.h>
 #include <library/math/lb_api.h>
 #include <library/physic3/lb_api.h>

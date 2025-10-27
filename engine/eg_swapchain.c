@@ -55,7 +55,7 @@ swapchain_t *swapchain_create(context_t *context) {
     swapchain_create_info.queueFamilyIndexCount = ARRAY_COUNT(queue_families);
   }
 
-  VULKAN_CHECK(vkCreateSwapchainKHR(swapchain->context->device, &swapchain_create_info, 0, &swapchain->swapchain));
+  VULKAN_CHECK(vkCreateSwapchainKHR(swapchain->context->device, &swapchain_create_info, 0, &swapchain->handle));
 
   swapchain_create_render_pass(swapchain);
   swapchain_create_color_images(swapchain);
@@ -72,7 +72,7 @@ void swapchain_destroy(swapchain_t *swapchain) {
   swapchain_destroy_color_images(swapchain);
   swapchain_destroy_render_pass(swapchain);
 
-  vkDestroySwapchainKHR(swapchain->context->device, swapchain->swapchain, 0);
+  vkDestroySwapchainKHR(swapchain->context->device, swapchain->handle, 0);
 
   heap_free(swapchain);
 }
@@ -137,7 +137,7 @@ static void swapchain_create_color_images(swapchain_t *swapchain) {
   swapchain->color_image = (VkImage *)heap_alloc(sizeof(VkImage) * swapchain->image_count, 0, 0);
   swapchain->color_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * swapchain->image_count, 0, 0);
 
-  VULKAN_CHECK(vkGetSwapchainImagesKHR(swapchain->context->device, swapchain->swapchain, (uint32_t *)&swapchain->image_count, swapchain->color_image));
+  VULKAN_CHECK(vkGetSwapchainImagesKHR(swapchain->context->device, swapchain->handle, (uint32_t *)&swapchain->image_count, swapchain->color_image));
 
   uint64_t image_index = 0;
   uint64_t image_count = swapchain->image_count;

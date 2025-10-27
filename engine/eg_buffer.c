@@ -6,7 +6,7 @@ buffer_t *buffer_create(context_t *context, uint64_t buffer_size, VkBufferUsageF
   buffer_t *buffer = (buffer_t *)heap_alloc(sizeof(buffer_t), 1, 0);
 
   buffer->context = context;
-  buffer->buffer_size = buffer_size;
+  buffer->size = buffer_size;
 
   VkBufferCreateInfo buffer_create_info = {0};
   buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -14,11 +14,11 @@ buffer_t *buffer_create(context_t *context, uint64_t buffer_size, VkBufferUsageF
   buffer_create_info.usage = buffer_usage_flags;
   buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  VULKAN_CHECK(vkCreateBuffer(buffer->context->device, &buffer_create_info, 0, &buffer->buffer));
+  VULKAN_CHECK(vkCreateBuffer(buffer->context->device, &buffer_create_info, 0, &buffer->handle));
 
   VkMemoryRequirements memory_requirements = {0};
 
-  vkGetBufferMemoryRequirements(buffer->context->device, buffer->buffer, &memory_requirements);
+  vkGetBufferMemoryRequirements(buffer->context->device, buffer->handle, &memory_requirements);
 
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -26,12 +26,12 @@ buffer_t *buffer_create(context_t *context, uint64_t buffer_size, VkBufferUsageF
   memory_allocate_info.memoryTypeIndex = context_find_memory_type(buffer->context, memory_requirements.memoryTypeBits, memory_properties);
 
   VULKAN_CHECK(vkAllocateMemory(buffer->context->device, &memory_allocate_info, 0, &buffer->device_memory));
-  VULKAN_CHECK(vkBindBufferMemory(buffer->context->device, buffer->buffer, buffer->device_memory, 0));
+  VULKAN_CHECK(vkBindBufferMemory(buffer->context->device, buffer->handle, buffer->device_memory, 0));
 
   return buffer;
 }
 void buffer_map(buffer_t *buffer) {
-  VULKAN_CHECK(vkMapMemory(buffer->context->device, buffer->device_memory, 0, buffer->buffer_size, 0, &buffer->mapped_memory));
+  VULKAN_CHECK(vkMapMemory(buffer->context->device, buffer->device_memory, 0, buffer->size, 0, &buffer->mapped_memory));
 }
 void buffer_unmap(buffer_t *buffer) {
   vkUnmapMemory(buffer->context->device, buffer->device_memory);
@@ -43,16 +43,16 @@ void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer c
 
   buffer_copy.size = buffer_copy_size;
 
-  vkCmdCopyBuffer(command_buffer, buffer->buffer, target->buffer, 1, &buffer_copy);
+  vkCmdCopyBuffer(command_buffer, buffer->handle, target->handle, 1, &buffer_copy);
 }
 void buffer_destroy(buffer_t *buffer) {
-  if (buffer->device_memory) {
+  if (buffer->mapped_memory) {
     vkUnmapMemory(buffer->context->device, buffer->device_memory);
   }
 
   vkFreeMemory(buffer->context->device, buffer->device_memory, 0);
 
-  vkDestroyBuffer(buffer->context->device, buffer->buffer, 0);
+  vkDestroyBuffer(buffer->context->device, buffer->handle, 0);
 
   heap_free(buffer);
 }
