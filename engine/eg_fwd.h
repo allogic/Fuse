@@ -259,6 +259,7 @@ typedef struct renderer_t {
 
 typedef struct graphic_pipeline_t {
   context_t *context;
+  renderer_t *renderer;
   pipeline_resource_t resource;
   uint64_t vertex_input_binding_count;
   uint64_t descriptor_binding_count;
@@ -286,6 +287,7 @@ typedef struct graphic_pipeline_t {
 } graphic_pipeline_t;
 typedef struct compute_pipeline_t {
   context_t *context;
+  renderer_t *renderer;
   pipeline_resource_t resource;
   uint64_t descriptor_binding_count;
   uint64_t descriptor_pool_size_count;

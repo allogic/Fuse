@@ -36,10 +36,11 @@ static void renderer_destroy_pipelines(renderer_t *renderer);
 static void renderer_destroy_sync_objects(renderer_t *renderer);
 static void renderer_destroy_command_buffer(renderer_t *renderer);
 
-renderer_t *renderer_create(context_t *context) {
+void renderer_create(context_t *context) {
   renderer_t *renderer = (renderer_t *)heap_alloc(sizeof(renderer_t), 1, 0);
 
   renderer->context = context;
+  renderer->context->renderer = renderer;
   renderer->enable_debug = 1; // TODO
 
   strcpy(renderer->time_info_descriptor_binding_name, "time_info");
@@ -70,8 +71,6 @@ renderer_t *renderer_create(context_t *context) {
   }
 
   database_destroy_renderer_asset(&renderer_asset);
-
-  return renderer;
 }
 void renderer_update(renderer_t *renderer) {
   vector3_t right_position = {0.0F, 0.0F, 0.0F};
@@ -245,6 +244,8 @@ void renderer_destroy(renderer_t *renderer) {
   renderer_destroy_sync_objects(renderer);
   renderer_destroy_command_buffer(renderer);
 
+  renderer->context->renderer = 0;
+
   heap_free(renderer);
 }
 
@@ -376,9 +377,9 @@ static void renderer_create_global_buffers(renderer_t *renderer) {
     renderer->screen_infos[frame_index] = screen_info_descriptor_binding_buffer->mapped_memory;
     renderer->camera_infos[frame_index] = camera_info_descriptor_binding_buffer->mapped_memory;
 
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name), &time_info_descriptor_binding_buffer, sizeof(buffer_t *));
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name), &screen_info_descriptor_binding_buffer, sizeof(buffer_t *));
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name), &camera_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name) + 1, &time_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name) + 1, &screen_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name) + 1, &camera_info_descriptor_binding_buffer, sizeof(buffer_t *));
 
     frame_index++;
   }

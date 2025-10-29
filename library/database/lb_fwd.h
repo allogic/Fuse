@@ -22,6 +22,7 @@ typedef struct swapchain_asset_t {
   uint64_t name_size;
   uint32_t image_count;
   uint32_t depth_format;
+  uint8_t is_default;
 } swapchain_asset_t;
 
 typedef struct renderer_asset_t {
@@ -29,6 +30,7 @@ typedef struct renderer_asset_t {
   char *name;
   uint64_t name_size;
   uint32_t frames_in_flight;
+  uint8_t is_default;
 } renderer_asset_t;
 
 typedef struct pipeline_asset_t {
@@ -89,6 +91,8 @@ typedef struct model_resource_t {
 typedef struct model_mesh_t {
   model_mesh_id_t id;
   model_asset_id_t model_asset_id;
+  char *name;
+  uint64_t name_size;
 } model_mesh_t;
 typedef struct model_primitive_t {
   model_primitive_id_t id;

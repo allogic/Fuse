@@ -7,4 +7,6 @@
 #include <imgui/imgui_impl_win32.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <editor/ed_fwd.h>
+
 #endif // ED_PCH_H

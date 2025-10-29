@@ -83,8 +83,8 @@ context_t *context_create(int32_t width, int32_t height) {
 
   database_create();
 
-  context->swapchain = swapchain_create(context);
-  context->renderer = renderer_create(context);
+  swapchain_create(context);
+  renderer_create(context);
 
   QueryPerformanceFrequency(&context->timer_freq);
 
@@ -132,8 +132,8 @@ void context_begin_frame(context_t *context) {
 
     context_resize_surface(context);
 
-    context->swapchain = swapchain_create(context);
-    context->renderer = renderer_create(context);
+    swapchain_create(context);
+    renderer_create(context);
   }
 
   if (context->renderer->is_dirty) {
@@ -141,7 +141,7 @@ void context_begin_frame(context_t *context) {
 
     renderer_destroy(context->renderer);
 
-    context->renderer = renderer_create(context);
+    renderer_create(context);
   }
 
   while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {

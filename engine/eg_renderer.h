@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-renderer_t *renderer_create(context_t *context);
+void renderer_create(context_t *context);
 void renderer_update(renderer_t *renderer);
 void renderer_draw(renderer_t *renderer);
 void renderer_destroy(renderer_t *renderer);

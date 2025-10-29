@@ -1,5 +1,7 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
+#include <editor/ed_catalog.h>
+#include <editor/ed_detail.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -147,6 +149,9 @@ static void imgui_create(context_t *context) {
   imgui_vulkan_init_info.CheckVkResultFn = 0;
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
+
+  catalog_create();
+  detail_create();
 }
 static void imgui_draw(context_t *context) {
   ImGui_ImplVulkan_NewFrame();
@@ -189,11 +194,26 @@ static void imgui_draw(context_t *context) {
   if (ImGui::BeginMenuBar()) {
 
     if (ImGui::BeginMenu("File")) {
+
+      if (ImGui::BeginMenu("Import")) {
+
+        if (ImGui::MenuItem("Default Assets")) {
+          importer_import_default_assets();
+
+          catalog_refresh();
+        }
+
+        ImGui::EndMenu();
+      }
+
       ImGui::EndMenu();
     }
 
     ImGui::EndMenuBar();
   }
+
+  catalog_draw();
+  detail_draw();
 
   ImGui::End();
   ImGui::Render();
@@ -203,6 +223,9 @@ static void imgui_draw(context_t *context) {
   ImGui_ImplVulkan_RenderDrawData(draw_data, context->renderer->graphic_command_buffers[context->renderer->frame_index]);
 }
 static void imgui_destroy(context_t *context) {
+  catalog_destroy();
+  detail_destroy();
+
   ImGui_ImplVulkan_Shutdown();
 
   ImGui_ImplWin32_Shutdown();

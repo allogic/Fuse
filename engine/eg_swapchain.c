@@ -12,10 +12,11 @@ static void swapchain_destroy_color_images(swapchain_t *swapchain);
 static void swapchain_destroy_depth_images(swapchain_t *swapchain);
 static void swapchain_destroy_frame_buffer(swapchain_t *swapchain);
 
-swapchain_t *swapchain_create(context_t *context) {
+void swapchain_create(context_t *context) {
   swapchain_t *swapchain = (swapchain_t *)heap_alloc(sizeof(swapchain_t), 1, 0);
 
   swapchain->context = context;
+  swapchain->context->swapchain = swapchain;
 
   swapchain_asset_t swapchain_asset = database_load_swapchain_default_asset();
 
@@ -63,8 +64,6 @@ swapchain_t *swapchain_create(context_t *context) {
   swapchain_create_frame_buffer(swapchain);
 
   database_destroy_swapchain_asset(&swapchain_asset);
-
-  return swapchain;
 }
 void swapchain_destroy(swapchain_t *swapchain) {
   swapchain_destroy_frame_buffer(swapchain);
@@ -73,6 +72,8 @@ void swapchain_destroy(swapchain_t *swapchain) {
   swapchain_destroy_render_pass(swapchain);
 
   vkDestroySwapchainKHR(swapchain->context->device, swapchain->handle, 0);
+
+  swapchain->context->swapchain = 0;
 
   heap_free(swapchain);
 }
