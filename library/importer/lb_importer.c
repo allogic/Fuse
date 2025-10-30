@@ -172,12 +172,17 @@ void importer_import_model(model_import_settings_t *import_settings) {
   uint64_t mesh_count = gltf_data->meshes_count;
 
   while (mesh_index < mesh_count) {
+
     cgltf_mesh const *gltf_mesh = &gltf_data->meshes[mesh_index];
+
+    string_t mesh_name = string_create();
+
+    string_appendf(&mesh_name, "unnamed mesh - %llu", mesh_index);
 
     model_mesh_t model_mesh = {0};
 
     model_mesh.model_asset_id = model_asset.id;
-    model_mesh.name = gltf_mesh->name ? gltf_mesh->name : "Unnamed Mesh";
+    model_mesh.name = gltf_mesh->name ? gltf_mesh->name : string_buffer(&mesh_name);
 
     database_store_model_mesh(&model_mesh);
 
@@ -185,19 +190,30 @@ void importer_import_model(model_import_settings_t *import_settings) {
     uint64_t prim_count = gltf_mesh->primitives_count;
 
     while (prim_index < prim_count) {
+
       cgltf_primitive const *gltf_prim = &gltf_mesh->primitives[prim_index];
 
-      model_primitive_t model_primitive = {0};
+      string_t prim_name = string_create();
 
-      model_primitive.model_mesh_id = model_mesh.id;
+      string_appendf(&prim_name, "unnamed primitive - %llu", prim_index);
 
-      database_store_model_primitive(&model_primitive);
+      mesh_primitive_t mesh_primitive = {0};
+
+      mesh_primitive.model_mesh_id = model_mesh.id;
+      mesh_primitive.name = string_buffer(&prim_name);
+
+      database_store_mesh_primitive(&mesh_primitive);
 
       uint64_t attrib_index = 0;
       uint64_t attrib_count = gltf_prim->attributes_count;
 
       while (attrib_index < attrib_count) {
+
         cgltf_attribute const *gltf_attrib = &gltf_prim->attributes[attrib_index];
+
+        string_t attrib_name = string_create();
+
+        string_appendf(&attrib_name, "unnamed attribute - %llu", attrib_index);
 
         cgltf_accessor const *gltf_accessor = gltf_attrib->data;
 
@@ -283,21 +299,27 @@ void importer_import_model(model_import_settings_t *import_settings) {
           value_index++;
         }
 
-        model_attribute_t model_attribute = {0};
+        mesh_attribute_t mesh_attribute = {0};
 
-        model_attribute.model_primitive_id = model_primitive.id;
-        model_attribute.name = gltf_attrib->name;
-        model_attribute.type = gltf_accessor->type;
+        mesh_attribute.mesh_primitive_id = mesh_primitive.id;
+        mesh_attribute.name = gltf_attrib->name ? gltf_attrib->name : string_buffer(&attrib_name);
+        mesh_attribute.type = gltf_accessor->type;
 
-        database_store_model_attribute(&model_attribute);
+        database_store_mesh_attribute(&mesh_attribute);
 
         heap_free(value_bytes);
+
+        string_destroy(&attrib_name);
 
         attrib_index++;
       }
 
+      string_destroy(&prim_name);
+
       prim_index++;
     }
+
+    string_destroy(&mesh_name);
 
     mesh_index++;
   }
@@ -321,15 +343,16 @@ void importer_import_model(model_import_settings_t *import_settings) {
 }
 
 static void importer_process_pipeline_vertex_input_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module) {
+  uint64_t input_variable_index = 0;
   uint32_t input_variable_count = 0;
+
   SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, 0));
 
   SpvReflectInterfaceVariable **input_variables = (SpvReflectInterfaceVariable **)heap_alloc(sizeof(SpvReflectInterfaceVariable *) * input_variable_count, 0, 0);
   SPIRV_CHECK(spvReflectEnumerateInputVariables(shader_module, &input_variable_count, input_variables));
 
-  uint64_t input_variable_index = 0;
-
   while (input_variable_index < input_variable_count) {
+
     SpvReflectInterfaceVariable *input_variable = input_variables[input_variable_index];
 
     pipeline_vertex_input_binding_t pipeline_vertex_input_binding = {0};
@@ -350,14 +373,16 @@ static void importer_process_pipeline_vertex_input_bindings(pipeline_asset_t *pi
   heap_free(input_variables);
 }
 static void importer_process_pipeline_descriptor_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module, VkShaderStageFlags stage_flag) {
+  uint32_t descriptor_binding_index = 0;
   uint32_t descriptor_binding_count = 0;
+
   SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, 0));
 
   SpvReflectDescriptorBinding **descriptor_bindings = (SpvReflectDescriptorBinding **)heap_alloc(sizeof(SpvReflectDescriptorBinding *) * descriptor_binding_count, 0, 0);
   SPIRV_CHECK(spvReflectEnumerateDescriptorBindings(shader_module, &descriptor_binding_count, descriptor_bindings));
 
-  uint32_t descriptor_binding_index = 0;
   while (descriptor_binding_index < descriptor_binding_count) {
+
     SpvReflectDescriptorBinding *descriptor_binding = descriptor_bindings[descriptor_binding_index];
 
     pipeline_descriptor_binding_t pipeline_descriptor_binding = {0};

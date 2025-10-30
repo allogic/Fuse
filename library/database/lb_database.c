@@ -538,6 +538,81 @@ vector_t database_load_model_meshes_by_id(model_asset_id_t model_asset_id) {
   return model_meshes;
 }
 
+vector_t database_load_mesh_primitives_by_id(model_mesh_id_t model_mesh_id) {
+  vector_t mesh_primitives = vector_create(sizeof(mesh_primitive_t));
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT MP.ID, MP.NAME\n");
+  string_appendf(&sql, "FROM MODEL_MESHES AS MM\n");
+  string_appendf(&sql, "LEFT JOIN MESH_PRIMITIVES AS MP\n");
+  string_appendf(&sql, "ON MM.ID = MP.MODEL_MESH_ID\n");
+  string_appendf(&sql, "WHERE MM.ID = %lld\n", model_mesh_id);
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    mesh_primitive_t mesh_primitive = {0};
+
+    mesh_primitive_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+
+    uint64_t name_size = name ? strlen(name) + 1 : 0;
+
+    mesh_primitive.id = id;
+    mesh_primitive.model_mesh_id = model_mesh_id;
+    mesh_primitive.name = heap_alloc(name_size, 1, name);
+    mesh_primitive.name_size = name_size;
+
+    vector_push(&mesh_primitives, &mesh_primitive);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return mesh_primitives;
+}
+vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_id) {
+  vector_t mesh_attributes = vector_create(sizeof(mesh_attribute_t));
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT MA.ID, MA.NAME\n");
+  string_appendf(&sql, "FROM MESH_PRIMITIVES AS MP\n");
+  string_appendf(&sql, "LEFT JOIN MESH_ATTRIBUTES AS MA\n");
+  string_appendf(&sql, "ON MP.ID = MA.MESH_PRIMITIVE_ID\n");
+  string_appendf(&sql, "WHERE MP.ID = %lld\n", mesh_primitive_id);
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    mesh_attribute_t mesh_attribute = {0};
+
+    mesh_attribute_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+
+    uint64_t name_size = name ? strlen(name) + 1 : 0;
+
+    mesh_attribute.id = id;
+    mesh_attribute.mesh_primitive_id = mesh_primitive_id;
+    mesh_attribute.name = heap_alloc(name_size, 1, name);
+    mesh_attribute.name_size = name_size;
+
+    vector_push(&mesh_attributes, &mesh_attribute);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return mesh_attributes;
+}
+
 void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset) {
   string_t sql = string_create();
 
@@ -790,18 +865,19 @@ void database_store_model_mesh(model_mesh_t *model_mesh) {
     model_mesh->id = database_get_sequence_index_by_name("MODEL_MESHES");
   }
 }
-void database_store_model_primitive(model_primitive_t *model_primitive) {
+
+void database_store_mesh_primitive(mesh_primitive_t *mesh_primitive) {
   string_t sql = string_create();
 
-  string_appendf(&sql, "INSERT INTO MODEL_PRIMITIVES (MODEL_MESH_ID)\n");
-  string_appendf(&sql, "VALUES (?)\n");
-  // TODO: Update stuff...
+  string_appendf(&sql, "INSERT INTO MESH_PRIMITIVES (MODEL_MESH_ID, NAME)\n");
+  string_appendf(&sql, "VALUES (?, ?)\n");
 
   sqlite3_stmt *stmt = 0;
 
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
-  sqlite3_bind_int64(stmt, 1, model_primitive->model_mesh_id);
+  sqlite3_bind_int64(stmt, 1, mesh_primitive->model_mesh_id);
+  sqlite3_bind_text(stmt, 2, mesh_primitive->name, -1, SQLITE_STATIC);
 
   SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
@@ -809,24 +885,23 @@ void database_store_model_primitive(model_primitive_t *model_primitive) {
 
   string_destroy(&sql);
 
-  if (model_primitive->id == 0) {
-    model_primitive->id = database_get_sequence_index_by_name("MODEL_PRIMITIVES");
+  if (mesh_primitive->id == 0) {
+    mesh_primitive->id = database_get_sequence_index_by_name("MESH_PRIMITIVES");
   }
 }
-void database_store_model_attribute(model_attribute_t *model_attribute) {
+void database_store_mesh_attribute(mesh_attribute_t *mesh_attribute) {
   string_t sql = string_create();
 
-  string_appendf(&sql, "INSERT INTO MODEL_ATTRIBUTES (MODEL_PRIMITIVE_ID, NAME, TYPE)\n");
+  string_appendf(&sql, "INSERT INTO MESH_ATTRIBUTES (MESH_PRIMITIVE_ID, NAME, TYPE)\n");
   string_appendf(&sql, "VALUES (?, ?, ?)\n");
-  // TODO: Update stuff...
 
   sqlite3_stmt *stmt = 0;
 
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
-  sqlite3_bind_int64(stmt, 1, model_attribute->model_primitive_id);
-  sqlite3_bind_text(stmt, 2, model_attribute->name, -1, SQLITE_STATIC);
-  sqlite3_bind_int(stmt, 3, model_attribute->type);
+  sqlite3_bind_int64(stmt, 1, mesh_attribute->mesh_primitive_id);
+  sqlite3_bind_text(stmt, 2, mesh_attribute->name, -1, SQLITE_STATIC);
+  sqlite3_bind_int(stmt, 3, mesh_attribute->type);
 
   SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
@@ -834,8 +909,8 @@ void database_store_model_attribute(model_attribute_t *model_attribute) {
 
   string_destroy(&sql);
 
-  if (model_attribute->id == 0) {
-    model_attribute->id = database_get_sequence_index_by_name("MODEL_ATTRIBUTES");
+  if (mesh_attribute->id == 0) {
+    mesh_attribute->id = database_get_sequence_index_by_name("MESH_ATTRIBUTES");
   }
 }
 
@@ -963,6 +1038,35 @@ void database_destroy_model_meshes(vector_t *model_meshes) {
   }
 
   vector_destroy(model_meshes);
+}
+
+void database_destroy_mesh_primitives(vector_t *mesh_primitives) {
+  uint64_t primitive_index = 0;
+  uint64_t primitive_count = vector_count(mesh_primitives);
+
+  while (primitive_index < primitive_count) {
+    mesh_primitive_t *mesh_primitive = (mesh_primitive_t *)vector_at(mesh_primitives, primitive_index);
+
+    heap_free(mesh_primitive->name);
+
+    primitive_index++;
+  }
+
+  vector_destroy(mesh_primitives);
+}
+void database_destroy_mesh_attributes(vector_t *mesh_attributes) {
+  uint64_t attribute_index = 0;
+  uint64_t attribute_count = vector_count(mesh_attributes);
+
+  while (attribute_index < attribute_count) {
+    mesh_attribute_t *mesh_attribute = (mesh_attribute_t *)vector_at(mesh_attributes, attribute_index);
+
+    heap_free(mesh_attribute->name);
+
+    attribute_index++;
+  }
+
+  vector_destroy(mesh_attributes);
 }
 
 static int64_t database_get_sequence_index_by_name(char const *table_name) {

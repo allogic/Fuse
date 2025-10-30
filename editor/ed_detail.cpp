@@ -7,6 +7,15 @@ static void detail_draw_renderer(void);
 static void detail_draw_pipeline(void);
 static void detail_draw_model(void);
 
+static void detail_select_model_mesh(uint64_t selected_index);
+static void detail_select_mesh_primitive(uint64_t selected_index);
+
+int64_t g_detail_selected_model_mesh = -1;
+int64_t g_detail_selected_mesh_primitive = -1;
+
+vector_t g_detail_mesh_primitives = {};
+vector_t g_detail_mesh_attributes = {};
+
 void detail_create() {
 }
 void detail_refresh() {
@@ -52,6 +61,13 @@ void detail_draw() {
   ImGui::End();
 }
 void detail_destroy() {
+  if (g_detail_selected_model_mesh != -1) {
+    database_destroy_mesh_primitives(&g_detail_mesh_primitives);
+  }
+
+  if (g_detail_selected_mesh_primitive != -1) {
+    database_destroy_mesh_attributes(&g_detail_mesh_attributes);
+  }
 }
 
 static void detail_draw_swapchain(void) {
@@ -144,8 +160,6 @@ static void detail_draw_pipeline(void) {
 
     pipeline_vertex_input_binding_t *pipeline_vertex_input_binding = (pipeline_vertex_input_binding_t *)vector_at(&g_catalog_pipeline_vertex_input_bindings, pipeline_vertex_input_binding_index);
 
-    ImGui::PushID(pipeline_vertex_input_binding);
-
     if (ImGui::TreeNodeEx(pipeline_vertex_input_binding->binding_name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
 
       ImGui::Dummy(ImVec2(0.0f, 5.0F));
@@ -194,8 +208,6 @@ static void detail_draw_pipeline(void) {
       ImGui::TreePop();
     }
 
-    ImGui::PopID();
-
     pipeline_vertex_input_binding_index++;
   }
 
@@ -211,8 +223,6 @@ static void detail_draw_pipeline(void) {
   while (pipeline_descriptor_binding_index < pipeline_descriptor_binding_count) {
 
     pipeline_descriptor_binding_t *pipeline_descriptor_binding = (pipeline_descriptor_binding_t *)vector_at(&g_catalog_pipeline_descriptor_bindings, pipeline_descriptor_binding_index);
-
-    ImGui::PushID(pipeline_descriptor_binding);
 
     if (ImGui::TreeNodeEx(pipeline_descriptor_binding->binding_name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
 
@@ -262,8 +272,6 @@ static void detail_draw_pipeline(void) {
       ImGui::TreePop();
     }
 
-    ImGui::PopID();
-
     pipeline_descriptor_binding_index++;
   }
 
@@ -288,6 +296,13 @@ static void detail_draw_model(void) {
 
   ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
+  ImGui::BeginTable("##ModelMeshTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
+
+  ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
+  ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
+
+  ImGui::TableHeadersRow();
+
   uint64_t model_mesh_index = 0;
   uint64_t model_mesh_count = vector_count(&g_catalog_model_meshes);
 
@@ -295,17 +310,103 @@ static void detail_draw_model(void) {
 
     model_mesh_t *model_mesh = (model_mesh_t *)vector_at(&g_catalog_model_meshes, model_mesh_index);
 
-    ImGui::PushID(model_mesh);
+    ImGui::TableNextRow();
 
-    if (ImGui::TreeNodeEx(model_mesh->name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+    ImGui::TableSetColumnIndex(0);
+    ImGui::Text("%d", model_mesh->id);
 
-      ImGui::TreePop();
+    ImGui::TableSetColumnIndex(1);
+    if (ImGui::Selectable(model_mesh->name, (model_mesh_index == g_detail_selected_model_mesh), ImGuiSelectableFlags_SpanAllColumns)) {
+      detail_select_model_mesh(model_mesh_index);
     }
-
-    ImGui::PopID();
 
     model_mesh_index++;
   }
 
+  ImGui::EndTable();
+
   ImGui::Dummy(ImVec2(0.0f, 5.0F));
+
+  ImGui::Text("Primitives");
+
+  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+
+  ImGui::BeginTable("##MeshPrimitiveTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
+
+  ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
+  ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
+
+  ImGui::TableHeadersRow();
+
+  uint64_t mesh_primitive_index = 0;
+  uint64_t mesh_primitive_count = vector_count(&g_detail_mesh_primitives);
+
+  while (mesh_primitive_index < mesh_primitive_count) {
+
+    mesh_primitive_t *mesh_primitive = (mesh_primitive_t *)vector_at(&g_detail_mesh_primitives, mesh_primitive_index);
+
+    ImGui::TableNextRow();
+
+    ImGui::TableSetColumnIndex(0);
+    ImGui::Text("%d", mesh_primitive->id);
+
+    ImGui::TableSetColumnIndex(1);
+    if (ImGui::Selectable(mesh_primitive->name, (mesh_primitive_index == g_detail_selected_mesh_primitive), ImGuiSelectableFlags_SpanAllColumns)) {
+      detail_select_mesh_primitive(mesh_primitive_index);
+    }
+
+    mesh_primitive_index++;
+  }
+
+  ImGui::EndTable();
+
+  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+
+  ImGui::Text("Attributes");
+
+  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+
+  uint64_t mesh_attribute_index = 0;
+  uint64_t mesh_attribute_count = vector_count(&g_detail_mesh_attributes);
+
+  while (mesh_attribute_index < mesh_attribute_count) {
+
+    mesh_attribute_t *mesh_attribute = (mesh_attribute_t *)vector_at(&g_detail_mesh_attributes, mesh_attribute_index);
+
+    if (ImGui::TreeNodeEx(mesh_attribute->name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+
+      ImGui::Dummy(ImVec2(0.0f, 5.0F));
+
+      ImGui::Text("Dummy");
+
+      ImGui::Dummy(ImVec2(0.0f, 5.0F));
+
+      ImGui::TreePop();
+    }
+
+    mesh_attribute_index++;
+  }
+}
+
+static void detail_select_model_mesh(uint64_t selected_index) {
+  if (g_detail_selected_model_mesh != -1) {
+    database_destroy_mesh_primitives(&g_detail_mesh_primitives);
+  }
+
+  g_detail_selected_model_mesh = selected_index;
+
+  model_mesh_t *model_mesh = (model_mesh_t *)vector_at(&g_catalog_model_meshes, g_detail_selected_model_mesh);
+
+  g_detail_mesh_primitives = database_load_mesh_primitives_by_id(model_mesh->id);
+}
+static void detail_select_mesh_primitive(uint64_t selected_index) {
+  if (g_detail_selected_mesh_primitive != -1) {
+    database_destroy_mesh_attributes(&g_detail_mesh_attributes);
+  }
+
+  g_detail_selected_mesh_primitive = selected_index;
+
+  mesh_primitive_t *mesh_primitive = (mesh_primitive_t *)vector_at(&g_detail_mesh_primitives, g_detail_selected_mesh_primitive);
+
+  g_detail_mesh_attributes = database_load_mesh_attributes_by_id(mesh_primitive->id);
 }

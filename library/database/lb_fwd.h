@@ -13,8 +13,9 @@ typedef int64_t pipeline_descriptor_binding_id_t;
 typedef int64_t model_asset_id_t;
 typedef int64_t model_resource_id_t;
 typedef int64_t model_mesh_id_t;
-typedef int64_t model_primitive_id_t;
-typedef int64_t model_attribute_id_t;
+
+typedef int64_t mesh_primitive_id_t;
+typedef int64_t mesh_attribute_id_t;
 
 typedef struct swapchain_asset_t {
   swapchain_asset_id_t id;
@@ -94,16 +95,19 @@ typedef struct model_mesh_t {
   char *name;
   uint64_t name_size;
 } model_mesh_t;
-typedef struct model_primitive_t {
-  model_primitive_id_t id;
+
+typedef struct mesh_primitive_t {
+  mesh_primitive_id_t id;
   model_mesh_id_t model_mesh_id;
-} model_primitive_t;
-typedef struct model_attribute_t {
-  model_attribute_id_t id;
-  model_primitive_id_t model_primitive_id;
+  char *name;
+  uint64_t name_size;
+} mesh_primitive_t;
+typedef struct mesh_attribute_t {
+  mesh_attribute_id_t id;
+  mesh_primitive_id_t mesh_primitive_id;
   char *name;
   uint64_t name_size;
   uint32_t type;
-} model_attribute_t;
+} mesh_attribute_t;
 
 #endif // LB_DATABASE_FWD_H

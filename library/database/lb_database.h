@@ -27,6 +27,9 @@ vector_t database_load_model_assets(void);
 model_resource_t database_load_model_resource_by_id(model_asset_id_t model_asset_id);
 vector_t database_load_model_meshes_by_id(model_asset_id_t model_asset_id);
 
+vector_t database_load_mesh_primitives_by_id(model_mesh_id_t model_mesh_id);
+vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_id);
+
 void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset);
 
 void database_store_renderer_asset(renderer_asset_t *renderer_asset);
@@ -39,8 +42,9 @@ void database_store_pipeline_descriptor_binding(pipeline_descriptor_binding_t *p
 void database_store_model_asset(model_asset_t *model_asset);
 void database_store_model_resource(model_resource_t *model_resource);
 void database_store_model_mesh(model_mesh_t *model_mesh);
-void database_store_model_primitive(model_primitive_t *model_primitive);
-void database_store_model_attribute(model_attribute_t *model_attribute);
+
+void database_store_mesh_primitive(mesh_primitive_t *mesh_primitive);
+void database_store_mesh_attribute(mesh_attribute_t *mesh_attribute);
 
 void database_destroy_swapchain_assets(vector_t *swapchain_assets);
 void database_destroy_swapchain_asset(swapchain_asset_t *swapchain_asset);
@@ -56,6 +60,9 @@ void database_destroy_pipeline_descriptor_bindings(vector_t *descriptor_bindings
 void database_destroy_model_assets(vector_t *model_assets);
 void database_destroy_model_resource(model_resource_t *model_resource);
 void database_destroy_model_meshes(vector_t *model_meshes);
+
+void database_destroy_mesh_primitives(vector_t *mesh_primitives);
+void database_destroy_mesh_attributes(vector_t *mesh_attributes);
 
 #ifdef __cplusplus
 }

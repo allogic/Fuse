@@ -67,8 +67,6 @@ void catalog_draw() {
 
       ImGui::TableNextRow();
 
-      ImGui::PushID(swapchain_asset);
-
       ImGui::TableSetColumnIndex(0);
       ImGui::Text("%d", swapchain_asset->id);
 
@@ -76,8 +74,6 @@ void catalog_draw() {
       if (ImGui::Selectable(swapchain_asset->name, (swapchain_asset_index == g_catalog_selected_swapchain_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_SWAPCHAIN), ImGuiSelectableFlags_SpanAllColumns)) {
         catalog_select_swapchain(swapchain_asset_index);
       }
-
-      ImGui::PopID();
 
       swapchain_asset_index++;
     }
@@ -108,8 +104,6 @@ void catalog_draw() {
 
       ImGui::TableNextRow();
 
-      ImGui::PushID(renderer_asset);
-
       ImGui::TableSetColumnIndex(0);
       ImGui::Text("%d", renderer_asset->id);
 
@@ -117,8 +111,6 @@ void catalog_draw() {
       if (ImGui::Selectable(renderer_asset->name, (renderer_asset_index == g_catalog_selected_renderer_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_RENDERER), ImGuiSelectableFlags_SpanAllColumns)) {
         catalog_select_renderer(renderer_asset_index);
       }
-
-      ImGui::PopID();
 
       renderer_asset_index++;
     }
@@ -149,8 +141,6 @@ void catalog_draw() {
 
       ImGui::TableNextRow();
 
-      ImGui::PushID(pipeline_asset);
-
       ImGui::TableSetColumnIndex(0);
       ImGui::Text("%d", pipeline_asset->id);
 
@@ -158,8 +148,6 @@ void catalog_draw() {
       if (ImGui::Selectable(pipeline_asset->name, (pipeline_asset_index == g_catalog_selected_pipeline_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_PIPELINE), ImGuiSelectableFlags_SpanAllColumns)) {
         catalog_select_pipeline(pipeline_asset_index);
       }
-
-      ImGui::PopID();
 
       pipeline_asset_index++;
     }
@@ -190,8 +178,6 @@ void catalog_draw() {
 
       ImGui::TableNextRow();
 
-      ImGui::PushID(model_asset);
-
       ImGui::TableSetColumnIndex(0);
       ImGui::Text("%d", model_asset->id);
 
@@ -199,8 +185,6 @@ void catalog_draw() {
       if (ImGui::Selectable(model_asset->name, (model_asset_index == g_catalog_selected_model_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_MODEL), ImGuiSelectableFlags_SpanAllColumns)) {
         catalog_select_model(model_asset_index);
       }
-
-      ImGui::PopID();
 
       model_asset_index++;
     }
@@ -215,13 +199,13 @@ void catalog_draw() {
   ImGui::End();
 }
 void catalog_destroy() {
-  if (g_catalog_selected_model_asset != -1) {
-    database_destroy_model_meshes(&g_catalog_model_meshes);
-  }
-
   if (g_catalog_selected_pipeline_asset != -1) {
     database_destroy_pipeline_vertex_input_bindings(&g_catalog_pipeline_vertex_input_bindings);
     database_destroy_pipeline_descriptor_bindings(&g_catalog_pipeline_descriptor_bindings);
+  }
+
+  if (g_catalog_selected_model_asset != -1) {
+    database_destroy_model_meshes(&g_catalog_model_meshes);
   }
 
   database_destroy_swapchain_assets(&g_catalog_swapchain_assets);
