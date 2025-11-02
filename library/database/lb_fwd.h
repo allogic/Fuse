@@ -16,6 +16,7 @@ typedef int64_t model_mesh_id_t;
 
 typedef int64_t mesh_primitive_id_t;
 typedef int64_t mesh_attribute_id_t;
+typedef int64_t attribute_data_id_t;
 
 typedef struct swapchain_asset_t {
   swapchain_asset_id_t id;
@@ -108,6 +109,13 @@ typedef struct mesh_attribute_t {
   char *name;
   uint64_t name_size;
   uint32_t type;
+  uint64_t count;
 } mesh_attribute_t;
+typedef struct attribute_buffer_t {
+  attribute_data_id_t id;
+  mesh_attribute_id_t mesh_attribute_id;
+  uint8_t *data;
+  uint64_t data_size;
+} attribute_buffer_t;
 
 #endif // LB_DATABASE_FWD_H

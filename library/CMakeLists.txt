@@ -18,5 +18,6 @@ target_link_libraries (library PUBLIC spirv_reflect)
 target_link_libraries (library PUBLIC sqlite3)
 target_link_libraries (library PUBLIC cgltf)
 target_link_libraries (library PUBLIC flecs)
+target_link_libraries (library PUBLIC stb_json)
 
 target_precompile_headers (library PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/lb_pch.h")

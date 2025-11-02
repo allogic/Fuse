@@ -7,5 +7,6 @@
 #include <library/physic3/lb_constants.h>
 
 #include <library/physic3/lb_collision.h>
+#include <library/physic3/lb_geometry.h>
 
 #endif // LB_PHYSIC3_API_H

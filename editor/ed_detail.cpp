@@ -20,8 +20,23 @@ void detail_create() {
 }
 void detail_refresh() {
 }
-void detail_draw() {
-  ImGui::Begin("Detail");
+void detail_draw(context_t *context) {
+  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
+
+  ImGui::Begin("Detail", 0, window_flags);
+
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_Separator, IM_COL32(70, 70, 70, 255));
+  ImGui::BeginChild("DetailFirstChild");
+
+  ImVec2 second_window_size = ImGui::GetWindowSize();
+  ImVec2 second_cursor_position = ImVec2(5.0F, 5.0F);
+
+  second_window_size.x -= 10.0F;
+  second_window_size.y -= 30.0F;
+
+  ImGui::SetCursorPos(second_cursor_position);
+  ImGui::BeginChild("DetailSecondChild", second_window_size);
 
   switch (g_catalog_selected_asset_type) {
     case ASSET_TYPE_NONE: {
@@ -58,6 +73,11 @@ void detail_draw() {
     }
   }
 
+  ImGui::EndChild();
+
+  ImGui::EndChild();
+  ImGui::PopStyleColor(2);
+
   ImGui::End();
 }
 void detail_destroy() {
@@ -68,47 +88,44 @@ void detail_destroy() {
   if (g_detail_selected_mesh_primitive != -1) {
     database_destroy_mesh_attributes(&g_detail_mesh_attributes);
   }
+
+  g_detail_selected_model_mesh = -1;
+  g_detail_selected_mesh_primitive = -1;
 }
 
 static void detail_draw_swapchain(void) {
   swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&g_catalog_swapchain_assets, g_catalog_selected_swapchain_asset);
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
-
   if (ImGui::Button("Save")) {
     database_store_swapchain_asset(swapchain_asset);
   }
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text(swapchain_asset->name);
   ImGui::InputInt("Image Count", (int32_t *)&swapchain_asset->image_count);
   ImGui::InputInt("Depth Format", (int32_t *)&swapchain_asset->depth_format);
   ImGui::Checkbox("Is Default", (bool *)&swapchain_asset->is_default);
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 }
 static void detail_draw_renderer(void) {
   renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&g_catalog_renderer_assets, g_catalog_selected_renderer_asset);
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
   if (ImGui::Button("Save")) {
     database_store_renderer_asset(renderer_asset);
   }
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text(renderer_asset->name);
   ImGui::InputInt("Frames In Flight", (int32_t *)&renderer_asset->frames_in_flight);
   ImGui::Checkbox("Is Default", (bool *)&renderer_asset->is_default);
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 }
 static void detail_draw_pipeline(void) {
   pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&g_catalog_pipeline_assets, g_catalog_selected_pipeline_asset);
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
   if (ImGui::Button("Save")) {
     database_store_pipeline_asset(pipeline_asset);
@@ -138,7 +155,9 @@ static void detail_draw_pipeline(void) {
     }
   }
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text(pipeline_asset->name);
   ImGui::InputInt("Link Index", (int32_t *)&pipeline_asset->link_index);
@@ -147,11 +166,11 @@ static void detail_draw_pipeline(void) {
   ImGui::Checkbox("Auto Link Descriptor Bindings", (bool *)&pipeline_asset->auto_link_descriptor_bindings);
   ImGui::Checkbox("Interleaved Vertex Input Buffer", (bool *)&pipeline_asset->interleaved_vertex_input_buffer);
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text("Vertex Input Bindings");
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
   uint64_t pipeline_vertex_input_binding_index = 0;
   uint64_t pipeline_vertex_input_binding_count = vector_count(&g_catalog_pipeline_vertex_input_bindings);
@@ -160,9 +179,7 @@ static void detail_draw_pipeline(void) {
 
     pipeline_vertex_input_binding_t *pipeline_vertex_input_binding = (pipeline_vertex_input_binding_t *)vector_at(&g_catalog_pipeline_vertex_input_bindings, pipeline_vertex_input_binding_index);
 
-    if (ImGui::TreeNodeEx(pipeline_vertex_input_binding->binding_name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
-
-      ImGui::Dummy(ImVec2(0.0f, 5.0F));
+    if (ImGui::TreeNodeEx(pipeline_vertex_input_binding->binding_name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
       ImGui::BeginTable("##VertexInputBindingTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
 
@@ -203,19 +220,17 @@ static void detail_draw_pipeline(void) {
 
       ImGui::EndTable();
 
-      ImGui::Dummy(ImVec2(0.0f, 5.0F));
-
       ImGui::TreePop();
     }
 
     pipeline_vertex_input_binding_index++;
   }
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text("Descriptor Bindings");
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
   uint64_t pipeline_descriptor_binding_index = 0;
   uint64_t pipeline_descriptor_binding_count = vector_count(&g_catalog_pipeline_descriptor_bindings);
@@ -224,9 +239,7 @@ static void detail_draw_pipeline(void) {
 
     pipeline_descriptor_binding_t *pipeline_descriptor_binding = (pipeline_descriptor_binding_t *)vector_at(&g_catalog_pipeline_descriptor_bindings, pipeline_descriptor_binding_index);
 
-    if (ImGui::TreeNodeEx(pipeline_descriptor_binding->binding_name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
-
-      ImGui::Dummy(ImVec2(0.0f, 5.0F));
+    if (ImGui::TreeNodeEx(pipeline_descriptor_binding->binding_name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
       ImGui::BeginTable("##DescriptorBindingTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
 
@@ -267,34 +280,30 @@ static void detail_draw_pipeline(void) {
 
       ImGui::EndTable();
 
-      ImGui::Dummy(ImVec2(0.0f, 5.0F));
-
       ImGui::TreePop();
     }
 
     pipeline_descriptor_binding_index++;
   }
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 }
 static void detail_draw_model(void) {
   model_asset_t *model_asset = (model_asset_t *)vector_at(&g_catalog_model_assets, g_catalog_selected_model_asset);
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
   if (ImGui::Button("Save")) {
     database_store_model_asset(model_asset);
   }
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text(model_asset->name);
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::Text("Meshes");
-
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
   ImGui::BeginTable("##ModelMeshTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
 
@@ -325,11 +334,11 @@ static void detail_draw_model(void) {
 
   ImGui::EndTable();
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
-
   ImGui::Text("Primitives");
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   ImGui::BeginTable("##MeshPrimitiveTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
 
@@ -360,11 +369,11 @@ static void detail_draw_model(void) {
 
   ImGui::EndTable();
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
-
   ImGui::Text("Attributes");
 
-  ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
+  ImGui::Separator();
+  ImGui::Dummy(ImVec2(0.0F, 5.0F));
 
   uint64_t mesh_attribute_index = 0;
   uint64_t mesh_attribute_count = vector_count(&g_detail_mesh_attributes);
@@ -373,13 +382,28 @@ static void detail_draw_model(void) {
 
     mesh_attribute_t *mesh_attribute = (mesh_attribute_t *)vector_at(&g_detail_mesh_attributes, mesh_attribute_index);
 
-    if (ImGui::TreeNodeEx(mesh_attribute->name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+    if (ImGui::TreeNodeEx(mesh_attribute->name, ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
-      ImGui::Dummy(ImVec2(0.0f, 5.0F));
+      ImGui::BeginTable("##MeshAttributeTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp);
 
-      ImGui::Text("Dummy");
+      ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
+      ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
 
-      ImGui::Dummy(ImVec2(0.0f, 5.0F));
+      ImGui::TableHeadersRow();
+
+      ImGui::TableNextRow();
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("Type");
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Text("%d", mesh_attribute->type);
+
+      ImGui::TableNextRow();
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("Count");
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Text("%d", mesh_attribute->count);
+
+      ImGui::EndTable();
 
       ImGui::TreePop();
     }

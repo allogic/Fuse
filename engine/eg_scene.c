@@ -4,6 +4,7 @@
 #include <engine/system/eg_controller.h>
 #include <engine/system/eg_rigidbody.h>
 
+static void scene_create_root(scene_t *scene);
 static void scene_create_player(scene_t *scene);
 
 scene_t *scene_create(context_t *context) {
@@ -31,6 +32,7 @@ scene_t *scene_create(context_t *context) {
                                                         {.id = ecs_id(rigidbody_t)}},
                                                       .run = rigidbody_update});
 
+  scene_create_root(scene);
   scene_create_player(scene);
 
   return scene;
@@ -45,8 +47,11 @@ void scene_destroy(scene_t *scene) {
   heap_free(scene);
 }
 
+static void scene_create_root(scene_t *scene) {
+  scene->root = ecs_entity(scene->world, {.name = "root"});
+}
 static void scene_create_player(scene_t *scene) {
-  scene->player = ecs_entity(scene->world, {.name = "player"});
+  scene->player = ecs_entity(scene->world, {.parent = scene->root, .name = "player"});
 
   ecs_add(scene->world, scene->player, transform_t);
   ecs_add(scene->world, scene->player, rigidbody_t);

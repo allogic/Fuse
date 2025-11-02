@@ -580,7 +580,7 @@ vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_
 
   string_t sql = string_create();
 
-  string_appendf(&sql, "SELECT MA.ID, MA.NAME\n");
+  string_appendf(&sql, "SELECT MA.ID, MA.NAME, MA.TYPE, MA.COUNT\n");
   string_appendf(&sql, "FROM MESH_PRIMITIVES AS MP\n");
   string_appendf(&sql, "LEFT JOIN MESH_ATTRIBUTES AS MA\n");
   string_appendf(&sql, "ON MP.ID = MA.MESH_PRIMITIVE_ID\n");
@@ -595,6 +595,8 @@ vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_
 
     mesh_attribute_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
+    uint32_t type = sqlite3_column_int(stmt, 2);
+    uint64_t count = sqlite3_column_int64(stmt, 3);
 
     uint64_t name_size = name ? strlen(name) + 1 : 0;
 
@@ -602,6 +604,8 @@ vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_
     mesh_attribute.mesh_primitive_id = mesh_primitive_id;
     mesh_attribute.name = heap_alloc(name_size, 1, name);
     mesh_attribute.name_size = name_size;
+    mesh_attribute.type = type;
+    mesh_attribute.count = count;
 
     vector_push(&mesh_attributes, &mesh_attribute);
   }
@@ -611,6 +615,39 @@ vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_
   string_destroy(&sql);
 
   return mesh_attributes;
+}
+
+attribute_buffer_t database_load_attribute_buffer_by_id(mesh_attribute_id_t mesh_attribute_id) {
+  attribute_buffer_t attribute_buffer = {0};
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT AB.ID, AB.DATA\n");
+  string_appendf(&sql, "FROM MESH_ATTRIBUTES AS MA\n");
+  string_appendf(&sql, "LEFT JOIN ATTRIBUTE_BUFFER AS AB\n");
+  string_appendf(&sql, "ON MA.ID = AB.MESH_ATTRIBUTE_ID\n");
+  string_appendf(&sql, "WHERE MA.ID = %lld\n", mesh_attribute_id);
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+    attribute_data_id_t id = sqlite3_column_int64(stmt, 0);
+    uint8_t const *data = sqlite3_column_blob(stmt, 1);
+    uint64_t data_size = sqlite3_column_bytes(stmt, 1);
+
+    attribute_buffer.id = id;
+    attribute_buffer.mesh_attribute_id = mesh_attribute_id;
+    attribute_buffer.data = heap_alloc(data_size, 0, data);
+    attribute_buffer.data_size = data_size;
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return attribute_buffer;
 }
 
 void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset) {
@@ -892,8 +929,8 @@ void database_store_mesh_primitive(mesh_primitive_t *mesh_primitive) {
 void database_store_mesh_attribute(mesh_attribute_t *mesh_attribute) {
   string_t sql = string_create();
 
-  string_appendf(&sql, "INSERT INTO MESH_ATTRIBUTES (MESH_PRIMITIVE_ID, NAME, TYPE)\n");
-  string_appendf(&sql, "VALUES (?, ?, ?)\n");
+  string_appendf(&sql, "INSERT INTO MESH_ATTRIBUTES (MESH_PRIMITIVE_ID, NAME, TYPE, COUNT)\n");
+  string_appendf(&sql, "VALUES (?, ?, ?, ?)\n");
 
   sqlite3_stmt *stmt = 0;
 
@@ -902,6 +939,7 @@ void database_store_mesh_attribute(mesh_attribute_t *mesh_attribute) {
   sqlite3_bind_int64(stmt, 1, mesh_attribute->mesh_primitive_id);
   sqlite3_bind_text(stmt, 2, mesh_attribute->name, -1, SQLITE_STATIC);
   sqlite3_bind_int(stmt, 3, mesh_attribute->type);
+  sqlite3_bind_int64(stmt, 4, mesh_attribute->count);
 
   SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
@@ -911,6 +949,31 @@ void database_store_mesh_attribute(mesh_attribute_t *mesh_attribute) {
 
   if (mesh_attribute->id == 0) {
     mesh_attribute->id = database_get_sequence_index_by_name("MESH_ATTRIBUTES");
+  }
+}
+
+void database_store_attribute_buffer(attribute_buffer_t *attribute_buffer) {
+  string_t sql = string_create();
+
+  string_appendf(&sql, "INSERT INTO ATTRIBUTE_BUFFER (MESH_ATTRIBUTE_ID, DATA)\n");
+  string_appendf(&sql, "VALUES (?, ?)\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  sqlite3_bind_int64(stmt, 1, attribute_buffer->mesh_attribute_id);
+  sqlite3_bind_blob(stmt, 2, attribute_buffer->data, (int32_t)attribute_buffer->data_size, SQLITE_STATIC);
+  sqlite3_bind_int64(stmt, 3, attribute_buffer->data_size);
+
+  SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  if (attribute_buffer->id == 0) {
+    attribute_buffer->id = database_get_sequence_index_by_name("ATTRIBUTE_BUFFER");
   }
 }
 
@@ -1067,6 +1130,10 @@ void database_destroy_mesh_attributes(vector_t *mesh_attributes) {
   }
 
   vector_destroy(mesh_attributes);
+}
+
+void database_destroy_attribute_buffer(attribute_buffer_t *attribute_buffer) {
+  heap_free(attribute_buffer->data);
 }
 
 static int64_t database_get_sequence_index_by_name(char const *table_name) {

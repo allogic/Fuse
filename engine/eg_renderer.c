@@ -547,7 +547,7 @@ static void renderer_update_uniform_buffers(renderer_t *renderer) {
     renderer->time_infos[renderer->frame_index]->time = (float)renderer->context->time;
     renderer->time_infos[renderer->frame_index]->delta_time = (float)renderer->context->delta_time;
 
-    vector2_t resolution = vector2_xy((float)renderer->context->surface_width, (float)renderer->context->surface_height);
+    vector2_t resolution = vector2_xy((float)renderer->context->window_width, (float)renderer->context->window_height);
 
     renderer->screen_infos[renderer->frame_index]->resolution = resolution;
 
@@ -556,7 +556,7 @@ static void renderer_update_uniform_buffers(renderer_t *renderer) {
     vector3_t up = vector3_down();
 
     float fov = deg_to_rad(camera->fov);
-    float aspect_ratio = (float)renderer->context->surface_width / (float)renderer->context->surface_height;
+    float aspect_ratio = (float)renderer->context->window_width / (float)renderer->context->window_height;
     float near_z = camera->near_z;
     float far_z = camera->far_z;
 
@@ -598,8 +598,8 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
   render_pass_create_info.framebuffer = renderer->context->swapchain->frame_buffers[renderer->image_index];
   render_pass_create_info.renderArea.offset.x = 0;
   render_pass_create_info.renderArea.offset.y = 0;
-  render_pass_create_info.renderArea.extent.width = renderer->context->surface_width;
-  render_pass_create_info.renderArea.extent.height = renderer->context->surface_height;
+  render_pass_create_info.renderArea.extent.width = renderer->context->window_width;
+  render_pass_create_info.renderArea.extent.height = renderer->context->window_height;
   render_pass_create_info.pClearValues = clear_values;
   render_pass_create_info.clearValueCount = ARRAY_COUNT(clear_values);
 
@@ -608,8 +608,8 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
   VkViewport viewport = {0};
   viewport.x = 0.0F;
   viewport.y = 0.0F;
-  viewport.width = (float)renderer->context->surface_width;
-  viewport.height = (float)renderer->context->surface_height;
+  viewport.width = (float)renderer->context->window_width;
+  viewport.height = (float)renderer->context->window_height;
   viewport.minDepth = 0.0F;
   viewport.maxDepth = 1.0F;
 
@@ -618,8 +618,8 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
   VkRect2D scissor = {0};
   scissor.offset.x = 0;
   scissor.offset.y = 0;
-  scissor.extent.width = renderer->context->surface_width;
-  scissor.extent.height = renderer->context->surface_height;
+  scissor.extent.width = renderer->context->window_width;
+  scissor.extent.height = renderer->context->window_height;
 
   vkCmdSetScissor(renderer->graphic_command_buffers[renderer->frame_index], 0, 1, &scissor);
 

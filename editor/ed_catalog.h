@@ -20,7 +20,7 @@ extern vector_t g_catalog_model_meshes;
 
 void catalog_create();
 void catalog_refresh();
-void catalog_draw();
+void catalog_draw(context_t *context);
 void catalog_destroy();
 
 #endif // ED_CATALOG_H

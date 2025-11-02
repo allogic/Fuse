@@ -19,6 +19,8 @@
 #define FLECS_PIPELINE
 #include <flecs/flecs.h>
 
+#include <stb_json/stb_json.h>
+
 #include <library/lb_fwd.h>
 
 #include <library/container/lb_api.h>

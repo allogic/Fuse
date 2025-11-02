@@ -1,5 +1,6 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_catalog.h>
+#include <editor/ed_titlebar.h>
 
 static void catalog_select_swapchain(uint64_t selected_index);
 static void catalog_select_renderer(uint64_t selected_index);
@@ -45,10 +46,24 @@ void catalog_refresh() {
   g_catalog_pipeline_assets = database_load_pipeline_assets();
   g_catalog_model_assets = database_load_model_assets();
 }
-void catalog_draw() {
-  ImGui::Begin("Catalog");
+void catalog_draw(context_t *context) {
+  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
 
-  if (ImGui::TreeNodeEx("Swapchain", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+  ImGui::Begin("Catalog", &g_titlebar_catalog_open, window_flags);
+
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
+  ImGui::BeginChild("CatalogFirstChild");
+
+  ImVec2 second_window_size = ImGui::GetWindowSize();
+  ImVec2 second_cursor_position = ImVec2(5.0F, 5.0F);
+
+  second_window_size.x -= 10.0F;
+  second_window_size.y -= 30.0F;
+
+  ImGui::SetCursorPos(second_cursor_position);
+  ImGui::BeginChild("CatalogSecondChild", second_window_size);
+
+  if (ImGui::TreeNodeEx("Swapchain", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
     ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
@@ -85,7 +100,7 @@ void catalog_draw() {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Renderer", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+  if (ImGui::TreeNodeEx("Renderer", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
     ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
@@ -122,7 +137,7 @@ void catalog_draw() {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Pipeline", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+  if (ImGui::TreeNodeEx("Pipeline", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
     ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
@@ -159,7 +174,7 @@ void catalog_draw() {
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
+  if (ImGui::TreeNodeEx("Model", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
     ImGui::Dummy(ImVec2(0.0f, 5.0F));
 
@@ -195,6 +210,11 @@ void catalog_draw() {
 
     ImGui::TreePop();
   }
+
+  ImGui::EndChild();
+
+  ImGui::EndChild();
+  ImGui::PopStyleColor();
 
   ImGui::End();
 }

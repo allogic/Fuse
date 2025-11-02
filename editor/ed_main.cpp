@@ -1,7 +1,12 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
 #include <editor/ed_catalog.h>
+#include <editor/ed_hierarchy.h>
 #include <editor/ed_detail.h>
+#include <editor/ed_dockspace.h>
+#include <editor/ed_inspector.h>
+#include <editor/ed_titlebar.h>
+#include <editor/ed_statusbar.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -16,6 +21,22 @@ static VkDescriptorPoolSize const s_editor_descriptor_pool_sizes[] = {
 };
 
 static VkDescriptorPool s_editor_descriptor_pool = 0;
+
+ImFont *g_commit_mono_h1 = 0;
+ImFont *g_commit_mono_h2 = 0;
+ImFont *g_commit_mono_h3 = 0;
+ImFont *g_commit_mono_h4 = 0;
+ImFont *g_commit_mono_h5 = 0;
+ImFont *g_commit_mono_h6 = 0;
+ImFont *g_commit_mono = 0;
+
+ImFont *g_material_symbols_h1 = 0;
+ImFont *g_material_symbols_h2 = 0;
+ImFont *g_material_symbols_h3 = 0;
+ImFont *g_material_symbols_h4 = 0;
+ImFont *g_material_symbols_h5 = 0;
+ImFont *g_material_symbols_h6 = 0;
+ImFont *g_material_symbols = 0;
 
 int32_t main(int32_t argc, char **argv) {
   g_context_imgui_create_proc = imgui_create;
@@ -69,67 +90,134 @@ static void imgui_create(context_t *context) {
   ImGui::CreateContext();
 
   ImGuiIO &io = ImGui::GetIO();
+  ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+  ImGuiStyle &style = ImGui::GetStyle();
+
+  static ImWchar icon_glyph_ranges[] = {
+    (wchar_t)ICON_MIN_MS,
+    (wchar_t)ICON_MAX_MS,
+    0,
+  };
+
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   io.ConfigWindowsMoveFromTitleBarOnly = 1;
 
-  ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
+  // TODO: integrate fonts into database..
+
+  g_commit_mono = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 14.0F);
+  g_commit_mono_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 16.0F);
+  g_commit_mono_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 18.0F);
+  g_commit_mono_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 20.0F);
+  g_commit_mono_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 22.0F);
+  g_commit_mono_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 24.0F);
+  g_commit_mono_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 26.0F);
+
+  g_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 14.0F, 0, icon_glyph_ranges);
+  g_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 18.0F, 0, icon_glyph_ranges);
+  g_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 22.0F, 0, icon_glyph_ranges);
+  g_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 26.0F, 0, icon_glyph_ranges);
+  g_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 30.0F, 0, icon_glyph_ranges);
+  g_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 34.0F, 0, icon_glyph_ranges);
+  g_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 38.0F, 0, icon_glyph_ranges);
+
   platform_io.Platform_CreateVkSurface = ImGui_CreateSurfaceDummy;
 
-  ImGuiStyle &style = ImGui::GetStyle();
-  style.WindowMinSize = ImVec2(160, 20);
-  style.FramePadding = ImVec2(4, 2);
-  style.ItemSpacing = ImVec2(6, 2);
-  style.ItemInnerSpacing = ImVec2(6, 4);
-  style.Alpha = 0.95f;
-  style.WindowRounding = 0.0f;
-  style.FrameRounding = 0.0f;
-  style.IndentSpacing = 6.0f;
-  style.ItemInnerSpacing = ImVec2(2, 4);
-  style.ColumnsMinSpacing = 50.0f;
-  style.GrabMinSize = 14.0f;
-  style.GrabRounding = 0.0f;
-  style.ScrollbarSize = 12.0f;
-  style.ScrollbarRounding = 0.0f;
+  style.Alpha = 1.0F;
+  style.DisabledAlpha = 1.0F;
+  style.WindowPadding = ImVec2{0.0F, 0.0F};
+  style.WindowRounding = 0.0F;
+  style.WindowBorderSize = 0.0F;
+  style.WindowMinSize = ImVec2{32.0F, 32.0F};
+  style.WindowTitleAlign = ImVec2{0.0F, 0.5F};
+  style.WindowMenuButtonPosition = ImGuiDir_None;
+  style.ChildRounding = 5.0F;
+  style.ChildBorderSize = 0.0F;
+  style.PopupRounding = 0.0F;
+  // style.PopupBorderSize = 1.0F;
+  // style.FramePadding = ImVec2{7.5F, 7.5F};
+  style.FrameRounding = 0.0F;
+  // style.FrameBorderSize = 1.0F;
+  style.ItemSpacing = ImVec2{8.0F, 4.0F};
+  // style.ItemInnerSpacing = ImVec2{4.0F, 4.0F};
+  // style.CellPadding = ImVec2{4.0F, 2.0F};
+  // style.IndentSpacing = 21.0F;
+  // style.ColumnsMinSpacing = 6.0F;
+  style.ScrollbarSize = 15.0F;
+  style.ScrollbarRounding = 5.0F;
+  // style.GrabMinSize = 25.0F;
+  style.GrabRounding = 0.0F;
+  style.TabRounding = 5.0F;
+  style.TabBorderSize = 2.0F;
+  // style.TabMinWidthBase = 200.0F;
+  // style.TabMinWidthShrink = 200.0F;
+  style.TabCloseButtonMinWidthSelected = -1.0F;
+  style.TabCloseButtonMinWidthUnselected = -1.0F;
+  style.TabBarBorderSize = 0.0F;
+  style.TabBarOverlineSize = 0.0F;
 
-  style.Colors[ImGuiCol_Text] = ImVec4(0.86f, 0.93f, 0.89f, 0.78f);
-  style.Colors[ImGuiCol_TextDisabled] = ImVec4(0.86f, 0.93f, 0.89f, 0.28f);
-  style.Colors[ImGuiCol_WindowBg] = ImVec4(0.13f, 0.14f, 0.17f, 1.00f);
-  style.Colors[ImGuiCol_Border] = ImVec4(0.31f, 0.31f, 1.00f, 0.00f);
-  style.Colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-  style.Colors[ImGuiCol_FrameBg] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
-  style.Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
-  style.Colors[ImGuiCol_FrameBgActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_TitleBg] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
-  style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.20f, 0.22f, 0.27f, 0.75f);
-  style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.20f, 0.22f, 0.27f, 0.47f);
-  style.Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
-  style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.09f, 0.15f, 0.16f, 1.00f);
-  style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
-  style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_CheckMark] = ImVec4(0.71f, 0.22f, 0.27f, 1.00f);
-  style.Colors[ImGuiCol_SliderGrab] = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
-  style.Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_Button] = ImVec4(0.47f, 0.77f, 0.83f, 0.14f);
-  style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.92f, 0.18f, 0.29f, 0.86f);
-  style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_Header] = ImVec4(0.92f, 0.18f, 0.29f, 0.76f);
-  style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.92f, 0.18f, 0.29f, 0.86f);
-  style.Colors[ImGuiCol_HeaderActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_Separator] = ImVec4(0.14f, 0.16f, 0.19f, 1.00f);
-  style.Colors[ImGuiCol_SeparatorHovered] = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
-  style.Colors[ImGuiCol_SeparatorActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_ResizeGrip] = ImVec4(0.47f, 0.77f, 0.83f, 0.04f);
-  style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.92f, 0.18f, 0.29f, 0.78f);
-  style.Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_PlotLines] = ImVec4(0.86f, 0.93f, 0.89f, 0.63f);
-  style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_PlotHistogram] = ImVec4(0.86f, 0.93f, 0.89f, 0.63f);
-  style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.92f, 0.18f, 0.29f, 1.00f);
-  style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.92f, 0.18f, 0.29f, 0.43f);
-  style.Colors[ImGuiCol_PopupBg] = ImVec4(0.20f, 0.22f, 0.27f, 0.9f);
+  style.DockingSeparatorSize = 5.0F;
+
+  // style.ColorButtonPosition = ImGuiDir_Right;
+  // style.ButtonTextAlign = ImVec2{0.5F, 0.5F};
+  // style.SelectableTextAlign = ImVec2{0.0F, 0.0F};
+
+  // style.Colors[ImGuiCol_Text] = ImVec4{1.0F, 1.0F, 1.0F, 1.0F};
+  // style.Colors[ImGuiCol_TextDisabled] = ImVec4{0.4980392158031464F, 0.4980392158031464F, 0.4980392158031464F, 1.0F};
+  // style.Colors[ImGuiCol_WindowBg] = ImVec4{0.1764705926179886F, 0.1764705926179886F, 0.1764705926179886F, 1.0F};
+  // style.Colors[ImGuiCol_ChildBg] = ImVec4{0.2784313857555389F, 0.2784313857555389F, 0.2784313857555389F, 0.0F};
+  // style.Colors[ImGuiCol_PopupBg] = ImVec4{0.3098039329051971F, 0.3098039329051971F, 0.3098039329051971F, 1.0F};
+  // style.Colors[ImGuiCol_Border] = ImVec4{0.2627451121807098F, 0.2627451121807098F, 0.2627451121807098F, 1.0F};
+  // style.Colors[ImGuiCol_BorderShadow] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
+  // style.Colors[ImGuiCol_FrameBg] = ImVec4{0.1568627506494522F, 0.1568627506494522F, 0.1568627506494522F, 1.0F};
+  // style.Colors[ImGuiCol_FrameBgHovered] = ImVec4{0.2000000029802322F, 0.2000000029802322F, 0.2000000029802322F, 1.0F};
+  // style.Colors[ImGuiCol_FrameBgActive] = ImVec4{0.2784313857555389F, 0.2784313857555389F, 0.2784313857555389F, 1.0F};
+  // style.Colors[ImGuiCol_TitleBg] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
+  // style.Colors[ImGuiCol_TitleBgActive] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
+  // style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4{0.1450980454683304F, 0.1450980454683304F, 0.1450980454683304F, 1.0F};
+  // style.Colors[ImGuiCol_MenuBarBg] = ImVec4{0.1921568661928177F, 0.1921568661928177F, 0.1921568661928177F, 1.0F};
+  // style.Colors[ImGuiCol_ScrollbarBg] = ImVec4{0.1568627506494522F, 0.1568627506494522F, 0.1568627506494522F, 1.0F};
+  // style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4{0.2745098173618317F, 0.2745098173618317F, 0.2745098173618317F, 1.0F};
+  // style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4{0.2980392277240753F, 0.2980392277240753F, 0.2980392277240753F, 1.0F};
+  // style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_CheckMark] = ImVec4{1.0F, 1.0F, 1.0F, 1.0F};
+  // style.Colors[ImGuiCol_SliderGrab] = ImVec4{0.3882353007793427F, 0.3882353007793427F, 0.3882353007793427F, 1.0F};
+  // style.Colors[ImGuiCol_SliderGrabActive] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_Button] = ImVec4{1.0F, 1.0F, 1.0F, 0.0F};
+  // style.Colors[ImGuiCol_ButtonHovered] = ImVec4{1.0F, 1.0F, 1.0F, 0.1560000032186508F};
+  // style.Colors[ImGuiCol_ButtonActive] = ImVec4{1.0F, 1.0F, 1.0F, 0.3910000026226044F};
+  // style.Colors[ImGuiCol_Header] = ImVec4{0.3098039329051971F, 0.3098039329051971F, 0.3098039329051971F, 1.0F};
+  // style.Colors[ImGuiCol_HeaderHovered] = ImVec4{0.4666666686534882F, 0.4666666686534882F, 0.4666666686534882F, 1.0F};
+  // style.Colors[ImGuiCol_HeaderActive] = ImVec4{0.4666666686534882F, 0.4666666686534882F, 0.4666666686534882F, 1.0F};
+  // style.Colors[ImGuiCol_Separator] = ImVec4{0.2627451121807098F, 0.2627451121807098F, 0.2627451121807098F, 1.0F};
+  // style.Colors[ImGuiCol_SeparatorHovered] = ImVec4{0.3882353007793427F, 0.3882353007793427F, 0.3882353007793427F, 1.0F};
+  // style.Colors[ImGuiCol_SeparatorActive] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_ResizeGrip] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
+  // style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
+  // style.Colors[ImGuiCol_ResizeGripActive] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
+  // style.Colors[ImGuiCol_Tab] = ImVec4{0.09411764889955521F, 0.09411764889955521F, 0.09411764889955521F, 1.0F};
+  // style.Colors[ImGuiCol_TabHovered] = ImVec4{0.3490196168422699F, 0.3490196168422699F, 0.3490196168422699F, 1.0F};
+  // style.Colors[ImGuiCol_TabActive] = ImVec4{0.1921568661928177F, 0.1921568661928177F, 0.1921568661928177F, 1.0F};
+  // style.Colors[ImGuiCol_TabUnfocused] = ImVec4{0.09411764889955521F, 0.09411764889955521F, 0.09411764889955521F, 1.0F};
+  // style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4{0.1921568661928177F, 0.1921568661928177F, 0.1921568661928177F, 1.0F};
+  // style.Colors[ImGuiCol_PlotLines] = ImVec4{0.4666666686534882F, 0.4666666686534882F, 0.4666666686534882F, 1.0F};
+  // style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_PlotHistogram] = ImVec4{0.5843137502670288F, 0.5843137502670288F, 0.5843137502670288F, 1.0F};
+  // style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_TableHeaderBg] = ImVec4{0.1882352977991104F, 0.1882352977991104F, 0.2000000029802322F, 1.0F};
+  // style.Colors[ImGuiCol_TableBorderStrong] = ImVec4{0.3098039329051971F, 0.3098039329051971F, 0.3490196168422699F, 1.0F};
+  // style.Colors[ImGuiCol_TableBorderLight] = ImVec4{0.2274509817361832F, 0.2274509817361832F, 0.2470588237047195F, 1.0F};
+  // style.Colors[ImGuiCol_TableRowBg] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
+  // style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4{1.0F, 1.0F, 1.0F, 0.05999999865889549F};
+  // style.Colors[ImGuiCol_TextSelectedBg] = ImVec4{1.0F, 1.0F, 1.0F, 0.1560000032186508F};
+  // style.Colors[ImGuiCol_DragDropTarget] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_NavHighlight] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
+  // style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4{0.0F, 0.0F, 0.0F, 0.5860000252723694F};
+  // style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4{0.0F, 0.0F, 0.0F, 0.5860000252723694F};
+  // style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
+  // style.Colors[ImGuiCol_DockingPreview] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
 
   ImGui_ImplWin32_Init(context->window_handle);
 
@@ -150,8 +238,13 @@ static void imgui_create(context_t *context) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
+  titlebar_create();
   catalog_create();
   detail_create();
+  hierarchy_create();
+  inspector_create();
+  dockspace_create();
+  statusbar_create();
 }
 static void imgui_draw(context_t *context) {
   ImGui_ImplVulkan_NewFrame();
@@ -160,62 +253,10 @@ static void imgui_draw(context_t *context) {
 
   ImGui::NewFrame();
 
-  static bool dockspace_open = true;
+  titlebar_draw(context);
+  dockspace_draw(context);
+  statusbar_draw(context);
 
-  ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-
-  window_flags |= ImGuiWindowFlags_NoTitleBar;
-  window_flags |= ImGuiWindowFlags_NoCollapse;
-  window_flags |= ImGuiWindowFlags_NoResize;
-  window_flags |= ImGuiWindowFlags_NoMove;
-  window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
-  window_flags |= ImGuiWindowFlags_NoNavFocus;
-
-  ImGuiViewport *viewport = ImGui::GetMainViewport();
-
-  ImGui::SetNextWindowPos(viewport->WorkPos);
-  ImGui::SetNextWindowSize(viewport->WorkSize);
-  ImGui::SetNextWindowViewport(viewport->ID);
-
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0F);
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0F);
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
-
-  ImGui::Begin("Root", &dockspace_open, window_flags);
-
-  ImGui::PopStyleVar();
-  ImGui::PopStyleVar();
-  ImGui::PopStyleVar();
-
-  ImGuiID dockspace_id = ImGui::GetID("Root");
-
-  ImGui::DockSpace(dockspace_id, ImVec2(0.0F, 0.0F), ImGuiDockNodeFlags_PassthruCentralNode);
-
-  if (ImGui::BeginMenuBar()) {
-
-    if (ImGui::BeginMenu("File")) {
-
-      if (ImGui::BeginMenu("Import")) {
-
-        if (ImGui::MenuItem("Default Assets")) {
-          importer_import_default_assets();
-
-          catalog_refresh();
-        }
-
-        ImGui::EndMenu();
-      }
-
-      ImGui::EndMenu();
-    }
-
-    ImGui::EndMenuBar();
-  }
-
-  catalog_draw();
-  detail_draw();
-
-  ImGui::End();
   ImGui::Render();
 
   ImDrawData *draw_data = ImGui::GetDrawData();
@@ -223,8 +264,13 @@ static void imgui_draw(context_t *context) {
   ImGui_ImplVulkan_RenderDrawData(draw_data, context->renderer->graphic_command_buffers[context->renderer->frame_index]);
 }
 static void imgui_destroy(context_t *context) {
+  titlebar_destroy();
   catalog_destroy();
   detail_destroy();
+  hierarchy_destroy();
+  inspector_destroy();
+  dockspace_destroy();
+  statusbar_destroy();
 
   ImGui_ImplVulkan_Shutdown();
 

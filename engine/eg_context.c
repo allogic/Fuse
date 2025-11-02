@@ -59,8 +59,11 @@ imgui_message_proc_t g_context_imgui_message_proc = 0;
 context_t *context_create(int32_t width, int32_t height) {
   context_t *context = (context_t *)heap_alloc(sizeof(context_t), 1, 0);
 
-  context->surface_width = width;
-  context->surface_height = height;
+  context->window_titlebar_height = 60;
+  context->window_statusbar_height = 30;
+  context->window_border_width = 1;
+  context->window_width = width;
+  context->window_height = height;
   context->graphic_queue_index = -1;
   context->present_queue_index = -1;
 
@@ -253,27 +256,32 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
 
   switch (message) {
     case WM_CREATE: {
+
       ShowWindow(window_handle, SW_SHOW);
 
       break;
     }
     case WM_CLOSE: {
+
       context->window_should_close = 1;
 
       break;
     }
     case WM_NCCREATE: {
+
       SetWindowLongPtr(window_handle, GWLP_USERDATA, (LONG_PTR)((CREATESTRUCT *)l_param)->lpCreateParams);
 
       return TRUE;
     }
     case WM_NCDESTROY: {
+
       SetWindowLongPtr(window_handle, GWLP_USERDATA, 0);
 
       break;
     }
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN: {
+
       UINT scan_code = MapVirtualKeyA((UINT)w_param, MAPVK_VK_TO_VSC);
       UINT virtual_key = MapVirtualKeyExA(scan_code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
 
@@ -305,6 +313,7 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
     }
     case WM_KEYUP:
     case WM_SYSKEYUP: {
+
       UINT scan_code = MapVirtualKeyA((UINT)w_param, MAPVK_VK_TO_VSC);
       UINT virtual_key = MapVirtualKeyExA(scan_code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
 
@@ -335,45 +344,55 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       break;
     }
     case WM_LBUTTONDOWN: {
+
       context->event_mouse_key_states[MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
 
       break;
     }
     case WM_LBUTTONUP: {
+
       context->event_mouse_key_states[MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
 
       break;
     }
     case WM_MBUTTONDOWN: {
+
       context->event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
 
       break;
     }
     case WM_MBUTTONUP: {
+
       context->event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
 
       break;
     }
     case WM_RBUTTONDOWN: {
+
       context->event_mouse_key_states[MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
 
       break;
     }
     case WM_RBUTTONUP: {
+
       context->event_mouse_key_states[MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
 
       break;
     }
     case WM_LBUTTONDBLCLK: {
+
       break;
     }
     case WM_MBUTTONDBLCLK: {
+
       break;
     }
     case WM_RBUTTONDBLCLK: {
+
       break;
     }
     case WM_MOUSEMOVE: {
+
       INT mouse_x = LOWORD(l_param);
       INT mouse_y = HIWORD(l_param);
 
@@ -383,11 +402,83 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       break;
     }
     case WM_MOUSEWHEEL: {
+
       context->mouse_wheel_delta = GET_WHEEL_DELTA_WPARAM(w_param);
 
       break;
     }
+    case WM_NCCALCSIZE: {
+
+      INT border_size_x = GetSystemMetrics(SM_CXFRAME);
+      INT border_size_y = GetSystemMetrics(SM_CYFRAME);
+
+      NCCALCSIZE_PARAMS *calc_size_params = (NCCALCSIZE_PARAMS *)l_param;
+      RECT *requested_client_rect = calc_size_params->rgrc;
+
+      requested_client_rect->right -= border_size_x;
+      requested_client_rect->left += border_size_x;
+      requested_client_rect->bottom -= border_size_y;
+      requested_client_rect->top += 0;
+
+      return WVR_ALIGNLEFT | WVR_ALIGNTOP;
+    }
+    case WM_NCHITTEST: {
+
+      INT mouse_x = LOWORD(l_param);
+      INT mouse_y = HIWORD(l_param);
+      INT border_size_y = GetSystemMetrics(SM_CYFRAME);
+
+      POINT pt = {mouse_x, mouse_y};
+      ScreenToClient(window_handle, &pt);
+
+      RECT rect = {0};
+      GetClientRect(window_handle, &rect);
+
+      BOOL left = pt.x <= context->window_border_width;
+      BOOL right = pt.x >= (rect.right - context->window_border_width);
+      BOOL top = (pt.y <= context->window_border_width) || (pt.y < border_size_y);
+      BOOL bottom = pt.y >= (rect.bottom - context->window_border_width);
+
+      if (top && left) {
+        return HTTOPLEFT;
+      }
+
+      if (top && right) {
+        return HTTOPRIGHT;
+      }
+
+      if (bottom && left) {
+        return HTBOTTOMLEFT;
+      }
+
+      if (bottom && right) {
+        return HTBOTTOMRIGHT;
+      }
+
+      if (left) {
+        return HTLEFT;
+      }
+
+      if (right) {
+        return HTRIGHT;
+      }
+
+      if (top) {
+        return HTTOP;
+      }
+
+      if (bottom) {
+        return HTBOTTOM;
+      }
+
+      // if (pt.y < WINDOW_TOPBAR_HEIGHT) {
+      //   return HTCAPTION;
+      // }
+
+      return HTCLIENT;
+    }
     default: {
+
       return DefWindowProcA(window_handle, message, w_param, l_param);
     }
   }
@@ -424,10 +515,15 @@ static void context_create_window(context_t *context) {
 
   INT screen_width = GetSystemMetrics(SM_CXSCREEN);
   INT screen_height = GetSystemMetrics(SM_CYSCREEN);
-  INT window_position_x = (screen_width - context->surface_width) / 2;
-  INT window_position_y = (screen_height - context->surface_height) / 2;
+  INT window_position_x = (screen_width - context->window_width) / 2;
+  INT window_position_y = (screen_height - context->window_height) / 2;
 
-  context->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, window_position_x, window_position_y, context->surface_width, context->surface_height, 0, 0, context->module_handle, context);
+  DWORD style = 0;
+
+  style |= WS_POPUP;
+  style |= WS_THICKFRAME;
+
+  context->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, style, window_position_x, window_position_y, context->window_width, context->window_height, 0, 0, context->module_handle, context);
 }
 static void context_create_instance(context_t *context) {
   VkApplicationInfo app_info = {0};
@@ -644,8 +740,8 @@ static void context_check_physical_device_extensions(context_t *context) {
 static void context_resize_surface(context_t *context) {
   VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->physical_device, context->surface, &context->surface_capabilities));
 
-  context->surface_width = context->surface_capabilities.currentExtent.width;
-  context->surface_height = context->surface_capabilities.currentExtent.height;
+  context->window_width = context->surface_capabilities.currentExtent.width;
+  context->window_height = context->surface_capabilities.currentExtent.height;
 }
 
 static void context_find_physical_device(context_t *context) {

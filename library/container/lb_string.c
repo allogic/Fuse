@@ -16,6 +16,28 @@ string_t string_create(void) {
 
   return string;
 }
+string_t string_format(char const *format, ...) {
+  string_t string = string_create();
+
+  va_list args;
+
+  va_start(args, format);
+  uint64_t value_length = (uint64_t)vsnprintf(0, 0, format, args);
+  va_end(args);
+
+  while ((string.buffer_size + value_length) >= string.buffer_capacity) {
+    string_expand(&string);
+  }
+
+  va_start(args, format);
+  vsnprintf(string.buffer + string.buffer_size, value_length + 1, format, args);
+  va_end(args);
+
+  string.buffer_size += value_length;
+  string.buffer[string.buffer_size] = 0;
+
+  return string;
+}
 string_t string_create_from(char const *value) {
   string_t string = string_create();
 
@@ -51,6 +73,7 @@ string_t string_create_from_file(char const *input_file) {
 
   return string;
 }
+
 void string_to_file(string_t *string, char const *output_file) {
   filesys_save_text(string->buffer, string->buffer_size, output_file);
 }

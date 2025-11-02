@@ -132,13 +132,17 @@ typedef LRESULT (*imgui_message_proc_t)(HWND window_handle, UINT message, WPARAM
 typedef struct context_t {
   HMODULE module_handle;
   HWND window_handle;
+  MSG window_message;
   double time;
   double delta_time;
   int32_t mouse_position_x;
   int32_t mouse_position_y;
   int32_t mouse_wheel_delta;
-  int32_t surface_width;
-  int32_t surface_height;
+  int32_t window_width;
+  int32_t window_height;
+  int32_t window_titlebar_height;
+  int32_t window_statusbar_height;
+  int32_t window_border_width;
   int32_t graphic_queue_index;
   int32_t present_queue_index;
   uint8_t window_should_close;
@@ -157,7 +161,6 @@ typedef struct context_t {
   VkCommandPool command_pool;
   key_state_t event_keyboard_key_states[0xFF];
   key_state_t event_mouse_key_states[0x3];
-  MSG window_message;
   LARGE_INTEGER timer_freq;
   LARGE_INTEGER timer_begin;
   LARGE_INTEGER timer_end;
@@ -224,6 +227,7 @@ typedef struct terrain_vertex_t {
 typedef struct scene_t {
   context_t *context;
   ecs_world_t *world;
+  ecs_entity_t root;
   ecs_entity_t player;
   ecs_entity_t controller_system;
   ecs_entity_t rigidbody_system;

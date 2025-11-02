@@ -458,16 +458,16 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   VkViewport viewport = {0};
   viewport.x = 0.0F;
   viewport.y = 0.0F;
-  viewport.width = (float)pipeline->context->surface_width;
-  viewport.height = (float)pipeline->context->surface_height;
+  viewport.width = (float)pipeline->context->window_width;
+  viewport.height = (float)pipeline->context->window_height;
   viewport.minDepth = 0.0F;
   viewport.maxDepth = 1.0F;
 
   VkRect2D scissor = {0};
   scissor.offset.x = 0;
   scissor.offset.y = 0;
-  scissor.extent.width = pipeline->context->surface_width;
-  scissor.extent.height = pipeline->context->surface_height;
+  scissor.extent.width = pipeline->context->window_width;
+  scissor.extent.height = pipeline->context->window_height;
 
   VkPipelineViewportStateCreateInfo viewport_state_create_info = {0};
   viewport_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

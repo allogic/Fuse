@@ -46,13 +46,12 @@ matrix4_t transform_matrix(transform_t *transform) {
 }
 
 void transform_compute_world_position(ecs_world_t *world, ecs_entity_t entity) {
-  transform_t *transform = ecs_get_mut(world, entity, transform_t);
-
   ecs_entity_t parent = ecs_get_parent(world, entity);
 
-  if (parent) {
-    transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
+  transform_t *transform = ecs_get_mut(world, entity, transform_t);
+  transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
 
+  if (parent_transform) {
     transform->world_position = vector3_add(parent_transform->world_position, vector3_rotate(transform->local_position, parent_transform->world_rotation));
   } else {
     transform->world_position = transform->local_position;
@@ -76,13 +75,12 @@ void transform_compute_world_position(ecs_world_t *world, ecs_entity_t entity) {
   }
 }
 void transform_compute_world_rotation(ecs_world_t *world, ecs_entity_t entity) {
-  transform_t *transform = ecs_get_mut(world, entity, transform_t);
-
   ecs_entity_t parent = ecs_get_parent(world, entity);
 
-  if (parent) {
-    transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
+  transform_t *transform = ecs_get_mut(world, entity, transform_t);
+  transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
 
+  if (parent_transform) {
     transform->world_rotation = quaternion_mul(transform->local_rotation, parent_transform->world_rotation);
   } else {
     transform->world_rotation = transform->local_rotation;
@@ -106,13 +104,12 @@ void transform_compute_world_rotation(ecs_world_t *world, ecs_entity_t entity) {
   }
 }
 void transform_compute_world_scale(ecs_world_t *world, ecs_entity_t entity) {
-  transform_t *transform = ecs_get_mut(world, entity, transform_t);
-
   ecs_entity_t parent = ecs_get_parent(world, entity);
 
-  if (parent) {
-    transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
+  transform_t *transform = ecs_get_mut(world, entity, transform_t);
+  transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
 
+  if (parent_transform) {
     transform->world_scale = vector3_mul(transform->local_scale, parent_transform->world_scale);
   } else {
     transform->world_scale = transform->local_scale;

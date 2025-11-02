@@ -34,8 +34,8 @@ void swapchain_create(context_t *context) {
   swapchain_create_info.minImageCount = (uint32_t)swapchain->image_count;
   swapchain_create_info.imageFormat = swapchain->context->prefered_surface_format.format;
   swapchain_create_info.imageColorSpace = swapchain->context->prefered_surface_format.colorSpace;
-  swapchain_create_info.imageExtent.width = swapchain->context->surface_width;
-  swapchain_create_info.imageExtent.height = swapchain->context->surface_height;
+  swapchain_create_info.imageExtent.width = swapchain->context->window_width;
+  swapchain_create_info.imageExtent.height = swapchain->context->window_height;
   swapchain_create_info.imageArrayLayers = 1;
   swapchain_create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   swapchain_create_info.preTransform = swapchain->context->surface_capabilities.currentTransform;
@@ -174,8 +174,8 @@ static void swapchain_create_depth_images(swapchain_t *swapchain) {
     VkImageCreateInfo image_create_info = {0};
     image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image_create_info.imageType = VK_IMAGE_TYPE_2D;
-    image_create_info.extent.width = swapchain->context->surface_width;
-    image_create_info.extent.height = swapchain->context->surface_height;
+    image_create_info.extent.width = swapchain->context->window_width;
+    image_create_info.extent.height = swapchain->context->window_height;
     image_create_info.extent.depth = 1;
     image_create_info.mipLevels = 1;
     image_create_info.arrayLayers = 1;
@@ -233,8 +233,8 @@ static void swapchain_create_frame_buffer(swapchain_t *swapchain) {
     frame_buffer_create_info.renderPass = swapchain->render_pass;
     frame_buffer_create_info.pAttachments = image_attachments;
     frame_buffer_create_info.attachmentCount = ARRAY_COUNT(image_attachments);
-    frame_buffer_create_info.width = swapchain->context->surface_width;
-    frame_buffer_create_info.height = swapchain->context->surface_height;
+    frame_buffer_create_info.width = swapchain->context->window_width;
+    frame_buffer_create_info.height = swapchain->context->window_height;
     frame_buffer_create_info.layers = 1;
 
     VULKAN_CHECK(vkCreateFramebuffer(swapchain->context->device, &frame_buffer_create_info, 0, &swapchain->frame_buffers[image_index]));

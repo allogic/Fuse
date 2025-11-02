@@ -9,6 +9,9 @@
 #define CGLTF_IMPLEMENTATION
 #include <cgltf/cgltf.h>
 
+#define STB_JSON_IMPLEMENTATION
+#include <stb_json/stb_json.h>
+
 static void importer_process_pipeline_vertex_input_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module);
 static void importer_process_pipeline_descriptor_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module, VkShaderStageFlags stage_flag);
 
@@ -16,8 +19,8 @@ void importer_import_default_assets(void) {
   graphic_pipeline_import_settings_t debug_line_import_settings = {0};
 
   debug_line_import_settings.pipeline_name = "debug_line";
-  debug_line_import_settings.vertex_shader_file_path = SHADER_ROOT "\\debug\\line.vert.spv ";
-  debug_line_import_settings.fragment_shader_file_path = SHADER_ROOT "\\debug\\line.frag.spv ";
+  debug_line_import_settings.vertex_shader_file_path = ASSET_ROOT_DIR "\\shader\\debug_line_vert.spv ";
+  debug_line_import_settings.fragment_shader_file_path = ASSET_ROOT_DIR "\\shader\\debug_line_frag.spv ";
   debug_line_import_settings.auto_create_pipeline = 1;
   debug_line_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
   debug_line_import_settings.auto_link_descriptor_bindings = 1;
@@ -28,8 +31,8 @@ void importer_import_default_assets(void) {
   graphic_pipeline_import_settings_t principled_brdf_import_settings = {0};
 
   principled_brdf_import_settings.pipeline_name = "principled_brdf";
-  principled_brdf_import_settings.vertex_shader_file_path = SHADER_ROOT "\\principled\\brdf.vert.spv ";
-  principled_brdf_import_settings.fragment_shader_file_path = SHADER_ROOT "\\principled\\brdf.frag.spv ";
+  principled_brdf_import_settings.vertex_shader_file_path = ASSET_ROOT_DIR "\\shader\\principled_brdf_vert.spv ";
+  principled_brdf_import_settings.fragment_shader_file_path = ASSET_ROOT_DIR "\\shader\\principled_brdf_frag.spv ";
   principled_brdf_import_settings.auto_create_pipeline = 1;
   principled_brdf_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
   principled_brdf_import_settings.auto_link_descriptor_bindings = 1;
@@ -40,8 +43,8 @@ void importer_import_default_assets(void) {
   graphic_pipeline_import_settings_t terrain_import_settings = {0};
 
   terrain_import_settings.pipeline_name = "terrain";
-  terrain_import_settings.vertex_shader_file_path = SHADER_ROOT "\\environment\\terrain.vert.spv ";
-  terrain_import_settings.fragment_shader_file_path = SHADER_ROOT "\\environment\\terrain.frag.spv ";
+  terrain_import_settings.vertex_shader_file_path = ASSET_ROOT_DIR "\\shader\\environment_terrain_vert.spv ";
+  terrain_import_settings.fragment_shader_file_path = ASSET_ROOT_DIR "\\shader\\environment_terrain_frag.spv ";
   terrain_import_settings.auto_create_pipeline = 0;
   terrain_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
   terrain_import_settings.auto_link_descriptor_bindings = 1;
@@ -52,7 +55,7 @@ void importer_import_default_assets(void) {
   model_import_settings_t kalista_import_settings = {0};
 
   kalista_import_settings.model_name = "kalista";
-  kalista_import_settings.model_file_path = MODEL_ROOT "\\kalista.glb";
+  kalista_import_settings.model_file_path = ASSET_ROOT_DIR "\\model\\kalista.glb";
 
   importer_import_model(&kalista_import_settings);
 }
@@ -173,16 +176,22 @@ void importer_import_model(model_import_settings_t *import_settings) {
 
   while (mesh_index < mesh_count) {
 
+    cgltf_node const *gltf_node = &gltf_data->nodes[mesh_index];
     cgltf_mesh const *gltf_mesh = &gltf_data->meshes[mesh_index];
 
-    string_t mesh_name = string_create();
-
-    string_appendf(&mesh_name, "unnamed mesh - %llu", mesh_index);
+    string_t mesh_name = string_format("unnamed mesh - %llu", mesh_index);
 
     model_mesh_t model_mesh = {0};
 
     model_mesh.model_asset_id = model_asset.id;
-    model_mesh.name = gltf_mesh->name ? gltf_mesh->name : string_buffer(&mesh_name);
+
+    if (gltf_mesh->name) {
+      model_mesh.name = gltf_mesh->name;
+    } else if (gltf_node->name) {
+      model_mesh.name = gltf_node->name;
+    } else {
+      model_mesh.name = string_buffer(&mesh_name);
+    }
 
     database_store_model_mesh(&model_mesh);
 
@@ -193,14 +202,27 @@ void importer_import_model(model_import_settings_t *import_settings) {
 
       cgltf_primitive const *gltf_prim = &gltf_mesh->primitives[prim_index];
 
-      string_t prim_name = string_create();
-
-      string_appendf(&prim_name, "unnamed primitive - %llu", prim_index);
+      string_t prim_name = string_format("unnamed primitive - %llu", prim_index);
 
       mesh_primitive_t mesh_primitive = {0};
 
       mesh_primitive.model_mesh_id = model_mesh.id;
-      mesh_primitive.name = string_buffer(&prim_name);
+
+      if (gltf_prim->extras.data) {
+        stbj_cursor prim_extras = stbj_load_buffer(gltf_prim->extras.data, (uint32_t)(gltf_prim->extras.end_offset - gltf_prim->extras.start_offset));
+
+        static char name_buffer[0xFF];
+
+        stbj_read_string_name(&prim_extras, "name", name_buffer, sizeof(name_buffer) - 1, "not found");
+
+        if (stbj_any_error(&prim_extras)) {
+          mesh_primitive.name = string_buffer(&prim_name);
+        } else {
+          mesh_primitive.name = name_buffer;
+        }
+      } else {
+        mesh_primitive.name = string_buffer(&prim_name);
+      }
 
       database_store_mesh_primitive(&mesh_primitive);
 
@@ -211,49 +233,47 @@ void importer_import_model(model_import_settings_t *import_settings) {
 
         cgltf_attribute const *gltf_attrib = &gltf_prim->attributes[attrib_index];
 
-        string_t attrib_name = string_create();
-
-        string_appendf(&attrib_name, "unnamed attribute - %llu", attrib_index);
+        string_t attrib_name = string_format("unnamed attribute - %llu", attrib_index);
 
         cgltf_accessor const *gltf_accessor = gltf_attrib->data;
 
-        uint8_t *value_bytes = 0;
+        uint8_t *value_data = 0;
         uint64_t value_size = 0;
 
         switch (gltf_accessor->type) {
           case cgltf_type_scalar: {
             value_size = gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
           case cgltf_type_vec2: {
             value_size = 2 * gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
           case cgltf_type_vec3: {
             value_size = 3 * gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
           case cgltf_type_vec4: {
             value_size = 4 * gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
           case cgltf_type_mat2: {
             value_size = 4 * gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
           case cgltf_type_mat3: {
             value_size = 9 * gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
           case cgltf_type_mat4: {
             value_size = 16 * gltf_accessor->count;
-            value_bytes = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
+            value_data = (uint8_t *)heap_alloc(sizeof(float) * value_size, 0, 0);
             break;
           }
         }
@@ -267,31 +287,31 @@ void importer_import_model(model_import_settings_t *import_settings) {
 
           switch (gltf_accessor->type) {
             case cgltf_type_scalar: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index], 1);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index], 1);
               break;
             }
             case cgltf_type_vec2: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index * 2], 2);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index * 2], 2);
               break;
             }
             case cgltf_type_vec3: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index * 3], 3);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index * 3], 3);
               break;
             }
             case cgltf_type_vec4: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index * 4], 4);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index * 4], 4);
               break;
             }
             case cgltf_type_mat2: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index * 4], 4);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index * 4], 4);
               break;
             }
             case cgltf_type_mat3: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index * 9], 9);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index * 9], 9);
               break;
             }
             case cgltf_type_mat4: {
-              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_bytes[value_index * 16], 16);
+              cgltf_accessor_read_float(gltf_accessor, value_index, (float *)&value_data[value_index * 16], 16);
               break;
             }
           }
@@ -304,10 +324,19 @@ void importer_import_model(model_import_settings_t *import_settings) {
         mesh_attribute.mesh_primitive_id = mesh_primitive.id;
         mesh_attribute.name = gltf_attrib->name ? gltf_attrib->name : string_buffer(&attrib_name);
         mesh_attribute.type = gltf_accessor->type;
+        mesh_attribute.count = gltf_accessor->count;
 
         database_store_mesh_attribute(&mesh_attribute);
 
-        heap_free(value_bytes);
+        attribute_buffer_t attribute_buffer = {0};
+
+        attribute_buffer.mesh_attribute_id = mesh_attribute.id;
+        attribute_buffer.data = value_data;
+        attribute_buffer.data_size = value_size;
+
+        database_store_attribute_buffer(&attribute_buffer);
+
+        heap_free(value_data);
 
         string_destroy(&attrib_name);
 
