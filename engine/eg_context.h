@@ -5,12 +5,19 @@
 extern "C" {
 #endif // __cplusplus
 
+// TODO: simply add sanity checks instead of using the proc pointer in if clauses..
+
 extern imgui_create_proc_t g_context_imgui_create_proc;
+extern imgui_pre_draw_proc_t g_context_imgui_pre_draw_proc;
 extern imgui_draw_proc_t g_context_imgui_draw_proc;
+extern imgui_post_draw_proc_t g_context_imgui_post_draw_proc;
 extern imgui_destroy_proc_t g_context_imgui_destroy_proc;
+extern imgui_viewport_count_proc_t g_context_imgui_viewport_count_proc;
+extern imgui_viewport_width_proc_t g_context_imgui_viewport_width_proc;
+extern imgui_viewport_height_proc_t g_context_imgui_viewport_height_proc;
 extern imgui_message_proc_t g_context_imgui_message_proc;
 
-context_t *context_create(int32_t width, int32_t height);
+context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode);
 uint8_t context_is_running(context_t *context);
 void context_begin_frame(context_t *context);
 void context_end_frame(context_t *context);

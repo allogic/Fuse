@@ -1,26 +1,26 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_main.h>
+#include <editor/ed_viewport.h>
 
 static void titlebar_reset_drag_state(context_t *context);
 
 static void titlebar_draw_window_controls(context_t *context);
 static void titlebar_draw_scene_controls(context_t *context);
 
-bool g_titlebar_catalog_open = false;
-bool g_titlebar_hierarchy_open = false;
-bool g_titlebar_inspector_open = false;
-bool g_titlebar_viewport_open = false;
+bool g_titlebar_catalog_open = true;
+bool g_titlebar_hierarchy_open = true;
+bool g_titlebar_inspector_open = true;
+bool g_titlebar_detail_open = true;
 
-void titlebar_create() {
+void titlebar_create(context_t *context) {
 }
-void titlebar_refresh() {
+void titlebar_refresh(context_t *context) {
 }
 void titlebar_draw(context_t *context) {
   ImGui::SetNextWindowPos(ImVec2(0.0F, 0.0F));
   ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_titlebar_height));
 
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(30, 30, 30, 255));
   ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(30, 30, 30, 255));
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(70, 70, 70, 255));
   ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(90, 90, 90, 255));
@@ -40,7 +40,7 @@ void titlebar_draw(context_t *context) {
   ImGui::Begin("Titlebar", 0, titlebar_flags);
   ImGui::PopStyleVar(1);
 
-  ImGui::PushFont(g_material_symbols_h1);
+  ImGui::PushFont(g_editor_material_symbols_h1);
   ImGui::Text(ICON_MS_DEPLOYED_CODE);
   ImGui::PopFont();
 
@@ -58,8 +58,40 @@ void titlebar_draw(context_t *context) {
     g_titlebar_inspector_open = true;
   }
   ImGui::SameLine();
-  if (ImGui::Button("Viewport")) {
-    g_titlebar_viewport_open = true;
+  if (ImGui::Button("Detail")) {
+    g_titlebar_detail_open = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Viewport 1")) {
+    if (!g_editor_viewports[0]) {
+      g_editor_viewports[0] = viewport_create(context, 0, "Viewport 1");
+    }
+
+    g_editor_viewports[0]->is_open = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Viewport 2")) {
+    if (!g_editor_viewports[1]) {
+      g_editor_viewports[1] = viewport_create(context, 1, "Viewport 2");
+    }
+
+    g_editor_viewports[1]->is_open = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Viewport 3")) {
+    if (!g_editor_viewports[2]) {
+      g_editor_viewports[2] = viewport_create(context, 2, "Viewport 3");
+    }
+
+    g_editor_viewports[2]->is_open = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Viewport 4")) {
+    if (!g_editor_viewports[3]) {
+      g_editor_viewports[3] = viewport_create(context, 3, "Viewport 4");
+    }
+
+    g_editor_viewports[3]->is_open = true;
   }
   ImGui::SameLine();
   if (ImGui::Button("Import")) {
@@ -72,9 +104,9 @@ void titlebar_draw(context_t *context) {
   titlebar_reset_drag_state(context);
 
   ImGui::End();
-  ImGui::PopStyleColor(4);
+  ImGui::PopStyleColor(3);
 }
-void titlebar_destroy() {
+void titlebar_destroy(context_t *context) {
 }
 
 static void titlebar_reset_drag_state(context_t *context) {
@@ -85,7 +117,9 @@ static void titlebar_reset_drag_state(context_t *context) {
   if (ImGui::IsWindowHovered() &&
       !ImGui::IsAnyItemHovered() &&
       ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+
     ReleaseCapture();
+
     SendMessage(context->window_handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
   }
 
@@ -98,7 +132,7 @@ static void titlebar_draw_window_controls(context_t *context) {
   ImGui::SetCursorPos(ImVec2(window_size.x - 90.0F, 5.0F));
 
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0F);
-  ImGui::PushFont(g_material_symbols_h6);
+  ImGui::PushFont(g_editor_material_symbols_h6);
 
   if (ImGui::Button(ICON_MS_REMOVE)) {
   }
@@ -110,7 +144,7 @@ static void titlebar_draw_window_controls(context_t *context) {
   ImGui::SameLine();
 
   if (ImGui::Button(ICON_MS_CLOSE)) {
-    context->window_should_close = 1;
+    context->is_window_running = 0;
   }
 
   ImGui::PopFont();
@@ -122,7 +156,7 @@ static void titlebar_draw_scene_controls(context_t *context) {
   ImGui::SetCursorPos(ImVec2((window_size.x / 2.0F) - 40.0F, 30.0F));
 
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0F);
-  ImGui::PushFont(g_material_symbols_h5);
+  ImGui::PushFont(g_editor_material_symbols_h5);
 
   if (ImGui::Button(ICON_MS_PLAY_ARROW)) {
   }

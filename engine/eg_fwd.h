@@ -125,8 +125,13 @@ typedef enum mouse_key_t {
 } mouse_key_t;
 
 typedef void (*imgui_create_proc_t)(struct context_t *context);
+typedef void (*imgui_pre_draw_proc_t)(struct context_t *context);
 typedef void (*imgui_draw_proc_t)(struct context_t *context);
+typedef void (*imgui_post_draw_proc_t)(struct context_t *context);
 typedef void (*imgui_destroy_proc_t)(struct context_t *context);
+typedef uint64_t (*imgui_viewport_count_proc_t)(struct context_t *context);
+typedef uint32_t (*imgui_viewport_width_proc_t)(struct context_t *context, uint64_t index);
+typedef uint32_t (*imgui_viewport_height_proc_t)(struct context_t *context, uint64_t index);
 typedef LRESULT (*imgui_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 typedef struct context_t {
@@ -145,7 +150,8 @@ typedef struct context_t {
   int32_t window_border_width;
   int32_t graphic_queue_index;
   int32_t present_queue_index;
-  uint8_t window_should_close;
+  uint8_t is_editor_mode;
+  uint8_t is_window_running;
   VkInstance instance;
   VkSurfaceKHR surface;
   VkSurfaceCapabilitiesKHR surface_capabilities;
@@ -181,13 +187,26 @@ typedef struct swapchain_t {
   uint64_t image_count;
   VkFormat depth_format;
   VkSwapchainKHR handle;
-  VkRenderPass render_pass;
-  VkFramebuffer *frame_buffers;
-  VkImage *color_image;
-  VkImage *depth_image;
-  VkDeviceMemory *depth_image_device_memory;
-  VkImageView *color_image_view;
-  VkImageView *depth_image_view;
+
+  VkRenderPass imgui_render_pass;
+  VkImage *imgui_color_image;
+  VkImageView *imgui_color_image_view;
+  VkImage *imgui_depth_image;
+  VkDeviceMemory *imgui_depth_device_memory;
+  VkImageView *imgui_depth_image_view;
+  VkFramebuffer *imgui_frame_buffers;
+
+  VkRenderPass gbuffer_render_pass;
+  VkImage **gbuffer_color_image;
+  VkDeviceMemory **gbuffer_color_device_memory;
+  VkImageView **gbuffer_color_image_view;
+  VkSampler **gbuffer_color_sampler;
+  VkImage **gbuffer_depth_image;
+  VkDeviceMemory **gbuffer_depth_device_memory;
+  VkImageView **gbuffer_depth_image_view;
+  VkSampler **gbuffer_depth_sampler;
+  VkFramebuffer **gbuffer_frame_buffers;
+
 } swapchain_t;
 
 typedef struct buffer_t {
@@ -197,6 +216,25 @@ typedef struct buffer_t {
   VkDeviceMemory device_memory;
   void *mapped_memory;
 } buffer_t;
+
+typedef struct image_t {
+  context_t *context;
+  uint64_t size;
+  uint32_t width;
+  uint32_t height;
+  uint32_t depth;
+  uint32_t channels;
+  VkImageUsageFlags usage;
+  VkImageAspectFlags aspect_flags;
+  VkImageType type;
+  VkImageViewType view_type;
+  VkFormat format;
+  VkImageTiling tiling;
+  VkFilter filter;
+  VkImage handle;
+  VkDeviceMemory device_memory;
+  void *mapped_memory;
+} image_t;
 
 typedef struct time_info_t {
   float time;
@@ -236,7 +274,7 @@ typedef struct scene_t {
 typedef struct renderer_t {
   context_t *context;
   uint8_t is_dirty;
-  uint8_t enable_debug;
+  uint8_t is_debug_enabled;
   uint64_t frames_in_flight;
   uint32_t frame_index;
   uint32_t image_index;

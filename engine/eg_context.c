@@ -52,13 +52,20 @@ static char const *s_context_device_extensions[] = {
 };
 
 imgui_create_proc_t g_context_imgui_create_proc = 0;
+imgui_pre_draw_proc_t g_context_imgui_pre_draw_proc = 0;
 imgui_draw_proc_t g_context_imgui_draw_proc = 0;
+imgui_post_draw_proc_t g_context_imgui_post_draw_proc = 0;
 imgui_destroy_proc_t g_context_imgui_destroy_proc = 0;
+imgui_viewport_count_proc_t g_context_imgui_viewport_count_proc = 0;
+imgui_viewport_width_proc_t g_context_imgui_viewport_width_proc = 0;
+imgui_viewport_height_proc_t g_context_imgui_viewport_height_proc = 0;
 imgui_message_proc_t g_context_imgui_message_proc = 0;
 
-context_t *context_create(int32_t width, int32_t height) {
+context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
   context_t *context = (context_t *)heap_alloc(sizeof(context_t), 1, 0);
 
+  context->is_editor_mode = is_editor_mode;
+  context->is_window_running = 1;
   context->window_titlebar_height = 60;
   context->window_statusbar_height = 30;
   context->window_border_width = 1;
@@ -94,7 +101,7 @@ context_t *context_create(int32_t width, int32_t height) {
   return context;
 }
 uint8_t context_is_running(context_t *context) {
-  return context->window_should_close == 0;
+  return context->is_window_running;
 }
 void context_begin_frame(context_t *context) {
   context->mouse_wheel_delta = 0;
@@ -263,7 +270,7 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
     }
     case WM_CLOSE: {
 
-      context->window_should_close = 1;
+      context->is_window_running = 0;
 
       break;
     }

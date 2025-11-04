@@ -38,12 +38,33 @@ void buffer_unmap(buffer_t *buffer) {
 
   buffer->mapped_memory = 0;
 }
-void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer command_buffer, uint64_t buffer_copy_size) {
+void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer command_buffer) {
   VkBufferCopy buffer_copy = {0};
-
-  buffer_copy.size = buffer_copy_size;
+  buffer_copy.srcOffset = 0;
+  buffer_copy.dstOffset = 0;
+  buffer_copy.size = target->size;
 
   vkCmdCopyBuffer(command_buffer, buffer->handle, target->handle, 1, &buffer_copy);
+}
+void buffer_copy_to_image(buffer_t *buffer, image_t *target, VkCommandBuffer command_buffer) {
+  VkBufferImageCopy buffer_image_copy = {0};
+  buffer_image_copy.bufferOffset = 0;
+  buffer_image_copy.bufferRowLength = 0;
+  buffer_image_copy.bufferImageHeight = 0;
+  buffer_image_copy.imageSubresource.aspectMask = target->aspect_flags;
+  buffer_image_copy.imageSubresource.mipLevel = 0;
+  buffer_image_copy.imageSubresource.baseArrayLayer = 0;
+  buffer_image_copy.imageSubresource.layerCount = 1;
+  buffer_image_copy.imageOffset.x = 0;
+  buffer_image_copy.imageOffset.y = 0;
+  buffer_image_copy.imageOffset.z = 0;
+  buffer_image_copy.imageExtent.width = target->width;
+  buffer_image_copy.imageExtent.height = target->height;
+  buffer_image_copy.imageExtent.depth = target->depth;
+
+  // TODO: insert layout transition checks..
+
+  vkCmdCopyBufferToImage(command_buffer, buffer->handle, target->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy);
 }
 void buffer_destroy(buffer_t *buffer) {
   if (buffer->mapped_memory) {
@@ -66,7 +87,7 @@ buffer_t *buffer_create_vertex(context_t *context, void *buffer, uint64_t buffer
   buffer_unmap(staging_buffer);
 
   VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer, buffer_size);
+  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
   context_end_command_buffer(context, command_buffer);
 
   buffer_destroy(staging_buffer);
@@ -82,7 +103,7 @@ buffer_t *buffer_create_index(context_t *context, void *buffer, uint64_t buffer_
   buffer_unmap(staging_buffer);
 
   VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer, buffer_size);
+  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
   context_end_command_buffer(context, command_buffer);
 
   buffer_destroy(staging_buffer);
@@ -98,7 +119,7 @@ buffer_t *buffer_create_uniform(context_t *context, void *buffer, uint64_t buffe
   buffer_unmap(staging_buffer);
 
   VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer, buffer_size);
+  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
   context_end_command_buffer(context, command_buffer);
 
   buffer_destroy(staging_buffer);
@@ -114,7 +135,7 @@ buffer_t *buffer_create_storage(context_t *context, void *buffer, uint64_t buffe
   buffer_unmap(staging_buffer);
 
   VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer, buffer_size);
+  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
   context_end_command_buffer(context, command_buffer);
 
   buffer_destroy(staging_buffer);

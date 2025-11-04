@@ -18,9 +18,9 @@ extern vector_t g_catalog_pipeline_descriptor_bindings;
 
 extern vector_t g_catalog_model_meshes;
 
-void catalog_create();
-void catalog_refresh();
+void catalog_create(context_t *context);
+void catalog_refresh(context_t *context);
 void catalog_draw(context_t *context);
-void catalog_destroy();
+void catalog_destroy(context_t *context);
 
 #endif // ED_CATALOG_H

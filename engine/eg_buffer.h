@@ -8,7 +8,8 @@ extern "C" {
 buffer_t *buffer_create(context_t *context, uint64_t buffer_size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_properties);
 void buffer_map(buffer_t *buffer);
 void buffer_unmap(buffer_t *buffer);
-void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer command_buffer, uint64_t buffer_copy_size);
+void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer command_buffer);
+void buffer_copy_to_image(buffer_t *buffer, image_t *target, VkCommandBuffer command_buffer);
 void buffer_destroy(buffer_t *buffer);
 
 buffer_t *buffer_create_vertex(context_t *context, void *buffer, uint64_t buffer_size);

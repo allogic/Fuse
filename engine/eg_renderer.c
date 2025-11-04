@@ -30,6 +30,9 @@ static void renderer_update_uniform_buffers(renderer_t *renderer);
 static void renderer_record_compute_commands(renderer_t *renderer);
 static void renderer_record_graphic_commands(renderer_t *renderer);
 
+static void renderer_gbuffer_pass(renderer_t *renderer);
+static void renderer_imgui_pass(renderer_t *renderer);
+
 static void renderer_destroy_global_buffers(renderer_t *renderer);
 static void renderer_destroy_debug_buffers(renderer_t *renderer);
 static void renderer_destroy_pipelines(renderer_t *renderer);
@@ -41,7 +44,7 @@ void renderer_create(context_t *context) {
 
   renderer->context = context;
   renderer->context->renderer = renderer;
-  renderer->enable_debug = 1; // TODO
+  renderer->is_debug_enabled = 1; // TODO
 
   strcpy(renderer->time_info_descriptor_binding_name, "time_info");
   strcpy(renderer->screen_info_descriptor_binding_name, "screen_info");
@@ -250,7 +253,7 @@ void renderer_destroy(renderer_t *renderer) {
 }
 
 void renderer_draw_debug_line(renderer_t *renderer, vector3_t from, vector3_t to, vector4_t color) {
-  if (renderer->enable_debug) {
+  if (renderer->is_debug_enabled) {
     graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
@@ -275,7 +278,7 @@ void renderer_draw_debug_line(renderer_t *renderer, vector3_t from, vector3_t to
   }
 }
 void renderer_draw_debug_box(renderer_t *renderer, vector3_t position, vector3_t size, vector4_t color) {
-  if (renderer->enable_debug) {
+  if (renderer->is_debug_enabled) {
     graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
@@ -580,6 +583,163 @@ static void renderer_record_compute_commands(renderer_t *renderer) {
   // vkCmdDispatch(g_renderer_graphic_command_buffers[g_renderer_frame_index], group_count_x, group_count_y, group_count_z);
 }
 static void renderer_record_graphic_commands(renderer_t *renderer) {
+  renderer_gbuffer_pass(renderer);
+
+  if (renderer->context->is_editor_mode) {
+
+    g_context_imgui_pre_draw_proc(renderer->context);
+
+    renderer_imgui_pass(renderer);
+
+    g_context_imgui_post_draw_proc(renderer->context);
+  }
+}
+
+static void renderer_gbuffer_pass(renderer_t *renderer) {
+  VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
+
+  if (renderer->context->is_editor_mode) {
+
+    uint64_t viewport_index = 0;
+    uint64_t viewport_count = g_context_imgui_viewport_count_proc(renderer->context);
+
+    while (viewport_index < viewport_count) {
+
+      VkClearValue color_clear_value = {0};
+      color_clear_value.color.float32[0] = 0.0F;
+      color_clear_value.color.float32[1] = 0.0F;
+      color_clear_value.color.float32[2] = 0.0F;
+      color_clear_value.color.float32[3] = 1.0F;
+
+      VkClearValue depth_clear_value = {0};
+      depth_clear_value.depthStencil.depth = 1.0F;
+      depth_clear_value.depthStencil.stencil = 0;
+
+      VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
+
+      uint32_t width = g_context_imgui_viewport_width_proc(renderer->context, viewport_index);
+      uint32_t height = g_context_imgui_viewport_height_proc(renderer->context, viewport_index);
+
+      VkRenderPassBeginInfo render_pass_create_info = {0};
+      render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+      render_pass_create_info.renderPass = renderer->context->swapchain->gbuffer_render_pass;
+      render_pass_create_info.framebuffer = renderer->context->swapchain->gbuffer_frame_buffers[viewport_index][renderer->image_index];
+      render_pass_create_info.renderArea.offset.x = 0;
+      render_pass_create_info.renderArea.offset.y = 0;
+      render_pass_create_info.renderArea.extent.width = width;
+      render_pass_create_info.renderArea.extent.height = height;
+      render_pass_create_info.pClearValues = clear_values;
+      render_pass_create_info.clearValueCount = ARRAY_COUNT(clear_values);
+
+      vkCmdBeginRenderPass(command_buffer, &render_pass_create_info, VK_SUBPASS_CONTENTS_INLINE);
+
+      VkViewport viewport = {0};
+      viewport.x = 0.0F;
+      viewport.y = 0.0F;
+      viewport.width = (float)width;
+      viewport.height = (float)height;
+      viewport.minDepth = 0.0F;
+      viewport.maxDepth = 1.0F;
+
+      vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+      VkRect2D scissor = {0};
+      scissor.offset.x = 0;
+      scissor.offset.y = 0;
+      scissor.extent.width = width;
+      scissor.extent.height = height;
+
+      vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+      if (renderer->is_debug_enabled) {
+
+        graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+
+        if (debug_pipeline) {
+
+          uint32_t index_count = renderer->debug_line_index_offsets[renderer->frame_index];
+
+          graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
+        }
+
+        renderer->debug_line_vertex_offsets[renderer->frame_index] = 0;
+        renderer->debug_line_index_offsets[renderer->frame_index] = 0;
+      }
+
+      vkCmdEndRenderPass(command_buffer);
+
+      viewport_index++;
+    }
+
+  } else {
+
+    VkClearValue color_clear_value = {0};
+    color_clear_value.color.float32[0] = 0.0F;
+    color_clear_value.color.float32[1] = 0.0F;
+    color_clear_value.color.float32[2] = 0.0F;
+    color_clear_value.color.float32[3] = 1.0F;
+
+    VkClearValue depth_clear_value = {0};
+    depth_clear_value.depthStencil.depth = 1.0F;
+    depth_clear_value.depthStencil.stencil = 0;
+
+    VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
+
+    uint32_t width = renderer->context->window_width;
+    uint32_t height = renderer->context->window_height;
+
+    VkRenderPassBeginInfo render_pass_create_info = {0};
+    render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_create_info.renderPass = renderer->context->swapchain->gbuffer_render_pass;
+    render_pass_create_info.framebuffer = renderer->context->swapchain->gbuffer_frame_buffers[0][renderer->image_index];
+    render_pass_create_info.renderArea.offset.x = 0;
+    render_pass_create_info.renderArea.offset.y = 0;
+    render_pass_create_info.renderArea.extent.width = width;
+    render_pass_create_info.renderArea.extent.height = height;
+    render_pass_create_info.pClearValues = clear_values;
+    render_pass_create_info.clearValueCount = ARRAY_COUNT(clear_values);
+
+    vkCmdBeginRenderPass(command_buffer, &render_pass_create_info, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport = {0};
+    viewport.x = 0.0F;
+    viewport.y = 0.0F;
+    viewport.width = (float)width;
+    viewport.height = (float)height;
+    viewport.minDepth = 0.0F;
+    viewport.maxDepth = 1.0F;
+
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+    VkRect2D scissor = {0};
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+    scissor.extent.width = width;
+    scissor.extent.height = height;
+
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    if (renderer->is_debug_enabled) {
+
+      graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+
+      if (debug_pipeline) {
+
+        uint32_t index_count = renderer->debug_line_index_offsets[renderer->frame_index];
+
+        graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
+      }
+
+      renderer->debug_line_vertex_offsets[renderer->frame_index] = 0;
+      renderer->debug_line_index_offsets[renderer->frame_index] = 0;
+    }
+
+    vkCmdEndRenderPass(command_buffer);
+  }
+}
+static void renderer_imgui_pass(renderer_t *renderer) {
+  VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
+
   VkClearValue color_clear_value = {0};
   color_clear_value.color.float32[0] = 0.0F;
   color_clear_value.color.float32[1] = 0.0F;
@@ -592,72 +752,43 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
 
   VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
 
+  uint32_t width = renderer->context->window_width;
+  uint32_t height = renderer->context->window_height;
+
   VkRenderPassBeginInfo render_pass_create_info = {0};
   render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  render_pass_create_info.renderPass = renderer->context->swapchain->render_pass;
-  render_pass_create_info.framebuffer = renderer->context->swapchain->frame_buffers[renderer->image_index];
+  render_pass_create_info.renderPass = renderer->context->swapchain->imgui_render_pass;
+  render_pass_create_info.framebuffer = renderer->context->swapchain->imgui_frame_buffers[renderer->image_index];
   render_pass_create_info.renderArea.offset.x = 0;
   render_pass_create_info.renderArea.offset.y = 0;
-  render_pass_create_info.renderArea.extent.width = renderer->context->window_width;
-  render_pass_create_info.renderArea.extent.height = renderer->context->window_height;
+  render_pass_create_info.renderArea.extent.width = width;
+  render_pass_create_info.renderArea.extent.height = height;
   render_pass_create_info.pClearValues = clear_values;
   render_pass_create_info.clearValueCount = ARRAY_COUNT(clear_values);
 
-  vkCmdBeginRenderPass(renderer->graphic_command_buffers[renderer->frame_index], &render_pass_create_info, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(command_buffer, &render_pass_create_info, VK_SUBPASS_CONTENTS_INLINE);
 
   VkViewport viewport = {0};
   viewport.x = 0.0F;
   viewport.y = 0.0F;
-  viewport.width = (float)renderer->context->window_width;
-  viewport.height = (float)renderer->context->window_height;
+  viewport.width = (float)width;
+  viewport.height = (float)height;
   viewport.minDepth = 0.0F;
   viewport.maxDepth = 1.0F;
 
-  vkCmdSetViewport(renderer->graphic_command_buffers[renderer->frame_index], 0, 1, &viewport);
+  vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
   VkRect2D scissor = {0};
   scissor.offset.x = 0;
   scissor.offset.y = 0;
-  scissor.extent.width = renderer->context->window_width;
-  scissor.extent.height = renderer->context->window_height;
+  scissor.extent.width = width;
+  scissor.extent.height = height;
 
-  vkCmdSetScissor(renderer->graphic_command_buffers[renderer->frame_index], 0, 1, &scissor);
+  vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  {
-    // VkBuffer vertex_buffers[] = {s_renderer_cluster_vertex_buffer[g_renderer_frame_index]};
-    // uint64_t vertex_offsets[] = {0, 0};
-    //
-    // vkCmdBindPipeline(g_renderer_graphic_command_buffers[g_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline);
-    // vkCmdBindVertexBuffers(g_renderer_graphic_command_buffers[g_renderer_frame_index], 0, ARRAY_COUNT(vertex_buffers), vertex_buffers, vertex_offsets);
-    // vkCmdBindIndexBuffer(g_renderer_graphic_command_buffers[g_renderer_frame_index], s_renderer_cluster_index_buffer[g_renderer_frame_index], 0, VK_INDEX_TYPE_UINT32);
-    // vkCmdBindDescriptorSets(g_renderer_graphic_command_buffers[g_renderer_frame_index], VK_PIPELINE_BIND_POINT_GRAPHICS, s_renderer_chunk_renderer_pipeline_layout, 0, 1, &s_renderer_chunk_renderer_descriptor_sets[g_renderer_frame_index], 0, 0);
-    // vkCmdDrawIndexed(g_renderer_graphic_command_buffers[g_renderer_frame_index], RENDERER_CLUSTER_INDEX_COUNT, 1, 0, 0, 0);
-  }
+  g_context_imgui_draw_proc(renderer->context);
 
-  {
-    if (renderer->enable_debug) {
-
-      graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
-
-      if (debug_pipeline) {
-
-        VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
-
-        uint32_t index_count = renderer->debug_line_index_offsets[renderer->frame_index];
-
-        graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
-      }
-
-      renderer->debug_line_vertex_offsets[renderer->frame_index] = 0;
-      renderer->debug_line_index_offsets[renderer->frame_index] = 0;
-    }
-  }
-
-  if (g_context_imgui_draw_proc) {
-    g_context_imgui_draw_proc(renderer->context);
-  }
-
-  vkCmdEndRenderPass(renderer->graphic_command_buffers[renderer->frame_index]);
+  vkCmdEndRenderPass(command_buffer);
 }
 
 static void renderer_destroy_global_buffers(renderer_t *renderer) {

@@ -1,6 +1,8 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_detail.h>
 #include <editor/ed_catalog.h>
+#include <editor/ed_dockspace.h>
+#include <editor/ed_titlebar.h>
 
 static void detail_draw_swapchain(void);
 static void detail_draw_renderer(void);
@@ -16,71 +18,57 @@ int64_t g_detail_selected_mesh_primitive = -1;
 vector_t g_detail_mesh_primitives = {};
 vector_t g_detail_mesh_attributes = {};
 
-void detail_create() {
+void detail_create(context_t *context) {
 }
-void detail_refresh() {
+void detail_refresh(context_t *context) {
 }
 void detail_draw(context_t *context) {
-  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
+  bool is_docked = false;
 
-  ImGui::Begin("Detail", 0, window_flags);
+  if (dockspace_begin_child("Detail", &g_titlebar_detail_open, &is_docked)) {
+    switch (g_catalog_selected_asset_type) {
+      case ASSET_TYPE_NONE: {
 
-  ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_Separator, IM_COL32(70, 70, 70, 255));
-  ImGui::BeginChild("DetailFirstChild");
-
-  ImVec2 second_window_size = ImGui::GetWindowSize();
-  ImVec2 second_cursor_position = ImVec2(5.0F, 5.0F);
-
-  second_window_size.x -= 10.0F;
-  second_window_size.y -= 30.0F;
-
-  ImGui::SetCursorPos(second_cursor_position);
-  ImGui::BeginChild("DetailSecondChild", second_window_size);
-
-  switch (g_catalog_selected_asset_type) {
-    case ASSET_TYPE_NONE: {
-
-      break;
-    }
-    case ASSET_TYPE_SWAPCHAIN: {
-      if (g_catalog_selected_swapchain_asset != -1) {
-        detail_draw_swapchain();
+        break;
       }
+      case ASSET_TYPE_SWAPCHAIN: {
 
-      break;
-    }
-    case ASSET_TYPE_RENDERER: {
-      if (g_catalog_selected_renderer_asset != -1) {
-        detail_draw_renderer();
+        if (g_catalog_selected_swapchain_asset != -1) {
+          detail_draw_swapchain();
+        }
+
+        break;
       }
+      case ASSET_TYPE_RENDERER: {
 
-      break;
-    }
-    case ASSET_TYPE_PIPELINE: {
-      if (g_catalog_selected_pipeline_asset != -1) {
-        detail_draw_pipeline();
+        if (g_catalog_selected_renderer_asset != -1) {
+          detail_draw_renderer();
+        }
+
+        break;
       }
+      case ASSET_TYPE_PIPELINE: {
 
-      break;
-    }
-    case ASSET_TYPE_MODEL: {
-      if (g_catalog_selected_model_asset != -1) {
-        detail_draw_model();
+        if (g_catalog_selected_pipeline_asset != -1) {
+          detail_draw_pipeline();
+        }
+
+        break;
       }
+      case ASSET_TYPE_MODEL: {
 
-      break;
+        if (g_catalog_selected_model_asset != -1) {
+          detail_draw_model();
+        }
+
+        break;
+      }
     }
+
+    dockspace_end_child(is_docked);
   }
-
-  ImGui::EndChild();
-
-  ImGui::EndChild();
-  ImGui::PopStyleColor(2);
-
-  ImGui::End();
 }
-void detail_destroy() {
+void detail_destroy(context_t *context) {
   if (g_detail_selected_model_mesh != -1) {
     database_destroy_mesh_primitives(&g_detail_mesh_primitives);
   }

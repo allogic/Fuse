@@ -1,40 +1,25 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_hierarchy.h>
+#include <editor/ed_dockspace.h>
 #include <editor/ed_titlebar.h>
 
 static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t e);
 
-void hierarchy_create() {
+void hierarchy_create(context_t *context) {
 }
-void hierarchy_refresh() {
+void hierarchy_refresh(context_t *context) {
 }
 void hierarchy_draw(context_t *context) {
-  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoScrollbar;
+  bool is_docked = false;
 
-  ImGui::Begin("Hierarchy", &g_titlebar_hierarchy_open, window_flags);
+  if (dockspace_begin_child("Hierarchy", &g_titlebar_hierarchy_open, &is_docked)) {
 
-  ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
-  ImGui::BeginChild("HierarchyFirstChild");
+    hierarchy_draw_tree(context->scene->world, context->scene->root);
 
-  ImVec2 second_window_size = ImGui::GetWindowSize();
-  ImVec2 second_cursor_position = ImVec2(5.0F, 5.0F);
-
-  second_window_size.x -= 10.0F;
-  second_window_size.y -= 30.0F;
-
-  ImGui::SetCursorPos(second_cursor_position);
-  ImGui::BeginChild("HierarchySecondChild", second_window_size);
-
-  hierarchy_draw_tree(context->scene->world, context->scene->root);
-
-  ImGui::EndChild();
-
-  ImGui::EndChild();
-  ImGui::PopStyleColor();
-
-  ImGui::End();
+    dockspace_end_child(is_docked);
+  }
 }
-void hierarchy_destroy() {
+void hierarchy_destroy(context_t *context) {
 }
 
 static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {

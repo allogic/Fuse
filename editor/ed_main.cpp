@@ -7,44 +7,54 @@
 #include <editor/ed_inspector.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
+#include <editor/ed_viewport.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 static void imgui_create(context_t *context);
+static void imgui_pre_draw(context_t *context);
 static void imgui_draw(context_t *context);
+static void imgui_post_draw(context_t *context);
 static void imgui_destroy(context_t *context);
+
+static uint64_t imgui_viewport_count(context_t *context);
+static uint32_t imgui_viewport_width(context_t *context, uint64_t index);
+static uint32_t imgui_viewport_height(context_t *context, uint64_t index);
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
 
-static VkDescriptorPoolSize const s_editor_descriptor_pool_sizes[] = {
-  {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE},
-};
+ImFont *g_editor_commit_mono_h1 = 0;
+ImFont *g_editor_commit_mono_h2 = 0;
+ImFont *g_editor_commit_mono_h3 = 0;
+ImFont *g_editor_commit_mono_h4 = 0;
+ImFont *g_editor_commit_mono_h5 = 0;
+ImFont *g_editor_commit_mono_h6 = 0;
+ImFont *g_editor_commit_mono = 0;
+
+ImFont *g_editor_material_symbols_h1 = 0;
+ImFont *g_editor_material_symbols_h2 = 0;
+ImFont *g_editor_material_symbols_h3 = 0;
+ImFont *g_editor_material_symbols_h4 = 0;
+ImFont *g_editor_material_symbols_h5 = 0;
+ImFont *g_editor_material_symbols_h6 = 0;
+ImFont *g_editor_material_symbols = 0;
+
+viewport_t *g_editor_viewports[4] = {};
 
 static VkDescriptorPool s_editor_descriptor_pool = 0;
 
-ImFont *g_commit_mono_h1 = 0;
-ImFont *g_commit_mono_h2 = 0;
-ImFont *g_commit_mono_h3 = 0;
-ImFont *g_commit_mono_h4 = 0;
-ImFont *g_commit_mono_h5 = 0;
-ImFont *g_commit_mono_h6 = 0;
-ImFont *g_commit_mono = 0;
-
-ImFont *g_material_symbols_h1 = 0;
-ImFont *g_material_symbols_h2 = 0;
-ImFont *g_material_symbols_h3 = 0;
-ImFont *g_material_symbols_h4 = 0;
-ImFont *g_material_symbols_h5 = 0;
-ImFont *g_material_symbols_h6 = 0;
-ImFont *g_material_symbols = 0;
-
 int32_t main(int32_t argc, char **argv) {
   g_context_imgui_create_proc = imgui_create;
+  g_context_imgui_pre_draw_proc = imgui_pre_draw;
   g_context_imgui_draw_proc = imgui_draw;
+  g_context_imgui_post_draw_proc = imgui_post_draw;
   g_context_imgui_destroy_proc = imgui_destroy;
+  g_context_imgui_viewport_count_proc = imgui_viewport_count;
+  g_context_imgui_viewport_width_proc = imgui_viewport_width;
+  g_context_imgui_viewport_height_proc = imgui_viewport_height;
   g_context_imgui_message_proc = ImGui_ImplWin32_WndProcHandler;
 
-  context_t *context = context_create(1920, 1080);
+  context_t *context = context_create(1920, 1080, 1);
 
   // TODO: move scene stuff somewhere else
   context->scene = scene_create(context);
@@ -64,6 +74,18 @@ int32_t main(int32_t argc, char **argv) {
 
   scene_destroy(context->scene);
 
+  uint64_t viewport_index = 0;
+  uint64_t viewport_count = 4;
+
+  while (viewport_index < viewport_count) {
+
+    if (g_editor_viewports[viewport_index]) {
+      viewport_destroy(g_editor_viewports[viewport_index]);
+    }
+
+    viewport_index++;
+  }
+
   context_destroy(context);
 
   heap_reset();
@@ -72,16 +94,18 @@ int32_t main(int32_t argc, char **argv) {
 }
 
 static void imgui_create(context_t *context) {
+  // TODO: double check descriptor pool's..
+
+  VkDescriptorPoolSize s_editor_descriptor_pool_sizes[] = {
+    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+  };
+
   VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-  for (VkDescriptorPoolSize const &descriptor_pool_size : s_editor_descriptor_pool_sizes) {
-    descriptor_pool_create_info.maxSets += descriptor_pool_size.descriptorCount;
-  }
-
   descriptor_pool_create_info.pPoolSizes = s_editor_descriptor_pool_sizes;
-  descriptor_pool_create_info.poolSizeCount = ARRAY_COUNT(s_editor_descriptor_pool_sizes);
+  descriptor_pool_create_info.poolSizeCount = (uint32_t)ARRAY_COUNT(s_editor_descriptor_pool_sizes);
+  descriptor_pool_create_info.maxSets = 1000 * (uint32_t)context->renderer->frames_in_flight;
 
   vkCreateDescriptorPool(context->device, &descriptor_pool_create_info, 0, &s_editor_descriptor_pool);
 
@@ -99,28 +123,28 @@ static void imgui_create(context_t *context) {
     0,
   };
 
+  // TODO: integrate fonts into database..
+
+  g_editor_commit_mono = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 14.0F);
+  g_editor_commit_mono_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 16.0F);
+  g_editor_commit_mono_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 18.0F);
+  g_editor_commit_mono_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 20.0F);
+  g_editor_commit_mono_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 22.0F);
+  g_editor_commit_mono_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 24.0F);
+  g_editor_commit_mono_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 26.0F);
+
+  g_editor_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 14.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 18.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 22.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 26.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 30.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 34.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 38.0F, 0, icon_glyph_ranges);
+
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   io.ConfigWindowsMoveFromTitleBarOnly = 1;
-
-  // TODO: integrate fonts into database..
-
-  g_commit_mono = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 14.0F);
-  g_commit_mono_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 16.0F);
-  g_commit_mono_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 18.0F);
-  g_commit_mono_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 20.0F);
-  g_commit_mono_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 22.0F);
-  g_commit_mono_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 24.0F);
-  g_commit_mono_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 26.0F);
-
-  g_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 14.0F, 0, icon_glyph_ranges);
-  g_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 18.0F, 0, icon_glyph_ranges);
-  g_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 22.0F, 0, icon_glyph_ranges);
-  g_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 26.0F, 0, icon_glyph_ranges);
-  g_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 30.0F, 0, icon_glyph_ranges);
-  g_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 34.0F, 0, icon_glyph_ranges);
-  g_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 38.0F, 0, icon_glyph_ranges);
 
   platform_io.Platform_CreateVkSurface = ImGui_CreateSurfaceDummy;
 
@@ -129,95 +153,48 @@ static void imgui_create(context_t *context) {
   style.WindowPadding = ImVec2{0.0F, 0.0F};
   style.WindowRounding = 0.0F;
   style.WindowBorderSize = 0.0F;
-  style.WindowMinSize = ImVec2{32.0F, 32.0F};
   style.WindowTitleAlign = ImVec2{0.0F, 0.5F};
   style.WindowMenuButtonPosition = ImGuiDir_None;
   style.ChildRounding = 5.0F;
   style.ChildBorderSize = 0.0F;
   style.PopupRounding = 0.0F;
-  // style.PopupBorderSize = 1.0F;
-  // style.FramePadding = ImVec2{7.5F, 7.5F};
   style.FrameRounding = 0.0F;
-  // style.FrameBorderSize = 1.0F;
   style.ItemSpacing = ImVec2{8.0F, 4.0F};
-  // style.ItemInnerSpacing = ImVec2{4.0F, 4.0F};
-  // style.CellPadding = ImVec2{4.0F, 2.0F};
-  // style.IndentSpacing = 21.0F;
-  // style.ColumnsMinSpacing = 6.0F;
   style.ScrollbarSize = 15.0F;
   style.ScrollbarRounding = 5.0F;
-  // style.GrabMinSize = 25.0F;
   style.GrabRounding = 0.0F;
   style.TabRounding = 5.0F;
   style.TabBorderSize = 2.0F;
-  // style.TabMinWidthBase = 200.0F;
-  // style.TabMinWidthShrink = 200.0F;
   style.TabCloseButtonMinWidthSelected = -1.0F;
   style.TabCloseButtonMinWidthUnselected = -1.0F;
   style.TabBarBorderSize = 0.0F;
   style.TabBarOverlineSize = 0.0F;
+  style.DockingSeparatorSize = 10.0F;
 
-  style.DockingSeparatorSize = 5.0F;
-
-  // style.ColorButtonPosition = ImGuiDir_Right;
-  // style.ButtonTextAlign = ImVec2{0.5F, 0.5F};
-  // style.SelectableTextAlign = ImVec2{0.0F, 0.0F};
-
-  // style.Colors[ImGuiCol_Text] = ImVec4{1.0F, 1.0F, 1.0F, 1.0F};
-  // style.Colors[ImGuiCol_TextDisabled] = ImVec4{0.4980392158031464F, 0.4980392158031464F, 0.4980392158031464F, 1.0F};
-  // style.Colors[ImGuiCol_WindowBg] = ImVec4{0.1764705926179886F, 0.1764705926179886F, 0.1764705926179886F, 1.0F};
-  // style.Colors[ImGuiCol_ChildBg] = ImVec4{0.2784313857555389F, 0.2784313857555389F, 0.2784313857555389F, 0.0F};
-  // style.Colors[ImGuiCol_PopupBg] = ImVec4{0.3098039329051971F, 0.3098039329051971F, 0.3098039329051971F, 1.0F};
-  // style.Colors[ImGuiCol_Border] = ImVec4{0.2627451121807098F, 0.2627451121807098F, 0.2627451121807098F, 1.0F};
-  // style.Colors[ImGuiCol_BorderShadow] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
-  // style.Colors[ImGuiCol_FrameBg] = ImVec4{0.1568627506494522F, 0.1568627506494522F, 0.1568627506494522F, 1.0F};
-  // style.Colors[ImGuiCol_FrameBgHovered] = ImVec4{0.2000000029802322F, 0.2000000029802322F, 0.2000000029802322F, 1.0F};
-  // style.Colors[ImGuiCol_FrameBgActive] = ImVec4{0.2784313857555389F, 0.2784313857555389F, 0.2784313857555389F, 1.0F};
-  // style.Colors[ImGuiCol_TitleBg] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
-  // style.Colors[ImGuiCol_TitleBgActive] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
-  // style.Colors[ImGuiCol_TitleBgCollapsed] = ImVec4{0.1450980454683304F, 0.1450980454683304F, 0.1450980454683304F, 1.0F};
-  // style.Colors[ImGuiCol_MenuBarBg] = ImVec4{0.1921568661928177F, 0.1921568661928177F, 0.1921568661928177F, 1.0F};
-  // style.Colors[ImGuiCol_ScrollbarBg] = ImVec4{0.1568627506494522F, 0.1568627506494522F, 0.1568627506494522F, 1.0F};
-  // style.Colors[ImGuiCol_ScrollbarGrab] = ImVec4{0.2745098173618317F, 0.2745098173618317F, 0.2745098173618317F, 1.0F};
-  // style.Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4{0.2980392277240753F, 0.2980392277240753F, 0.2980392277240753F, 1.0F};
-  // style.Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_CheckMark] = ImVec4{1.0F, 1.0F, 1.0F, 1.0F};
-  // style.Colors[ImGuiCol_SliderGrab] = ImVec4{0.3882353007793427F, 0.3882353007793427F, 0.3882353007793427F, 1.0F};
-  // style.Colors[ImGuiCol_SliderGrabActive] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_Button] = ImVec4{1.0F, 1.0F, 1.0F, 0.0F};
-  // style.Colors[ImGuiCol_ButtonHovered] = ImVec4{1.0F, 1.0F, 1.0F, 0.1560000032186508F};
-  // style.Colors[ImGuiCol_ButtonActive] = ImVec4{1.0F, 1.0F, 1.0F, 0.3910000026226044F};
-  // style.Colors[ImGuiCol_Header] = ImVec4{0.3098039329051971F, 0.3098039329051971F, 0.3098039329051971F, 1.0F};
-  // style.Colors[ImGuiCol_HeaderHovered] = ImVec4{0.4666666686534882F, 0.4666666686534882F, 0.4666666686534882F, 1.0F};
-  // style.Colors[ImGuiCol_HeaderActive] = ImVec4{0.4666666686534882F, 0.4666666686534882F, 0.4666666686534882F, 1.0F};
-  // style.Colors[ImGuiCol_Separator] = ImVec4{0.2627451121807098F, 0.2627451121807098F, 0.2627451121807098F, 1.0F};
-  // style.Colors[ImGuiCol_SeparatorHovered] = ImVec4{0.3882353007793427F, 0.3882353007793427F, 0.3882353007793427F, 1.0F};
-  // style.Colors[ImGuiCol_SeparatorActive] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_ResizeGrip] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
-  // style.Colors[ImGuiCol_ResizeGripHovered] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
-  // style.Colors[ImGuiCol_ResizeGripActive] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
-  // style.Colors[ImGuiCol_Tab] = ImVec4{0.09411764889955521F, 0.09411764889955521F, 0.09411764889955521F, 1.0F};
-  // style.Colors[ImGuiCol_TabHovered] = ImVec4{0.3490196168422699F, 0.3490196168422699F, 0.3490196168422699F, 1.0F};
-  // style.Colors[ImGuiCol_TabActive] = ImVec4{0.1921568661928177F, 0.1921568661928177F, 0.1921568661928177F, 1.0F};
-  // style.Colors[ImGuiCol_TabUnfocused] = ImVec4{0.09411764889955521F, 0.09411764889955521F, 0.09411764889955521F, 1.0F};
-  // style.Colors[ImGuiCol_TabUnfocusedActive] = ImVec4{0.1921568661928177F, 0.1921568661928177F, 0.1921568661928177F, 1.0F};
-  // style.Colors[ImGuiCol_PlotLines] = ImVec4{0.4666666686534882F, 0.4666666686534882F, 0.4666666686534882F, 1.0F};
-  // style.Colors[ImGuiCol_PlotLinesHovered] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_PlotHistogram] = ImVec4{0.5843137502670288F, 0.5843137502670288F, 0.5843137502670288F, 1.0F};
-  // style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_TableHeaderBg] = ImVec4{0.1882352977991104F, 0.1882352977991104F, 0.2000000029802322F, 1.0F};
-  // style.Colors[ImGuiCol_TableBorderStrong] = ImVec4{0.3098039329051971F, 0.3098039329051971F, 0.3490196168422699F, 1.0F};
-  // style.Colors[ImGuiCol_TableBorderLight] = ImVec4{0.2274509817361832F, 0.2274509817361832F, 0.2470588237047195F, 1.0F};
-  // style.Colors[ImGuiCol_TableRowBg] = ImVec4{0.0F, 0.0F, 0.0F, 0.0F};
-  // style.Colors[ImGuiCol_TableRowBgAlt] = ImVec4{1.0F, 1.0F, 1.0F, 0.05999999865889549F};
-  // style.Colors[ImGuiCol_TextSelectedBg] = ImVec4{1.0F, 1.0F, 1.0F, 0.1560000032186508F};
-  // style.Colors[ImGuiCol_DragDropTarget] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_NavHighlight] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_NavWindowingHighlight] = ImVec4{1.0F, 0.3882353007793427F, 0.0F, 1.0F};
-  // style.Colors[ImGuiCol_NavWindowingDimBg] = ImVec4{0.0F, 0.0F, 0.0F, 0.5860000252723694F};
-  // style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4{0.0F, 0.0F, 0.0F, 0.5860000252723694F};
-  // style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
-  // style.Colors[ImGuiCol_DockingPreview] = ImVec4{0.1176470588235294F, 0.1176470588235294F, 0.1176470588235294F, 1.0F};
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_TitleBg, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_TitleBgActive, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_DockingPreview, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_Tab, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_TabHovered, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_TabActive, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_TabUnfocused, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_Separator, IM_COL32(70, 70, 70, 255));
+  ImGui::PushStyleColor(ImGuiCol_SeparatorActive, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, IM_COL32(50, 50, 50, 255));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, IM_COL32(30, 30, 30, 255));
 
   ImGui_ImplWin32_Init(context->window_handle);
 
@@ -229,7 +206,7 @@ static void imgui_create(context_t *context) {
   imgui_vulkan_init_info.Queue = context->graphic_queue;
   imgui_vulkan_init_info.PipelineCache = 0;
   imgui_vulkan_init_info.DescriptorPool = s_editor_descriptor_pool;
-  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->render_pass;
+  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->imgui_render_pass;
   imgui_vulkan_init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   imgui_vulkan_init_info.MinImageCount = context->surface_capabilities.minImageCount;
   imgui_vulkan_init_info.ImageCount = (uint32_t)context->swapchain->image_count;
@@ -238,17 +215,35 @@ static void imgui_create(context_t *context) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  titlebar_create();
-  catalog_create();
-  detail_create();
-  hierarchy_create();
-  inspector_create();
-  dockspace_create();
-  statusbar_create();
+  titlebar_create(context);
+  catalog_create(context);
+  detail_create(context);
+  hierarchy_create(context);
+  inspector_create(context);
+  dockspace_create(context);
+  statusbar_create(context);
+}
+static void imgui_pre_draw(context_t *context) {
+  VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
+
+  uint64_t viewport_index = 0;
+  uint64_t viewport_count = g_context_imgui_viewport_count_proc(context);
+
+  while (viewport_index < viewport_count) {
+
+    VkImage gbuffer_color_image = context->swapchain->gbuffer_color_image[viewport_index][context->renderer->image_index];
+    VkImage gbuffer_depth_image = context->swapchain->gbuffer_depth_image[viewport_index][context->renderer->image_index];
+
+    image_layout_transition(context, gbuffer_color_image, command_buffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    image_layout_transition(context, gbuffer_depth_image, command_buffer, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    viewport_index++;
+  }
 }
 static void imgui_draw(context_t *context) {
-  ImGui_ImplVulkan_NewFrame();
+  VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
 
+  ImGui_ImplVulkan_NewFrame();
   ImGui_ImplWin32_NewFrame();
 
   ImGui::NewFrame();
@@ -261,16 +256,44 @@ static void imgui_draw(context_t *context) {
 
   ImDrawData *draw_data = ImGui::GetDrawData();
 
-  ImGui_ImplVulkan_RenderDrawData(draw_data, context->renderer->graphic_command_buffers[context->renderer->frame_index]);
+  ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
+}
+static void imgui_post_draw(context_t *context) {
+  VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
+
+  uint64_t viewport_index = 0;
+  uint64_t viewport_count = g_context_imgui_viewport_count_proc(context);
+
+  while (viewport_index < viewport_count) {
+
+    VkImage gbuffer_color_image = context->swapchain->gbuffer_color_image[viewport_index][context->renderer->image_index];
+    VkImage gbuffer_depth_image = context->swapchain->gbuffer_depth_image[viewport_index][context->renderer->image_index];
+
+    image_layout_transition(context, gbuffer_color_image, command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
+    image_layout_transition(context, gbuffer_depth_image, command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    viewport_index++;
+  }
+}
+static uint64_t imgui_viewport_count(context_t *context) {
+  return 4; // TODO
+}
+static uint32_t imgui_viewport_width(context_t *context, uint64_t index) {
+  return g_editor_viewports[index]->width;
+}
+static uint32_t imgui_viewport_height(context_t *context, uint64_t index) {
+  return g_editor_viewports[index]->height;
 }
 static void imgui_destroy(context_t *context) {
-  titlebar_destroy();
-  catalog_destroy();
-  detail_destroy();
-  hierarchy_destroy();
-  inspector_destroy();
-  dockspace_destroy();
-  statusbar_destroy();
+  titlebar_destroy(context);
+  catalog_destroy(context);
+  detail_destroy(context);
+  hierarchy_destroy(context);
+  inspector_destroy(context);
+  dockspace_destroy(context);
+  statusbar_destroy(context);
+
+  ImGui::PopStyleColor(24);
 
   ImGui_ImplVulkan_Shutdown();
 

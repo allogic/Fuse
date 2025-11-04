@@ -1,9 +1,9 @@
 #ifndef ED_VIEWPORT_H
 #define ED_VIEWPORT_H
 
-void viewport_create();
-void viewport_refresh();
-void viewport_draw(context_t *context);
-void viewport_destroy();
+viewport_t *viewport_create(context_t *context, uint64_t index, char const *name);
+void viewport_refresh(viewport_t *viewport);
+void viewport_draw(viewport_t *viewport);
+void viewport_destroy(viewport_t *viewport);
 
 #endif // ED_VIEWPORT_H
