@@ -63,34 +63,18 @@ void titlebar_draw(context_t *context) {
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 1")) {
-    if (!g_editor_viewports[0]) {
-      g_editor_viewports[0] = viewport_create(context, 0, "Viewport 1");
-    }
-
     g_editor_viewports[0]->is_open = true;
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 2")) {
-    if (!g_editor_viewports[1]) {
-      g_editor_viewports[1] = viewport_create(context, 1, "Viewport 2");
-    }
-
     g_editor_viewports[1]->is_open = true;
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 3")) {
-    if (!g_editor_viewports[2]) {
-      g_editor_viewports[2] = viewport_create(context, 2, "Viewport 3");
-    }
-
     g_editor_viewports[2]->is_open = true;
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 4")) {
-    if (!g_editor_viewports[3]) {
-      g_editor_viewports[3] = viewport_create(context, 3, "Viewport 4");
-    }
-
     g_editor_viewports[3]->is_open = true;
   }
   ImGui::SameLine();

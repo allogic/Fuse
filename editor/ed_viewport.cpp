@@ -5,11 +5,10 @@
 
 static char const *s_viewport_gbuffer_attachment_names[] = {"Color", "Depth"};
 
-viewport_t *viewport_create(context_t *context, uint64_t index, char const *name) {
+viewport_t *viewport_create(context_t *context, char const *name) {
   viewport_t *viewport = (viewport_t *)heap_alloc(sizeof(viewport_t), 1, 0);
 
   viewport->context = context;
-  viewport->index = index;
   viewport->width = 1;
   viewport->height = 1;
   viewport->is_dirty = true;
@@ -77,10 +76,16 @@ void viewport_draw(viewport_t *viewport) {
 
     window_size.y -= 25.0F;
 
-    // TODO: handle is_dirty when window resizes..
-
     viewport->width = (uint32_t)window_size.x;
     viewport->height = (uint32_t)window_size.y;
+
+    if ((viewport->width != viewport->prev_width) || (viewport->height != viewport->prev_height)) {
+      viewport->is_dirty = 1;
+      viewport->prev_width = viewport->width;
+      viewport->prev_height = viewport->height;
+    } else {
+      viewport->is_dirty = 0;
+    }
 
     ImVec2 image_position_min = ImGui::GetCursorScreenPos();
     ImVec2 image_position_max = ImVec2(image_position_min.x + window_size.x, image_position_min.y + window_size.y);

@@ -18,6 +18,7 @@ static void imgui_post_draw(context_t *context);
 static void imgui_destroy(context_t *context);
 
 static uint64_t imgui_viewport_count(context_t *context);
+static uint8_t imgui_viewport_dirty(context_t *context);
 static uint32_t imgui_viewport_width(context_t *context, uint64_t index);
 static uint32_t imgui_viewport_height(context_t *context, uint64_t index);
 
@@ -50,11 +51,17 @@ int32_t main(int32_t argc, char **argv) {
   g_context_imgui_post_draw_proc = imgui_post_draw;
   g_context_imgui_destroy_proc = imgui_destroy;
   g_context_imgui_viewport_count_proc = imgui_viewport_count;
+  g_context_imgui_viewport_dirty_proc = imgui_viewport_dirty;
   g_context_imgui_viewport_width_proc = imgui_viewport_width;
   g_context_imgui_viewport_height_proc = imgui_viewport_height;
   g_context_imgui_message_proc = ImGui_ImplWin32_WndProcHandler;
 
   context_t *context = context_create(1920, 1080, 1);
+
+  g_editor_viewports[0] = viewport_create(context, "Viewport 1");
+  g_editor_viewports[1] = viewport_create(context, "Viewport 2");
+  g_editor_viewports[2] = viewport_create(context, "Viewport 3");
+  g_editor_viewports[3] = viewport_create(context, "Viewport 4");
 
   // TODO: move scene stuff somewhere else
   context->scene = scene_create(context);
@@ -262,7 +269,7 @@ static void imgui_post_draw(context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
 
   uint64_t viewport_index = 0;
-  uint64_t viewport_count = g_context_imgui_viewport_count_proc(context);
+  uint64_t viewport_count = 4;
 
   while (viewport_index < viewport_count) {
 
@@ -277,6 +284,20 @@ static void imgui_post_draw(context_t *context) {
 }
 static uint64_t imgui_viewport_count(context_t *context) {
   return 4; // TODO
+}
+static uint8_t imgui_viewport_dirty(context_t *context) {
+  uint8_t is_dirty = 0;
+
+  uint64_t viewport_index = 0;
+  uint64_t viewport_count = 4;
+
+  while (viewport_index < viewport_count) {
+    is_dirty |= g_editor_viewports[viewport_index]->is_dirty;
+
+    viewport_index++;
+  }
+
+  return is_dirty;
 }
 static uint32_t imgui_viewport_width(context_t *context, uint64_t index) {
   return g_editor_viewports[index]->width;

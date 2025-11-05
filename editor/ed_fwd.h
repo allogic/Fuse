@@ -19,7 +19,9 @@ typedef struct viewport_t {
   uint64_t index;
   uint32_t width;
   uint32_t height;
-  bool is_dirty;
+  uint32_t prev_width;
+  uint32_t prev_height;
+  uint8_t is_dirty;
   bool is_open;
   char name[0xFF];
   VkDescriptorSet *gbuffer_color_attachment;

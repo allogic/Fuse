@@ -130,6 +130,7 @@ typedef void (*imgui_draw_proc_t)(struct context_t *context);
 typedef void (*imgui_post_draw_proc_t)(struct context_t *context);
 typedef void (*imgui_destroy_proc_t)(struct context_t *context);
 typedef uint64_t (*imgui_viewport_count_proc_t)(struct context_t *context);
+typedef uint8_t (*imgui_viewport_dirty_proc_t)(struct context_t *context);
 typedef uint32_t (*imgui_viewport_width_proc_t)(struct context_t *context, uint64_t index);
 typedef uint32_t (*imgui_viewport_height_proc_t)(struct context_t *context, uint64_t index);
 typedef LRESULT (*imgui_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);

@@ -89,6 +89,17 @@ void swapchain_create(context_t *context) {
 
   database_destroy_swapchain_asset(&swapchain_asset);
 }
+void swapchain_update_gbuffer(swapchain_t *swapchain) {
+  swapchain_destroy_gbuffer_frame_buffer(swapchain);
+  swapchain_destroy_gbuffer_depth_images(swapchain);
+  swapchain_destroy_gbuffer_color_images(swapchain);
+  swapchain_destroy_gbuffer_render_pass(swapchain);
+
+  swapchain_create_gbuffer_render_pass(swapchain);
+  swapchain_create_gbuffer_color_images(swapchain);
+  swapchain_create_gbuffer_depth_images(swapchain);
+  swapchain_create_gbuffer_frame_buffer(swapchain);
+}
 void swapchain_destroy(swapchain_t *swapchain) {
   if (swapchain->context->is_editor_mode) {
 

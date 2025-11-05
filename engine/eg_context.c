@@ -57,6 +57,7 @@ imgui_draw_proc_t g_context_imgui_draw_proc = 0;
 imgui_post_draw_proc_t g_context_imgui_post_draw_proc = 0;
 imgui_destroy_proc_t g_context_imgui_destroy_proc = 0;
 imgui_viewport_count_proc_t g_context_imgui_viewport_count_proc = 0;
+imgui_viewport_dirty_proc_t g_context_imgui_viewport_dirty_proc = 0;
 imgui_viewport_width_proc_t g_context_imgui_viewport_width_proc = 0;
 imgui_viewport_height_proc_t g_context_imgui_viewport_height_proc = 0;
 imgui_message_proc_t g_context_imgui_message_proc = 0;
@@ -146,6 +147,16 @@ void context_begin_frame(context_t *context) {
     renderer_create(context);
   }
 
+  if (context->is_editor_mode) {
+    if (g_context_imgui_viewport_dirty_proc(context)) {
+      renderer_destroy(context->renderer);
+
+      swapchain_update_gbuffer(context->swapchain);
+
+      renderer_create(context);
+    }
+  }
+
   if (context->renderer->is_dirty) {
     context->renderer->is_dirty = 0;
 
@@ -155,6 +166,7 @@ void context_begin_frame(context_t *context) {
   }
 
   while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
+
     TranslateMessage(&context->window_message);
     DispatchMessageA(&context->window_message);
   }
