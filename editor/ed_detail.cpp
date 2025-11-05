@@ -23,9 +23,7 @@ void detail_create(context_t *context) {
 void detail_refresh(context_t *context) {
 }
 void detail_draw(context_t *context) {
-  bool is_docked = false;
-
-  if (dockspace_begin_child("Detail", &g_titlebar_detail_open, &is_docked)) {
+  if (dockspace_begin_child("Detail", &g_titlebar_detail_is_open, &g_titlebar_detail_is_docked)) {
     switch (g_catalog_selected_asset_type) {
       case ASSET_TYPE_NONE: {
 
@@ -65,7 +63,7 @@ void detail_draw(context_t *context) {
       }
     }
 
-    dockspace_end_child(is_docked);
+    dockspace_end_child(g_titlebar_detail_is_docked);
   }
 }
 void detail_destroy(context_t *context) {

@@ -48,9 +48,7 @@ void catalog_refresh(context_t *context) {
   g_catalog_model_assets = database_load_model_assets();
 }
 void catalog_draw(context_t *context) {
-  bool is_docked = false;
-
-  if (dockspace_begin_child("Catalog", &g_titlebar_catalog_open, &is_docked)) {
+  if (dockspace_begin_child("Catalog", &g_titlebar_catalog_is_open, &g_titlebar_catalog_is_docked)) {
 
     if (ImGui::TreeNodeEx("Swapchain", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding)) {
 
@@ -200,7 +198,7 @@ void catalog_draw(context_t *context) {
       ImGui::TreePop();
     }
 
-    dockspace_end_child(is_docked);
+    dockspace_end_child(g_titlebar_catalog_is_docked);
   }
 }
 void catalog_destroy(context_t *context) {

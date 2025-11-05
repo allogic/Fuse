@@ -10,13 +10,11 @@ void hierarchy_create(context_t *context) {
 void hierarchy_refresh(context_t *context) {
 }
 void hierarchy_draw(context_t *context) {
-  bool is_docked = false;
-
-  if (dockspace_begin_child("Hierarchy", &g_titlebar_hierarchy_open, &is_docked)) {
+  if (dockspace_begin_child("Hierarchy", &g_titlebar_hierarchy_is_open, &g_titlebar_hierarchy_is_docked)) {
 
     hierarchy_draw_tree(context->scene->world, context->scene->root);
 
-    dockspace_end_child(is_docked);
+    dockspace_end_child(g_titlebar_hierarchy_is_docked);
   }
 }
 void hierarchy_destroy(context_t *context) {

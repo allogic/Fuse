@@ -7,18 +7,7 @@ int32_t main(int32_t argc, char **argv) {
   // TODO: move scene stuff somewhere else
   context->scene = scene_create(context);
 
-  while (context_is_running(context)) {
-
-    context_begin_frame(context);
-
-    scene_update(context->scene);
-
-    // TODO: remove these render calls, inline them into the context itself..
-    renderer_update(context->renderer);
-    renderer_draw(context->renderer);
-
-    context_end_frame(context);
-  }
+  context_run(context);
 
   scene_destroy(context->scene);
 

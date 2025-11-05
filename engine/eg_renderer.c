@@ -21,6 +21,7 @@ static void renderer_link_pipeline(renderer_t *renderer, uint32_t link_index, ui
 
 static void renderer_create_global_buffers(renderer_t *renderer);
 static void renderer_create_debug_buffers(renderer_t *renderer);
+static void renderer_create_gbuffer_render_pass(renderer_t *renderer);
 static void renderer_create_pipelines(renderer_t *renderer);
 static void renderer_create_sync_objects(renderer_t *renderer);
 static void renderer_create_command_buffer(renderer_t *renderer);
@@ -31,13 +32,14 @@ static void renderer_record_compute_commands(renderer_t *renderer);
 static void renderer_record_graphic_commands(renderer_t *renderer);
 
 static void renderer_gbuffer_pass(renderer_t *renderer);
-static void renderer_imgui_pass(renderer_t *renderer);
+static void renderer_editor_pass(renderer_t *renderer);
 
 static void renderer_destroy_global_buffers(renderer_t *renderer);
 static void renderer_destroy_debug_buffers(renderer_t *renderer);
 static void renderer_destroy_pipelines(renderer_t *renderer);
 static void renderer_destroy_sync_objects(renderer_t *renderer);
 static void renderer_destroy_command_buffer(renderer_t *renderer);
+static void renderer_destroy_gbuffer_render_pass(renderer_t *renderer);
 
 void renderer_create(context_t *context) {
   renderer_t *renderer = (renderer_t *)heap_alloc(sizeof(renderer_t), 1, 0);
@@ -65,11 +67,12 @@ void renderer_create(context_t *context) {
 
   renderer_create_global_buffers(renderer);
   renderer_create_debug_buffers(renderer);
+  renderer_create_gbuffer_render_pass(renderer);
   renderer_create_pipelines(renderer);
   renderer_create_sync_objects(renderer);
   renderer_create_command_buffer(renderer);
 
-  if (g_context_imgui_create_proc) {
+  if (renderer->context->is_editor_mode) {
     g_context_imgui_create_proc(renderer->context);
   }
 
@@ -237,15 +240,16 @@ void renderer_destroy(renderer_t *renderer) {
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->graphic_queue));
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->present_queue));
 
-  if (g_context_imgui_destroy_proc) {
+  if (renderer->context->is_editor_mode) {
     g_context_imgui_destroy_proc(renderer->context);
   }
 
-  renderer_destroy_global_buffers(renderer);
-  renderer_destroy_debug_buffers(renderer);
-  renderer_destroy_pipelines(renderer);
-  renderer_destroy_sync_objects(renderer);
   renderer_destroy_command_buffer(renderer);
+  renderer_destroy_sync_objects(renderer);
+  renderer_destroy_pipelines(renderer);
+  renderer_destroy_gbuffer_render_pass(renderer);
+  renderer_destroy_debug_buffers(renderer);
+  renderer_destroy_global_buffers(renderer);
 
   renderer->context->renderer = 0;
 
@@ -410,6 +414,62 @@ static void renderer_create_debug_buffers(renderer_t *renderer) {
 
     frame_index++;
   }
+}
+static void renderer_create_gbuffer_render_pass(renderer_t *renderer) {
+  VkAttachmentDescription color_attachment_description = {0};
+  color_attachment_description.format = renderer->context->prefered_surface_format.format;
+  color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+  color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  color_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  color_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  color_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  color_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+  VkAttachmentDescription depth_attachment_description = {0};
+  depth_attachment_description.format = renderer->context->swapchain->depth_format;
+  depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+  depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  depth_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  depth_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depth_attachment_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  depth_attachment_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+  VkAttachmentReference color_attachment_reference = {0};
+  color_attachment_reference.attachment = 0;
+  color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  VkAttachmentReference depth_attachment_reference = {0};
+  depth_attachment_reference.attachment = 1;
+  depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+  VkSubpassDescription subpass_description = {0};
+  subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  subpass_description.colorAttachmentCount = 1;
+  subpass_description.pColorAttachments = &color_attachment_reference;
+  subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
+
+  VkSubpassDependency subpass_dependency = {0};
+  subpass_dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  subpass_dependency.dstSubpass = 0;
+  subpass_dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  subpass_dependency.srcAccessMask = VK_ACCESS_NONE;
+  subpass_dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+  subpass_dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+  VkAttachmentDescription attachment_descriptions[] = {color_attachment_description, depth_attachment_description};
+
+  VkRenderPassCreateInfo render_pass_create_info = {0};
+  render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  render_pass_create_info.pAttachments = attachment_descriptions;
+  render_pass_create_info.attachmentCount = ARRAY_COUNT(attachment_descriptions);
+  render_pass_create_info.pSubpasses = &subpass_description;
+  render_pass_create_info.subpassCount = 1;
+  render_pass_create_info.pDependencies = &subpass_dependency;
+  render_pass_create_info.dependencyCount = 1;
+
+  VULKAN_CHECK(vkCreateRenderPass(renderer->context->device, &render_pass_create_info, 0, &renderer->gbuffer_render_pass));
 }
 static void renderer_create_pipelines(renderer_t *renderer) {
   vector_t graphic_pipeline_assets = database_load_pipeline_assets_by_type(0);
@@ -587,91 +647,46 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
 
   if (renderer->context->is_editor_mode) {
 
-    g_context_imgui_pre_draw_proc(renderer->context);
+    uint64_t viewport_index = 0;
 
-    renderer_imgui_pass(renderer);
+    while (renderer->context->viewports[viewport_index]) {
 
-    g_context_imgui_post_draw_proc(renderer->context);
+      viewport_t *viewport = renderer->context->viewports[viewport_index];
+
+      VkImage color_image = viewport->color_image[renderer->image_index];
+      VkImage depth_image = viewport->depth_image[renderer->image_index];
+
+      image_layout_transition(renderer->context, color_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+      image_layout_transition(renderer->context, depth_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+      viewport_index++;
+    }
+
+    renderer_editor_pass(renderer);
+
+    viewport_index = 0;
+
+    while (renderer->context->viewports[viewport_index]) {
+
+      viewport_t *viewport = renderer->context->viewports[viewport_index];
+
+      VkImage color_image = viewport->color_image[renderer->image_index];
+      VkImage depth_image = viewport->depth_image[renderer->image_index];
+
+      image_layout_transition(renderer->context, color_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
+      image_layout_transition(renderer->context, depth_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+      viewport_index++;
+    }
   }
 }
 
 static void renderer_gbuffer_pass(renderer_t *renderer) {
   VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
 
-  if (renderer->context->is_editor_mode) {
+  uint64_t viewport_index = 0;
 
-    uint64_t viewport_index = 0;
-    uint64_t viewport_count = g_context_imgui_viewport_count_proc(renderer->context);
-
-    while (viewport_index < viewport_count) {
-
-      VkClearValue color_clear_value = {0};
-      color_clear_value.color.float32[0] = 0.0F;
-      color_clear_value.color.float32[1] = 0.0F;
-      color_clear_value.color.float32[2] = 0.0F;
-      color_clear_value.color.float32[3] = 1.0F;
-
-      VkClearValue depth_clear_value = {0};
-      depth_clear_value.depthStencil.depth = 1.0F;
-      depth_clear_value.depthStencil.stencil = 0;
-
-      VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
-
-      uint32_t width = g_context_imgui_viewport_width_proc(renderer->context, viewport_index);
-      uint32_t height = g_context_imgui_viewport_height_proc(renderer->context, viewport_index);
-
-      VkRenderPassBeginInfo render_pass_create_info = {0};
-      render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-      render_pass_create_info.renderPass = renderer->context->swapchain->gbuffer_render_pass;
-      render_pass_create_info.framebuffer = renderer->context->swapchain->gbuffer_frame_buffers[viewport_index][renderer->image_index];
-      render_pass_create_info.renderArea.offset.x = 0;
-      render_pass_create_info.renderArea.offset.y = 0;
-      render_pass_create_info.renderArea.extent.width = width;
-      render_pass_create_info.renderArea.extent.height = height;
-      render_pass_create_info.pClearValues = clear_values;
-      render_pass_create_info.clearValueCount = ARRAY_COUNT(clear_values);
-
-      vkCmdBeginRenderPass(command_buffer, &render_pass_create_info, VK_SUBPASS_CONTENTS_INLINE);
-
-      VkViewport viewport = {0};
-      viewport.x = 0.0F;
-      viewport.y = 0.0F;
-      viewport.width = (float)width;
-      viewport.height = (float)height;
-      viewport.minDepth = 0.0F;
-      viewport.maxDepth = 1.0F;
-
-      vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-      VkRect2D scissor = {0};
-      scissor.offset.x = 0;
-      scissor.offset.y = 0;
-      scissor.extent.width = width;
-      scissor.extent.height = height;
-
-      vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-      if (renderer->is_debug_enabled) {
-
-        graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
-
-        if (debug_pipeline) {
-
-          uint32_t index_count = renderer->debug_line_index_offsets[renderer->frame_index];
-
-          graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
-        }
-
-        renderer->debug_line_vertex_offsets[renderer->frame_index] = 0;
-        renderer->debug_line_index_offsets[renderer->frame_index] = 0;
-      }
-
-      vkCmdEndRenderPass(command_buffer);
-
-      viewport_index++;
-    }
-
-  } else {
+  while (renderer->context->viewports[viewport_index]) {
 
     VkClearValue color_clear_value = {0};
     color_clear_value.color.float32[0] = 0.0F;
@@ -685,13 +700,13 @@ static void renderer_gbuffer_pass(renderer_t *renderer) {
 
     VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
 
-    uint32_t width = renderer->context->window_width;
-    uint32_t height = renderer->context->window_height;
+    uint32_t width = renderer->context->viewports[viewport_index]->width;
+    uint32_t height = renderer->context->viewports[viewport_index]->height;
 
     VkRenderPassBeginInfo render_pass_create_info = {0};
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_create_info.renderPass = renderer->context->swapchain->gbuffer_render_pass;
-    render_pass_create_info.framebuffer = renderer->context->swapchain->gbuffer_frame_buffers[0][renderer->image_index];
+    render_pass_create_info.renderPass = renderer->gbuffer_render_pass;
+    render_pass_create_info.framebuffer = renderer->context->viewports[viewport_index]->frame_buffer[renderer->image_index];
     render_pass_create_info.renderArea.offset.x = 0;
     render_pass_create_info.renderArea.offset.y = 0;
     render_pass_create_info.renderArea.extent.width = width;
@@ -735,9 +750,11 @@ static void renderer_gbuffer_pass(renderer_t *renderer) {
     }
 
     vkCmdEndRenderPass(command_buffer);
+
+    viewport_index++;
   }
 }
-static void renderer_imgui_pass(renderer_t *renderer) {
+static void renderer_editor_pass(renderer_t *renderer) {
   VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
 
   VkClearValue color_clear_value = {0};
@@ -757,8 +774,8 @@ static void renderer_imgui_pass(renderer_t *renderer) {
 
   VkRenderPassBeginInfo render_pass_create_info = {0};
   render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  render_pass_create_info.renderPass = renderer->context->swapchain->imgui_render_pass;
-  render_pass_create_info.framebuffer = renderer->context->swapchain->imgui_frame_buffers[renderer->image_index];
+  render_pass_create_info.renderPass = renderer->context->swapchain->main_render_pass;
+  render_pass_create_info.framebuffer = renderer->context->swapchain->frame_buffer[renderer->image_index];
   render_pass_create_info.renderArea.offset.x = 0;
   render_pass_create_info.renderArea.offset.y = 0;
   render_pass_create_info.renderArea.extent.width = width;
@@ -895,4 +912,7 @@ static void renderer_destroy_command_buffer(renderer_t *renderer) {
   vkFreeCommandBuffers(renderer->context->device, renderer->context->command_pool, (uint32_t)renderer->frames_in_flight, renderer->graphic_command_buffers);
 
   heap_free(renderer->graphic_command_buffers);
+}
+static void renderer_destroy_gbuffer_render_pass(renderer_t *renderer) {
+  vkDestroyRenderPass(renderer->context->device, renderer->gbuffer_render_pass, 0);
 }

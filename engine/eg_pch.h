@@ -16,5 +16,6 @@
 #include <engine/eg_scene.h>
 #include <engine/eg_buffer.h>
 #include <engine/eg_image.h>
+#include <engine/eg_viewport.h>
 
 #endif // EG_PCH_H

@@ -1,17 +1,21 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_main.h>
-#include <editor/ed_viewport.h>
 
 static void titlebar_reset_drag_state(context_t *context);
 
 static void titlebar_draw_window_controls(context_t *context);
 static void titlebar_draw_scene_controls(context_t *context);
 
-bool g_titlebar_catalog_open = true;
-bool g_titlebar_hierarchy_open = true;
-bool g_titlebar_inspector_open = true;
-bool g_titlebar_detail_open = true;
+uint8_t g_titlebar_catalog_is_open = 1;
+uint8_t g_titlebar_hierarchy_is_open = 1;
+uint8_t g_titlebar_inspector_is_open = 1;
+uint8_t g_titlebar_detail_is_open = 1;
+
+uint8_t g_titlebar_catalog_is_docked = 0;
+uint8_t g_titlebar_hierarchy_is_docked = 0;
+uint8_t g_titlebar_inspector_is_docked = 0;
+uint8_t g_titlebar_detail_is_docked = 0;
 
 void titlebar_create(context_t *context) {
 }
@@ -47,35 +51,35 @@ void titlebar_draw(context_t *context) {
   ImGui::SameLine(50);
 
   if (ImGui::Button("Catalog")) {
-    g_titlebar_catalog_open = true;
+    g_titlebar_catalog_is_open = 1;
   }
   ImGui::SameLine();
   if (ImGui::Button("Hierarchy")) {
-    g_titlebar_hierarchy_open = true;
+    g_titlebar_hierarchy_is_open = 1;
   }
   ImGui::SameLine();
   if (ImGui::Button("Inspector")) {
-    g_titlebar_inspector_open = true;
+    g_titlebar_inspector_is_open = 1;
   }
   ImGui::SameLine();
   if (ImGui::Button("Detail")) {
-    g_titlebar_detail_open = true;
+    g_titlebar_detail_is_open = 1;
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 1")) {
-    g_editor_viewports[0]->is_open = true;
+    // TODO
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 2")) {
-    g_editor_viewports[1]->is_open = true;
+    // TODO
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 3")) {
-    g_editor_viewports[2]->is_open = true;
+    // TODO
   }
   ImGui::SameLine();
   if (ImGui::Button("Viewport 4")) {
-    g_editor_viewports[3]->is_open = true;
+    // TODO
   }
   ImGui::SameLine();
   if (ImGui::Button("Import")) {
@@ -94,10 +98,6 @@ void titlebar_destroy(context_t *context) {
 }
 
 static void titlebar_reset_drag_state(context_t *context) {
-  ImGuiIO &io = ImGui::GetIO();
-
-  bool in_titlebar = ((io.MousePos.y >= 0.0F) && (io.MousePos.y < context->window_titlebar_height));
-
   if (ImGui::IsWindowHovered() &&
       !ImGui::IsAnyItemHovered() &&
       ImGui::IsMouseDown(ImGuiMouseButton_Left)) {

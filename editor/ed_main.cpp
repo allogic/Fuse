@@ -7,20 +7,13 @@
 #include <editor/ed_inspector.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
-#include <editor/ed_viewport.h>
+#include <editor/ed_sceneview.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 static void imgui_create(context_t *context);
-static void imgui_pre_draw(context_t *context);
 static void imgui_draw(context_t *context);
-static void imgui_post_draw(context_t *context);
 static void imgui_destroy(context_t *context);
-
-static uint64_t imgui_viewport_count(context_t *context);
-static uint8_t imgui_viewport_dirty(context_t *context);
-static uint32_t imgui_viewport_width(context_t *context, uint64_t index);
-static uint32_t imgui_viewport_height(context_t *context, uint64_t index);
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
 
@@ -40,58 +33,24 @@ ImFont *g_editor_material_symbols_h5 = 0;
 ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
 
-viewport_t *g_editor_viewports[4] = {};
+sceneview_t *g_sceneviews[0xFF] = {};
 
 static VkDescriptorPool s_editor_descriptor_pool = 0;
 
 int32_t main(int32_t argc, char **argv) {
   g_context_imgui_create_proc = imgui_create;
-  g_context_imgui_pre_draw_proc = imgui_pre_draw;
   g_context_imgui_draw_proc = imgui_draw;
-  g_context_imgui_post_draw_proc = imgui_post_draw;
   g_context_imgui_destroy_proc = imgui_destroy;
-  g_context_imgui_viewport_count_proc = imgui_viewport_count;
-  g_context_imgui_viewport_dirty_proc = imgui_viewport_dirty;
-  g_context_imgui_viewport_width_proc = imgui_viewport_width;
-  g_context_imgui_viewport_height_proc = imgui_viewport_height;
   g_context_imgui_message_proc = ImGui_ImplWin32_WndProcHandler;
 
   context_t *context = context_create(1920, 1080, 1);
 
-  g_editor_viewports[0] = viewport_create(context, "Viewport 1");
-  g_editor_viewports[1] = viewport_create(context, "Viewport 2");
-  g_editor_viewports[2] = viewport_create(context, "Viewport 3");
-  g_editor_viewports[3] = viewport_create(context, "Viewport 4");
-
   // TODO: move scene stuff somewhere else
   context->scene = scene_create(context);
 
-  while (context_is_running(context)) {
-
-    context_begin_frame(context);
-
-    scene_update(context->scene);
-
-    // TODO: remove these render calls, inline them into the context itself..
-    renderer_update(context->renderer);
-    renderer_draw(context->renderer);
-
-    context_end_frame(context);
-  }
+  context_run(context);
 
   scene_destroy(context->scene);
-
-  uint64_t viewport_index = 0;
-  uint64_t viewport_count = 4;
-
-  while (viewport_index < viewport_count) {
-
-    if (g_editor_viewports[viewport_index]) {
-      viewport_destroy(g_editor_viewports[viewport_index]);
-    }
-
-    viewport_index++;
-  }
 
   context_destroy(context);
 
@@ -213,7 +172,7 @@ static void imgui_create(context_t *context) {
   imgui_vulkan_init_info.Queue = context->graphic_queue;
   imgui_vulkan_init_info.PipelineCache = 0;
   imgui_vulkan_init_info.DescriptorPool = s_editor_descriptor_pool;
-  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->imgui_render_pass;
+  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->main_render_pass;
   imgui_vulkan_init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   imgui_vulkan_init_info.MinImageCount = context->surface_capabilities.minImageCount;
   imgui_vulkan_init_info.ImageCount = (uint32_t)context->swapchain->image_count;
@@ -229,23 +188,7 @@ static void imgui_create(context_t *context) {
   inspector_create(context);
   dockspace_create(context);
   statusbar_create(context);
-}
-static void imgui_pre_draw(context_t *context) {
-  VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
-
-  uint64_t viewport_index = 0;
-  uint64_t viewport_count = g_context_imgui_viewport_count_proc(context);
-
-  while (viewport_index < viewport_count) {
-
-    VkImage gbuffer_color_image = context->swapchain->gbuffer_color_image[viewport_index][context->renderer->image_index];
-    VkImage gbuffer_depth_image = context->swapchain->gbuffer_depth_image[viewport_index][context->renderer->image_index];
-
-    image_layout_transition(context, gbuffer_color_image, command_buffer, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-    image_layout_transition(context, gbuffer_depth_image, command_buffer, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    viewport_index++;
-  }
+  sceneview_create(context, 0, "Sceneview 0");
 }
 static void imgui_draw(context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
@@ -265,47 +208,16 @@ static void imgui_draw(context_t *context) {
 
   ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
-static void imgui_post_draw(context_t *context) {
-  VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
-
-  uint64_t viewport_index = 0;
-  uint64_t viewport_count = 4;
-
-  while (viewport_index < viewport_count) {
-
-    VkImage gbuffer_color_image = context->swapchain->gbuffer_color_image[viewport_index][context->renderer->image_index];
-    VkImage gbuffer_depth_image = context->swapchain->gbuffer_depth_image[viewport_index][context->renderer->image_index];
-
-    image_layout_transition(context, gbuffer_color_image, command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
-    image_layout_transition(context, gbuffer_depth_image, command_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    viewport_index++;
-  }
-}
-static uint64_t imgui_viewport_count(context_t *context) {
-  return 4; // TODO
-}
-static uint8_t imgui_viewport_dirty(context_t *context) {
-  uint8_t is_dirty = 0;
-
-  uint64_t viewport_index = 0;
-  uint64_t viewport_count = 4;
-
-  while (viewport_index < viewport_count) {
-    is_dirty |= g_editor_viewports[viewport_index]->is_dirty;
-
-    viewport_index++;
-  }
-
-  return is_dirty;
-}
-static uint32_t imgui_viewport_width(context_t *context, uint64_t index) {
-  return g_editor_viewports[index]->width;
-}
-static uint32_t imgui_viewport_height(context_t *context, uint64_t index) {
-  return g_editor_viewports[index]->height;
-}
 static void imgui_destroy(context_t *context) {
+  uint64_t sceneview_index = 0;
+
+  while (g_sceneviews[sceneview_index]) {
+
+    sceneview_destroy(g_sceneviews[sceneview_index]);
+
+    sceneview_index++;
+  }
+
   titlebar_destroy(context);
   catalog_destroy(context);
   detail_destroy(context);

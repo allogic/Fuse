@@ -2,6 +2,7 @@
 #include <engine/eg_context.h>
 #include <engine/eg_swapchain.h>
 #include <engine/eg_renderer.h>
+#include <engine/eg_viewport.h>
 
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -52,14 +53,8 @@ static char const *s_context_device_extensions[] = {
 };
 
 imgui_create_proc_t g_context_imgui_create_proc = 0;
-imgui_pre_draw_proc_t g_context_imgui_pre_draw_proc = 0;
 imgui_draw_proc_t g_context_imgui_draw_proc = 0;
-imgui_post_draw_proc_t g_context_imgui_post_draw_proc = 0;
 imgui_destroy_proc_t g_context_imgui_destroy_proc = 0;
-imgui_viewport_count_proc_t g_context_imgui_viewport_count_proc = 0;
-imgui_viewport_dirty_proc_t g_context_imgui_viewport_dirty_proc = 0;
-imgui_viewport_width_proc_t g_context_imgui_viewport_width_proc = 0;
-imgui_viewport_height_proc_t g_context_imgui_viewport_height_proc = 0;
 imgui_message_proc_t g_context_imgui_message_proc = 0;
 
 context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
@@ -97,87 +92,96 @@ context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode)
   swapchain_create(context);
   renderer_create(context);
 
-  QueryPerformanceFrequency(&context->timer_freq);
-
   return context;
 }
-uint8_t context_is_running(context_t *context) {
-  return context->is_window_running;
-}
-void context_begin_frame(context_t *context) {
-  context->mouse_wheel_delta = 0;
+void context_run(context_t *context) {
+  LARGE_INTEGER timer_freq = {0};
+  LARGE_INTEGER timer_begin = {0};
+  LARGE_INTEGER timer_end = {0};
 
-  uint8_t keyboard_key_index = 0;
-  uint8_t keyboard_key_count = 0xFF;
+  QueryPerformanceFrequency(&timer_freq);
 
-  while (keyboard_key_index < keyboard_key_count) {
+  while (context->is_window_running) {
 
-    if (context->event_keyboard_key_states[keyboard_key_index] == KEY_STATE_PRESSED) {
-      context->event_keyboard_key_states[keyboard_key_index] = KEY_STATE_DOWN;
-    } else if (context->event_keyboard_key_states[keyboard_key_index] == KEY_STATE_RELEASED) {
-      context->event_keyboard_key_states[keyboard_key_index] = KEY_STATE_UP;
+    context->mouse_wheel_delta = 0;
+
+    uint8_t keyboard_key_index = 0;
+    uint8_t keyboard_key_count = 0xFF;
+
+    while (keyboard_key_index < keyboard_key_count) {
+
+      if (context->event_keyboard_key_states[keyboard_key_index] == KEY_STATE_PRESSED) {
+        context->event_keyboard_key_states[keyboard_key_index] = KEY_STATE_DOWN;
+      } else if (context->event_keyboard_key_states[keyboard_key_index] == KEY_STATE_RELEASED) {
+        context->event_keyboard_key_states[keyboard_key_index] = KEY_STATE_UP;
+      }
+
+      keyboard_key_index++;
     }
 
-    keyboard_key_index++;
-  }
+    uint8_t mouse_key_index = 0;
+    uint8_t mouse_key_count = 0x3;
 
-  uint8_t mouse_key_index = 0;
-  uint8_t mouse_key_count = 0x3;
+    while (mouse_key_index < mouse_key_count) {
 
-  while (mouse_key_index < mouse_key_count) {
+      if (context->event_mouse_key_states[mouse_key_index] == KEY_STATE_PRESSED) {
+        context->event_mouse_key_states[mouse_key_index] = KEY_STATE_DOWN;
+      } else if (context->event_mouse_key_states[mouse_key_index] == KEY_STATE_RELEASED) {
+        context->event_mouse_key_states[mouse_key_index] = KEY_STATE_UP;
+      }
 
-    if (context->event_mouse_key_states[mouse_key_index] == KEY_STATE_PRESSED) {
-      context->event_mouse_key_states[mouse_key_index] = KEY_STATE_DOWN;
-    } else if (context->event_mouse_key_states[mouse_key_index] == KEY_STATE_RELEASED) {
-      context->event_mouse_key_states[mouse_key_index] = KEY_STATE_UP;
+      mouse_key_index++;
     }
 
-    mouse_key_index++;
-  }
+    if (context->swapchain->is_dirty) {
+      context->swapchain->is_dirty = 0;
 
-  if (context->swapchain->is_dirty) {
-    context->swapchain->is_dirty = 0;
-
-    renderer_destroy(context->renderer);
-    swapchain_destroy(context->swapchain);
-
-    context_resize_surface(context);
-
-    swapchain_create(context);
-    renderer_create(context);
-  }
-
-  if (context->is_editor_mode) {
-    if (g_context_imgui_viewport_dirty_proc(context)) {
       renderer_destroy(context->renderer);
+      swapchain_destroy(context->swapchain);
 
-      swapchain_update_gbuffer(context->swapchain);
+      context_resize_surface(context);
+
+      swapchain_create(context);
+      renderer_create(context);
+    }
+
+    if (context->renderer->is_dirty) {
+      context->renderer->is_dirty = 0;
+
+      renderer_destroy(context->renderer);
 
       renderer_create(context);
     }
+
+    // TODO
+    // if (context->is_editor_mode) {
+    //   if (g_context_imgui_viewport_dirty_proc(context)) {
+    //     renderer_destroy(context->renderer);
+    //
+    //     swapchain_update_gbuffer(context->swapchain);
+    //
+    //     renderer_create(context);
+    //   }
+    // }
+
+    while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
+
+      TranslateMessage(&context->window_message);
+      DispatchMessageA(&context->window_message);
+    }
+
+    QueryPerformanceCounter(&timer_begin);
+
+    scene_update(context->scene);
+
+    renderer_update(context->renderer);
+    renderer_draw(context->renderer);
+
+    QueryPerformanceCounter(&timer_end);
+
+    context->delta_time = (((double)timer_end.QuadPart) - ((double)timer_begin.QuadPart)) / ((double)timer_freq.QuadPart);
+    context->time += context->delta_time;
   }
-
-  if (context->renderer->is_dirty) {
-    context->renderer->is_dirty = 0;
-
-    renderer_destroy(context->renderer);
-
-    renderer_create(context);
-  }
-
-  while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
-
-    TranslateMessage(&context->window_message);
-    DispatchMessageA(&context->window_message);
-  }
-
-  QueryPerformanceCounter(&context->timer_begin);
-}
-void context_end_frame(context_t *context) {
-  QueryPerformanceCounter(&context->timer_end);
-
-  context->delta_time = (((double)context->timer_end.QuadPart) - ((double)context->timer_begin.QuadPart)) / ((double)context->timer_freq.QuadPart);
-  context->time += context->delta_time;
 }
 void context_destroy(context_t *context) {
   renderer_destroy(context->renderer);
@@ -267,11 +271,13 @@ void context_end_command_buffer(context_t *context, VkCommandBuffer command_buff
 }
 
 static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
-  if (g_context_imgui_message_proc) {
-    g_context_imgui_message_proc(window_handle, message, w_param, l_param);
-  }
-
   context_t *context = (context_t *)GetWindowLongPtr(window_handle, GWLP_USERDATA);
+
+  if (context) {
+    if (context->is_editor_mode) {
+      g_context_imgui_message_proc(window_handle, message, w_param, l_param);
+    }
+  }
 
   switch (message) {
     case WM_CREATE: {

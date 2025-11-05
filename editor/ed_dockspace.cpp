@@ -5,7 +5,7 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_main.h>
 #include <editor/ed_inspector.h>
-#include <editor/ed_viewport.h>
+#include <editor/ed_sceneview.h>
 
 void dockspace_create(context_t *context) {
 }
@@ -39,16 +39,13 @@ void dockspace_draw(context_t *context) {
   hierarchy_draw(context);
   inspector_draw(context);
 
-  uint64_t viewport_index = 0;
-  uint64_t viewport_count = 4;
+  uint64_t sceneview_index = 0;
 
-  while (viewport_index < viewport_count) {
+  while (g_sceneviews[sceneview_index]) {
 
-    if (g_editor_viewports[viewport_index]) {
-      viewport_draw(g_editor_viewports[viewport_index]);
-    }
+    sceneview_draw(g_sceneviews[sceneview_index]);
 
-    viewport_index++;
+    sceneview_index++;
   }
 
   ImGui::End();
@@ -56,13 +53,13 @@ void dockspace_draw(context_t *context) {
 void dockspace_destroy(context_t *context) {
 }
 
-bool dockspace_begin_child(char const *name, bool *is_open, bool *is_docked) {
+uint8_t dockspace_begin_child(char const *name, uint8_t *is_open, uint8_t *is_docked) {
   if (*is_open) {
     ImGuiWindowFlags window_flags =
       ImGuiWindowFlags_NoScrollbar |
       ImGuiWindowFlags_NoCollapse;
 
-    ImGui::Begin(name, is_open, window_flags);
+    ImGui::Begin(name, (bool *)is_open, window_flags);
 
     *is_docked = ImGui::IsWindowDocked();
 
@@ -80,12 +77,12 @@ bool dockspace_begin_child(char const *name, bool *is_open, bool *is_docked) {
       ImGui::BeginChild("SecondChild", second_window_size);
     }
 
-    return true;
+    return 1;
   }
 
-  return false;
+  return 0;
 }
-void dockspace_end_child(bool is_docked) {
+void dockspace_end_child(uint8_t is_docked) {
   if (is_docked) {
     ImGui::EndChild();
     ImGui::EndChild();

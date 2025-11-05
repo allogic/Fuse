@@ -547,7 +547,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   graphic_pipeline_create_info.pColorBlendState = &color_blend_create_info;
   graphic_pipeline_create_info.pDynamicState = &dynamic_state_create_info;
   graphic_pipeline_create_info.layout = pipeline->pipeline_layout;
-  graphic_pipeline_create_info.renderPass = pipeline->context->swapchain->gbuffer_render_pass;
+  graphic_pipeline_create_info.renderPass = pipeline->context->renderer->gbuffer_render_pass;
   graphic_pipeline_create_info.subpass = 0;
   graphic_pipeline_create_info.basePipelineHandle = 0;
 

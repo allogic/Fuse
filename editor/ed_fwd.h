@@ -14,7 +14,7 @@ typedef enum gbuffer_attachment_type_t {
   GBUFFER_ATTACHMENT_TYPE_DEPTH,
 } gbuffer_attachment_type_t;
 
-typedef struct viewport_t {
+typedef struct sceneview_t {
   context_t *context;
   uint64_t index;
   uint32_t width;
@@ -22,11 +22,12 @@ typedef struct viewport_t {
   uint32_t prev_width;
   uint32_t prev_height;
   uint8_t is_dirty;
-  bool is_open;
+  uint8_t is_open;
+  uint8_t is_docked;
   char name[0xFF];
   VkDescriptorSet *gbuffer_color_attachment;
   VkDescriptorSet *gbuffer_depth_attachment;
   gbuffer_attachment_type_t gbuffer_attachment_type;
-} viewport_t;
+} sceneview_t;
 
 #endif // ED_FWD_H

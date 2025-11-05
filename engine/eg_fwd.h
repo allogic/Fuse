@@ -125,14 +125,8 @@ typedef enum mouse_key_t {
 } mouse_key_t;
 
 typedef void (*imgui_create_proc_t)(struct context_t *context);
-typedef void (*imgui_pre_draw_proc_t)(struct context_t *context);
 typedef void (*imgui_draw_proc_t)(struct context_t *context);
-typedef void (*imgui_post_draw_proc_t)(struct context_t *context);
 typedef void (*imgui_destroy_proc_t)(struct context_t *context);
-typedef uint64_t (*imgui_viewport_count_proc_t)(struct context_t *context);
-typedef uint8_t (*imgui_viewport_dirty_proc_t)(struct context_t *context);
-typedef uint32_t (*imgui_viewport_width_proc_t)(struct context_t *context, uint64_t index);
-typedef uint32_t (*imgui_viewport_height_proc_t)(struct context_t *context, uint64_t index);
 typedef LRESULT (*imgui_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 typedef struct context_t {
@@ -168,14 +162,12 @@ typedef struct context_t {
   VkCommandPool command_pool;
   key_state_t event_keyboard_key_states[0xFF];
   key_state_t event_mouse_key_states[0x3];
-  LARGE_INTEGER timer_freq;
-  LARGE_INTEGER timer_begin;
-  LARGE_INTEGER timer_end;
 #ifdef BUILD_DEBUG
   PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger_ext;
   PFN_vkDestroyDebugUtilsMessengerEXT destroy_debug_utils_messenger_ext;
   VkDebugUtilsMessengerEXT debug_messenger;
 #endif // BUILD_DEBUG
+  struct viewport_t *viewports[0xFF];
   struct swapchain_t *swapchain;
   struct renderer_t *renderer;
   struct scene_t *scene;
@@ -188,27 +180,30 @@ typedef struct swapchain_t {
   uint64_t image_count;
   VkFormat depth_format;
   VkSwapchainKHR handle;
-
-  VkRenderPass imgui_render_pass;
-  VkImage *imgui_color_image;
-  VkImageView *imgui_color_image_view;
-  VkImage *imgui_depth_image;
-  VkDeviceMemory *imgui_depth_device_memory;
-  VkImageView *imgui_depth_image_view;
-  VkFramebuffer *imgui_frame_buffers;
-
-  VkRenderPass gbuffer_render_pass;
-  VkImage **gbuffer_color_image;
-  VkDeviceMemory **gbuffer_color_device_memory;
-  VkImageView **gbuffer_color_image_view;
-  VkSampler **gbuffer_color_sampler;
-  VkImage **gbuffer_depth_image;
-  VkDeviceMemory **gbuffer_depth_device_memory;
-  VkImageView **gbuffer_depth_image_view;
-  VkSampler **gbuffer_depth_sampler;
-  VkFramebuffer **gbuffer_frame_buffers;
-
+  VkRenderPass main_render_pass;
+  VkImage *color_image;
+  VkImageView *color_image_view;
+  VkImage *depth_image;
+  VkDeviceMemory *depth_device_memory;
+  VkImageView *depth_image_view;
+  VkFramebuffer *frame_buffer;
 } swapchain_t;
+
+typedef struct viewport_t {
+  context_t *context;
+  uint32_t width;
+  uint32_t height;
+  uint8_t is_dirty;
+  VkImage *color_image;
+  VkDeviceMemory *color_device_memory;
+  VkImageView *color_image_view;
+  VkSampler *color_sampler;
+  VkImage *depth_image;
+  VkDeviceMemory *depth_device_memory;
+  VkImageView *depth_image_view;
+  VkSampler *depth_sampler;
+  VkFramebuffer *frame_buffer;
+} viewport_t;
 
 typedef struct buffer_t {
   context_t *context;
@@ -298,6 +293,7 @@ typedef struct renderer_t {
   buffer_t **debug_line_index_buffers;
   uint32_t *debug_line_vertex_offsets;
   uint32_t *debug_line_index_offsets;
+  VkRenderPass gbuffer_render_pass;
 } renderer_t;
 
 typedef struct graphic_pipeline_t {

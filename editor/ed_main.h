@@ -17,6 +17,6 @@ extern ImFont *g_editor_material_symbols_h5;
 extern ImFont *g_editor_material_symbols_h6;
 extern ImFont *g_editor_material_symbols;
 
-extern viewport_t *g_editor_viewports[4];
+extern sceneview_t *g_sceneviews[0xFF];
 
 #endif // ED_MAIN_H
