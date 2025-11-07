@@ -14,6 +14,10 @@ context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode)
 void context_run(context_t *context);
 void context_destroy(context_t *context);
 
+void context_viewport_create(context_t *context, uint64_t index, uint32_t width, uint32_t height);
+viewport_t *context_viewport_at(context_t *context, uint64_t index);
+void context_viewport_destroy(context_t *context, uint64_t index);
+
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key);
 uint8_t context_is_keyboard_key_held(context_t *context, keyboard_key_t key);
 uint8_t context_is_keyboard_key_released(context_t *context, keyboard_key_t key);

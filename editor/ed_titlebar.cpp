@@ -103,7 +103,6 @@ static void titlebar_reset_drag_state(context_t *context) {
       ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 
     ReleaseCapture();
-
     SendMessage(context->window_handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
   }
 
@@ -119,10 +118,20 @@ static void titlebar_draw_window_controls(context_t *context) {
   ImGui::PushFont(g_editor_material_symbols_h6);
 
   if (ImGui::Button(ICON_MS_REMOVE)) {
+    ShowWindow(context->window_handle, SW_MINIMIZE);
   }
 
   ImGui::SameLine();
   if (ImGui::Button(ICON_MS_RECTANGLE)) {
+    static uint8_t is_maximized = 0;
+
+    if (is_maximized) {
+      ShowWindow(context->window_handle, SW_RESTORE);
+    } else {
+      ShowWindow(context->window_handle, SW_MAXIMIZE);
+    }
+
+    is_maximized = ~is_maximized;
   }
 
   ImGui::SameLine();

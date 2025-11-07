@@ -188,7 +188,7 @@ static void imgui_create(context_t *context) {
   inspector_create(context);
   dockspace_create(context);
   statusbar_create(context);
-  sceneview_create(context, 0, "Sceneview 0");
+  sceneview_create(context, 0, "Scene");
 }
 static void imgui_draw(context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];

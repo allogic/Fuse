@@ -198,6 +198,18 @@ void context_destroy(context_t *context) {
   heap_free(context);
 }
 
+void context_viewport_create(context_t *context, uint64_t index, uint32_t width, uint32_t height) {
+  context->viewports[index] = viewport_create(context, width, height);
+}
+viewport_t *context_viewport_at(context_t *context, uint64_t index) {
+  return context->viewports[index];
+}
+void context_viewport_destroy(context_t *context, uint64_t index) {
+  viewport_destroy(context->viewports[index]);
+
+  context->viewports[index] = 0;
+}
+
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key) {
   return context->event_keyboard_key_states[key] == KEY_STATE_PRESSED;
 }

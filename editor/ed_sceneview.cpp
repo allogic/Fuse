@@ -20,7 +20,7 @@ void sceneview_create(context_t *context, uint64_t index, char const *name) {
 
   strcpy(sceneview->name, name);
 
-  sceneview->context->viewports[sceneview->index] = viewport_create(sceneview->context, sceneview->width, sceneview->height);
+  context_viewport_create(sceneview->context, sceneview->index, sceneview->width, sceneview->height);
 
   uint64_t image_index = 0;
   uint64_t image_count = sceneview->context->swapchain->image_count;
@@ -129,9 +129,7 @@ void sceneview_destroy(sceneview_t *sceneview) {
     image_index++;
   }
 
-  viewport_destroy(sceneview->context->viewports[sceneview->index]);
-
-  sceneview->context->viewports[sceneview->index] = 0;
+  context_viewport_destroy(sceneview->context, sceneview->index);
 
   heap_free(sceneview->gbuffer_color_attachment);
   heap_free(sceneview->gbuffer_depth_attachment);
