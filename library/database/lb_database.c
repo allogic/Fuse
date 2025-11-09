@@ -28,6 +28,7 @@ vector_t database_load_swapchain_assets(void) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     swapchain_asset_t swapchain_asset = {0};
 
     pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
@@ -68,6 +69,7 @@ swapchain_asset_t database_load_swapchain_default_asset(void) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     swapchain_asset_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t image_count = sqlite3_column_int(stmt, 2);
@@ -102,6 +104,7 @@ vector_t database_load_renderer_assets(void) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     renderer_asset_t renderer_asset = {0};
 
     pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
@@ -140,6 +143,7 @@ renderer_asset_t database_load_renderer_default_asset(void) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     renderer_asset_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t frames_in_flight = sqlite3_column_int(stmt, 2);
@@ -175,6 +179,7 @@ uint64_t database_load_vertex_input_binding_count_by_id(pipeline_asset_id_t pipe
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_vertex_input_binding_count = (uint64_t)sqlite3_column_int64(stmt, 0);
   }
 
@@ -198,6 +203,7 @@ uint64_t database_load_descriptor_binding_count_by_id(pipeline_asset_id_t pipeli
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_descriptor_binding_count = (uint64_t)sqlite3_column_int64(stmt, 0);
   }
 
@@ -221,6 +227,7 @@ vector_t database_load_pipeline_assets(void) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_asset_t pipeline_asset = {0};
 
     pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
@@ -267,6 +274,7 @@ vector_t database_load_pipeline_assets_by_type(uint32_t pipeline_type) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_asset_t pipeline_asset = {0};
 
     pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
@@ -315,6 +323,7 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_asset_id_t pi
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_resource_id_t id = sqlite3_column_int64(stmt, 0);
     char const *vertex_shader_file_path = sqlite3_column_text(stmt, 1);
     char const *fragment_shader_file_path = sqlite3_column_text(stmt, 2);
@@ -356,6 +365,7 @@ vector_t database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset_id_t 
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_vertex_input_binding_t pipeline_vertex_input_binding = {0};
 
     pipeline_vertex_input_binding_id_t id = sqlite3_column_int64(stmt, 0);
@@ -403,6 +413,7 @@ vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pi
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     pipeline_descriptor_binding_t pipeline_descriptor_binding = {0};
 
     pipeline_descriptor_binding_id_t id = sqlite3_column_int64(stmt, 0);
@@ -447,6 +458,7 @@ vector_t database_load_model_assets(void) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     model_asset_t model_asset = {0};
 
     model_asset_id_t id = sqlite3_column_int64(stmt, 0);
@@ -483,6 +495,7 @@ model_resource_t database_load_model_resource_by_id(model_asset_id_t model_asset
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     model_resource_id_t id = sqlite3_column_int64(stmt, 0);
     char const *model_file_path = sqlite3_column_text(stmt, 1);
 
@@ -516,6 +529,7 @@ vector_t database_load_model_meshes_by_id(model_asset_id_t model_asset_id) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     model_mesh_t model_mesh = {0};
 
     model_mesh_id_t id = sqlite3_column_int64(stmt, 0);
@@ -554,6 +568,7 @@ vector_t database_load_mesh_primitives_by_id(model_mesh_id_t model_mesh_id) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     mesh_primitive_t mesh_primitive = {0};
 
     mesh_primitive_id_t id = sqlite3_column_int64(stmt, 0);
@@ -591,6 +606,7 @@ vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     mesh_attribute_t mesh_attribute = {0};
 
     mesh_attribute_id_t id = sqlite3_column_int64(stmt, 0);
@@ -633,6 +649,7 @@ attribute_buffer_t database_load_attribute_buffer_by_id(mesh_attribute_id_t mesh
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     attribute_data_id_t id = sqlite3_column_int64(stmt, 0);
     uint8_t const *data = sqlite3_column_blob(stmt, 1);
     uint64_t data_size = sqlite3_column_bytes(stmt, 1);
@@ -648,6 +665,40 @@ attribute_buffer_t database_load_attribute_buffer_by_id(mesh_attribute_id_t mesh
   string_destroy(&sql);
 
   return attribute_buffer;
+}
+
+vector_t database_load_scene_assets(void) {
+  vector_t scene_assets = vector_create(sizeof(scene_asset_t));
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT ID, NAME FROM SCENE_ASSETS\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    scene_asset_t scene_asset = {0};
+
+    scene_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+
+    uint64_t name_size = name ? strlen(name) + 1 : 0;
+
+    scene_asset.id = id;
+    scene_asset.name = heap_alloc(name_size, 1, name);
+    scene_asset.name_size = name_size;
+
+    vector_push(&scene_assets, &scene_asset);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return scene_assets;
 }
 
 void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset) {
@@ -982,6 +1033,7 @@ void database_destroy_swapchain_assets(vector_t *swapchain_assets) {
   uint64_t swapchain_asset_count = vector_count(swapchain_assets);
 
   while (swapchain_asset_index < swapchain_asset_count) {
+
     swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(swapchain_assets, swapchain_asset_index);
 
     heap_free(swapchain_asset->name);
@@ -1000,6 +1052,7 @@ void database_destroy_renderer_assets(vector_t *renderer_assets) {
   uint64_t renderer_asset_count = vector_count(renderer_assets);
 
   while (renderer_asset_index < renderer_asset_count) {
+
     renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(renderer_assets, renderer_asset_index);
 
     heap_free(renderer_asset->name);
@@ -1018,6 +1071,7 @@ void database_destroy_pipeline_assets(vector_t *pipeline_assets) {
   uint64_t pipeline_asset_count = vector_count(pipeline_assets);
 
   while (pipeline_asset_index < pipeline_asset_count) {
+
     pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(pipeline_assets, pipeline_asset_index);
 
     heap_free(pipeline_asset->name);
@@ -1045,6 +1099,7 @@ void database_destroy_pipeline_vertex_input_bindings(vector_t *vertex_input_bind
   uint64_t vertex_input_binding_count = vector_count(vertex_input_bindings);
 
   while (vertex_input_binding_index < vertex_input_binding_count) {
+
     pipeline_vertex_input_binding_t *vertex_input_binding = (pipeline_vertex_input_binding_t *)vector_at(vertex_input_bindings, vertex_input_binding_index);
 
     heap_free(vertex_input_binding->binding_name);
@@ -1059,6 +1114,7 @@ void database_destroy_pipeline_descriptor_bindings(vector_t *descriptor_bindings
   uint64_t descriptor_binding_count = vector_count(descriptor_bindings);
 
   while (descriptor_binding_index < descriptor_binding_count) {
+
     pipeline_descriptor_binding_t *pipeline_descriptor_binding = (pipeline_descriptor_binding_t *)vector_at(descriptor_bindings, descriptor_binding_index);
 
     heap_free(pipeline_descriptor_binding->binding_name);
@@ -1074,6 +1130,7 @@ void database_destroy_model_assets(vector_t *model_assets) {
   uint64_t model_asset_count = vector_count(model_assets);
 
   while (model_asset_index < model_asset_count) {
+
     model_asset_t *model_asset = (model_asset_t *)vector_at(model_assets, model_asset_index);
 
     heap_free(model_asset->name);
@@ -1093,6 +1150,7 @@ void database_destroy_model_meshes(vector_t *model_meshes) {
   uint64_t mesh_count = vector_count(model_meshes);
 
   while (mesh_index < mesh_count) {
+
     model_mesh_t *model_mesh = (model_mesh_t *)vector_at(model_meshes, mesh_index);
 
     heap_free(model_mesh->name);
@@ -1108,6 +1166,7 @@ void database_destroy_mesh_primitives(vector_t *mesh_primitives) {
   uint64_t primitive_count = vector_count(mesh_primitives);
 
   while (primitive_index < primitive_count) {
+
     mesh_primitive_t *mesh_primitive = (mesh_primitive_t *)vector_at(mesh_primitives, primitive_index);
 
     heap_free(mesh_primitive->name);
@@ -1122,6 +1181,7 @@ void database_destroy_mesh_attributes(vector_t *mesh_attributes) {
   uint64_t attribute_count = vector_count(mesh_attributes);
 
   while (attribute_index < attribute_count) {
+
     mesh_attribute_t *mesh_attribute = (mesh_attribute_t *)vector_at(mesh_attributes, attribute_index);
 
     heap_free(mesh_attribute->name);
@@ -1136,6 +1196,22 @@ void database_destroy_attribute_buffer(attribute_buffer_t *attribute_buffer) {
   heap_free(attribute_buffer->data);
 }
 
+void database_destroy_scene_assets(vector_t *scene_assets) {
+  uint64_t scene_asset_index = 0;
+  uint64_t scene_asset_count = vector_count(scene_assets);
+
+  while (scene_asset_index < scene_asset_count) {
+
+    scene_asset_t *scene_asset = (scene_asset_t *)vector_at(scene_assets, scene_asset_index);
+
+    heap_free(scene_asset->name);
+
+    scene_asset_index++;
+  }
+
+  vector_destroy(scene_assets);
+}
+
 static int64_t database_get_sequence_index_by_name(char const *table_name) {
   int64_t sequence_id = 1;
 
@@ -1148,6 +1224,7 @@ static int64_t database_get_sequence_index_by_name(char const *table_name) {
   SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
+
     sequence_id = sqlite3_column_int64(stmt, 0);
   }
 

@@ -8,14 +8,12 @@
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
 #include <editor/ed_sceneview.h>
-
-#include <imgui/imgui_impl_win32.h>
-#include <imgui/imgui_impl_vulkan.h>
+#include <editor/ed_profiler.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 static void editor_create(context_t *context);
-static void editor_dirty(context_t *context);
+static void editor_refresh(context_t *context);
 static void editor_draw(context_t *context);
 static void editor_destroy(context_t *context);
 
@@ -37,13 +35,17 @@ ImFont *g_editor_material_symbols_h5 = 0;
 ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
 
-sceneview_t *g_sceneviews[0xFF] = {};
+vector_t g_editor_scenes = {0};
+
+int64_t g_editor_selected_scene_asset = 0;
+
+sceneview_t *g_editor_sceneview[0xFF] = {0};
 
 static VkDescriptorPool s_editor_descriptor_pool = 0;
 
 int32_t main(int32_t argc, char **argv) {
   g_context_editor_create_proc = editor_create;
-  g_context_editor_dirty_proc = editor_dirty;
+  g_context_editor_refresh_proc = editor_refresh;
   g_context_editor_draw_proc = editor_draw;
   g_context_editor_destroy_proc = editor_destroy;
   g_context_editor_message_proc = ImGui_ImplWin32_WndProcHandler;
@@ -82,7 +84,8 @@ static void editor_create(context_t *context) {
 
   IMGUI_CHECKVERSION();
 
-  ImGui::CreateContext();
+  ImGuiContext *imgui_context = ImGui::CreateContext();
+  ImPlotContext *implot_context = ImPlot::CreateContext();
 
   ImGuiIO &io = ImGui::GetIO();
   ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
@@ -121,16 +124,16 @@ static void editor_create(context_t *context) {
 
   style.Alpha = 1.0F;
   style.DisabledAlpha = 1.0F;
-  style.WindowPadding = ImVec2{0.0F, 0.0F};
+  style.WindowPadding = ImVec2(0.0F, 0.0F);
   style.WindowRounding = 0.0F;
   style.WindowBorderSize = 0.0F;
-  style.WindowTitleAlign = ImVec2{0.0F, 0.5F};
+  style.WindowTitleAlign = ImVec2(0.0F, 0.5F);
   style.WindowMenuButtonPosition = ImGuiDir_None;
   style.ChildRounding = 1.0F;
   style.ChildBorderSize = 0.0F;
   style.PopupRounding = 0.0F;
   style.FrameRounding = 0.0F;
-  style.ItemSpacing = ImVec2{8.0F, 4.0F};
+  style.ItemSpacing = ImVec2(8.0F, 4.0F);
   style.ScrollbarSize = 12.0F;
   style.ScrollbarRounding = 2.5F;
   style.GrabRounding = 0.0F;
@@ -142,34 +145,34 @@ static void editor_create(context_t *context) {
   style.TabBarOverlineSize = 0.0F;
   style.DockingSeparatorSize = 5.0F;
 
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_TitleBg, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_TitleBgActive, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_DockingPreview, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_Tab, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_TabHovered, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_TabActive, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_TabUnfocused, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_Separator, IM_COL32(70, 70, 70, 255));
-  ImGui::PushStyleColor(ImGuiCol_SeparatorActive, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, IM_COL32(50, 50, 50, 255));
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, IM_COL32(30, 30, 30, 255));
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Border, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TitleBg, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TitleBgActive, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_DockingPreview, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Tab, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabHovered, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabActive, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabUnfocused, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Separator, EDITOR_HIGHLIGHT_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_SeparatorActive, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, EDITOR_BACKGROUND_COLOR);
 
   ImGui_ImplWin32_Init(context->window_handle);
 
-  ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {};
+  ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {0};
   imgui_vulkan_init_info.Instance = context->instance;
   imgui_vulkan_init_info.PhysicalDevice = context->physical_device;
   imgui_vulkan_init_info.Device = context->device;
@@ -193,23 +196,24 @@ static void editor_create(context_t *context) {
   inspector_create(context);
   dockspace_create(context);
   statusbar_create(context);
+  profiler_create(context);
   sceneview_create(context, 0, 1, 1, "Scene");
   sceneview_create(context, 1, 1, 1, "Game");
 }
-static void editor_dirty(context_t *context) {
-  static char name[0xFF] = {};
+static void editor_refresh(context_t *context) {
+  static char name[0xFF] = {0};
 
   uint64_t link_index = 0;
 
-  while (g_sceneviews[link_index]) {
+  while (g_editor_sceneview[link_index]) {
 
-    if (g_sceneviews[link_index]->is_dirty) {
+    if (g_editor_sceneview[link_index]->is_dirty) {
 
-      uint32_t width = g_sceneviews[link_index]->width;
-      uint32_t height = g_sceneviews[link_index]->height;
-      strcpy(name, g_sceneviews[link_index]->name);
+      uint32_t width = g_editor_sceneview[link_index]->width;
+      uint32_t height = g_editor_sceneview[link_index]->height;
+      strcpy(name, g_editor_sceneview[link_index]->name);
 
-      sceneview_destroy(g_sceneviews[link_index]);
+      sceneview_destroy(g_editor_sceneview[link_index]);
 
       sceneview_create(context, link_index, width, height, name);
     }
@@ -229,6 +233,8 @@ static void editor_draw(context_t *context) {
   dockspace_draw(context);
   statusbar_draw(context);
 
+  // ImPlot::ShowDemoWindow(); // TODO
+
   ImGui::Render();
 
   ImDrawData *draw_data = ImGui::GetDrawData();
@@ -238,9 +244,9 @@ static void editor_draw(context_t *context) {
 static void editor_destroy(context_t *context) {
   uint64_t sceneview_index = 0;
 
-  while (g_sceneviews[sceneview_index]) {
+  while (g_editor_sceneview[sceneview_index]) {
 
-    sceneview_destroy(g_sceneviews[sceneview_index]);
+    sceneview_destroy(g_editor_sceneview[sceneview_index]);
 
     sceneview_index++;
   }
@@ -250,6 +256,7 @@ static void editor_destroy(context_t *context) {
   detail_destroy(context);
   hierarchy_destroy(context);
   inspector_destroy(context);
+  profiler_destroy(context);
   dockspace_destroy(context);
   statusbar_destroy(context);
 

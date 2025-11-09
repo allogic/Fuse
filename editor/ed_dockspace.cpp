@@ -6,8 +6,7 @@
 #include <editor/ed_main.h>
 #include <editor/ed_inspector.h>
 #include <editor/ed_sceneview.h>
-
-#include <imgui/imgui_internal.h>
+#include <editor/ed_profiler.h>
 
 void dockspace_create(context_t *context) {
 }
@@ -36,12 +35,13 @@ void dockspace_draw(context_t *context) {
   detail_draw(context);
   hierarchy_draw(context);
   inspector_draw(context);
+  profiler_draw(context);
 
   uint64_t sceneview_index = 0;
 
-  while (g_sceneviews[sceneview_index]) {
+  while (g_editor_sceneview[sceneview_index]) {
 
-    sceneview_draw(g_sceneviews[sceneview_index]);
+    sceneview_draw(g_editor_sceneview[sceneview_index]);
 
     sceneview_index++;
   }
@@ -62,7 +62,7 @@ uint8_t dockspace_begin_child(char const *name, uint8_t *is_open, uint8_t *is_do
     *is_docked = ImGui::IsWindowDocked();
 
     if (*is_docked) {
-      ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(50, 50, 50, 255));
+      ImGui::PushStyleColor(ImGuiCol_ChildBg, EDITOR_DOCKING_BACKGROUND_COLOR);
       ImGui::BeginChild("FirstChild");
 
       ImVec2 second_window_size = ImGui::GetWindowSize();

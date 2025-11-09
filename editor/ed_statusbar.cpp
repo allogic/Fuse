@@ -10,9 +10,9 @@ void statusbar_draw(context_t *context) {
   ImGui::SetNextWindowPos(ImVec2(0.0F, (float)context->window_height - (float)context->window_statusbar_height));
   ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_statusbar_height));
 
-  ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(70, 70, 70, 255));
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(90, 90, 90, 255));
+  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
 
   ImGuiWindowFlags titlebar_flags =
     ImGuiWindowFlags_NoDocking |

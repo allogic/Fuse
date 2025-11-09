@@ -2,3 +2,4 @@
 .read 'renderer.sql'
 .read 'pipeline.sql'
 .read 'model.sql'
+.read 'scene.sql'

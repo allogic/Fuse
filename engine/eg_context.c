@@ -53,7 +53,7 @@ static char const *s_context_device_extensions[] = {
 };
 
 editor_create_proc_t g_context_editor_create_proc = 0;
-editor_dirty_proc_t g_context_editor_dirty_proc = 0;
+editor_refresh_proc_t g_context_editor_refresh_proc = 0;
 editor_draw_proc_t g_context_editor_draw_proc = 0;
 editor_destroy_proc_t g_context_editor_destroy_proc = 0;
 editor_message_proc_t g_context_editor_message_proc = 0;
@@ -96,11 +96,9 @@ context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode)
   return context;
 }
 void context_run(context_t *context) {
-  LARGE_INTEGER timer_freq = {0};
-  LARGE_INTEGER timer_begin = {0};
-  LARGE_INTEGER timer_end = {0};
+  QueryPerformanceFrequency(&context->time_freq);
 
-  QueryPerformanceFrequency(&timer_freq);
+  PROFILER_INIT(context);
 
   while (context->is_window_running) {
 
@@ -160,16 +158,22 @@ void context_run(context_t *context) {
       DispatchMessageA(&context->window_message);
     }
 
-    QueryPerformanceCounter(&timer_begin);
+    QueryPerformanceCounter(&context->time_start);
+
+    PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_CONTEXT);
 
     scene_update(context->scene);
 
-    renderer_update(context->renderer);
+    renderer_update(context->renderer); // TODO: remove this..
     renderer_draw(context->renderer);
 
-    QueryPerformanceCounter(&timer_end);
+    PROFILER_SCOPE_END(PROFILER_SAMPLE_LANE_CONTEXT);
 
-    context->delta_time = (((double)timer_end.QuadPart) - ((double)timer_begin.QuadPart)) / ((double)timer_freq.QuadPart);
+    QueryPerformanceCounter(&context->time_end);
+
+    PROFILER_INC_FRAME();
+
+    context->delta_time = (((double)context->time_end.QuadPart) - ((double)context->time_start.QuadPart)) / ((double)context->time_freq.QuadPart);
     context->time += context->delta_time;
   }
 }

@@ -21,20 +21,20 @@ uint8_t g_catalog_is_docked = 0;
 
 asset_type_t g_catalog_selected_asset_type = ASSET_TYPE_NONE;
 
-vector_t g_catalog_swapchain_assets = {};
-vector_t g_catalog_renderer_assets = {};
-vector_t g_catalog_pipeline_assets = {};
-vector_t g_catalog_model_assets = {};
+vector_t g_catalog_swapchain_assets = {0};
+vector_t g_catalog_renderer_assets = {0};
+vector_t g_catalog_pipeline_assets = {0};
+vector_t g_catalog_model_assets = {0};
 
 int64_t g_catalog_selected_swapchain_asset = -1;
 int64_t g_catalog_selected_renderer_asset = -1;
 int64_t g_catalog_selected_pipeline_asset = -1;
 int64_t g_catalog_selected_model_asset = -1;
 
-vector_t g_catalog_pipeline_vertex_input_bindings = {};
-vector_t g_catalog_pipeline_descriptor_bindings = {};
+vector_t g_catalog_pipeline_vertex_input_bindings = {0};
+vector_t g_catalog_pipeline_descriptor_bindings = {0};
 
-vector_t g_catalog_model_meshes = {};
+vector_t g_catalog_model_meshes = {0};
 
 void catalog_create(context_t *context) {
   g_catalog_swapchain_assets = database_load_swapchain_assets();
@@ -254,19 +254,24 @@ static void catalog_draw_model(void) {
 static void catalog_draw_asset_buttons(void) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
+  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
+
   ImGui::PushFont(g_editor_material_symbols);
 
-  if (ImGui::Button(ICON_MS_DELETE, ImVec2{20.0F, 0.0F})) {
+  if (ImGui::Button(ICON_MS_DELETE, ImVec2(20.0F, 0.0F))) {
     // TODO
   }
 
   ImGui::SameLine(ImGui::GetWindowSize().x - 40.0F);
 
-  if (ImGui::Button(ICON_MS_MERGE, ImVec2{20.0F, 0.0F})) {
+  if (ImGui::Button(ICON_MS_MERGE, ImVec2(20.0F, 0.0F))) {
     // TODO
   }
 
   ImGui::PopFont();
+  ImGui::PopStyleColor(3);
 }
 
 static void catalog_select_swapchain(uint64_t selected_index) {

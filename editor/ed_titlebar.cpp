@@ -5,13 +5,18 @@
 #include <editor/ed_hierarchy.h>
 #include <editor/ed_inspector.h>
 #include <editor/ed_detail.h>
+#include <editor/ed_profiler.h>
+#include <editor/ed_main.h>
 
 static void titlebar_reset_drag_state(context_t *context);
 
+static void titlebar_draw_icon(context_t *context);
+static void titlebar_draw_main_menu(context_t *context);
 static void titlebar_draw_window_controls(context_t *context);
 static void titlebar_draw_scene_controls(context_t *context);
 
 void titlebar_create(context_t *context) {
+  g_editor_scenes = database_load_scene_assets();
 }
 void titlebar_refresh(context_t *context) {
 }
@@ -19,9 +24,9 @@ void titlebar_draw(context_t *context) {
   ImGui::SetNextWindowPos(ImVec2(0.0F, 0.0F));
   ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_titlebar_height));
 
-  ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(30, 30, 30, 255));
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(70, 70, 70, 255));
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(90, 90, 90, 255));
+  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
 
   ImGuiWindowFlags titlebar_flags =
     ImGuiWindowFlags_NoDocking |
@@ -38,37 +43,8 @@ void titlebar_draw(context_t *context) {
   ImGui::Begin("Titlebar", 0, titlebar_flags);
   ImGui::PopStyleVar(1);
 
-  ImGui::SetCursorPos(ImVec2(10.0F, 10.0F));
-  ImGui::PushFont(g_editor_material_symbols_h1);
-  ImGui::Text(ICON_MS_DEPLOYED_CODE);
-  ImGui::PopFont();
-
-  ImGui::SameLine(50);
-
-  if (ImGui::Button("Catalog")) {
-    g_catalog_is_open = !g_catalog_is_open;
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Hierarchy")) {
-    g_hierarchy_is_open = !g_hierarchy_is_open;
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Inspector")) {
-    g_inspector_is_open = !g_inspector_is_open;
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Detail")) {
-    g_detail_is_open = !g_detail_is_open;
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Sceneview")) {
-    g_sceneviews[0]->is_open = !g_sceneviews[0]->is_open;
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Import")) {
-    importer_import_default_assets();
-  }
-
+  titlebar_draw_icon(context);
+  titlebar_draw_main_menu(context);
   titlebar_draw_window_controls(context);
   titlebar_draw_scene_controls(context);
 
@@ -78,6 +54,7 @@ void titlebar_draw(context_t *context) {
   ImGui::PopStyleColor(3);
 }
 void titlebar_destroy(context_t *context) {
+  database_destroy_scene_assets(&g_editor_scenes);
 }
 
 static void titlebar_reset_drag_state(context_t *context) {
@@ -92,6 +69,49 @@ static void titlebar_reset_drag_state(context_t *context) {
   ImGui::GetIO().MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 }
 
+static void titlebar_draw_icon(context_t *context) {
+  ImGui::SetCursorPos(ImVec2(10.0F, 10.0F));
+  ImGui::PushFont(g_editor_material_symbols_h1);
+  ImGui::Text(ICON_MS_DEPLOYED_CODE);
+  ImGui::PopFont();
+}
+static void titlebar_draw_main_menu(context_t *context) {
+  ImGui::SetCursorPos(ImVec2(50.0F, 5.0F));
+
+  if (ImGui::Button("Catalog")) {
+    g_catalog_is_open = !g_catalog_is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Hierarchy")) {
+    g_hierarchy_is_open = !g_hierarchy_is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Inspector")) {
+    g_inspector_is_open = !g_inspector_is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Profiler")) {
+    g_profiler_is_open = !g_profiler_is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Detail")) {
+    g_detail_is_open = !g_detail_is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Sceneview")) {
+    g_editor_sceneview[0]->is_open = !g_editor_sceneview[0]->is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Import")) {
+    importer_import_default_assets();
+  }
+}
 static void titlebar_draw_window_controls(context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();
 
@@ -129,7 +149,37 @@ static void titlebar_draw_window_controls(context_t *context) {
 static void titlebar_draw_scene_controls(context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();
 
-  ImGui::SetCursorPos(ImVec2((window_size.x / 2.0F) - 40.0F, 30.0F));
+  ImGui::SetCursorPos(ImVec2(50.0F, 30.0F));
+  ImGui::SetNextItemWidth(150.0F);
+
+  scene_asset_t *selected_scene_asset = (scene_asset_t *)vector_at(&g_editor_scenes, g_editor_selected_scene_asset);
+
+  if (ImGui::BeginCombo("Scene", selected_scene_asset->name)) {
+
+    uint64_t scene_index = 0;
+    uint64_t scene_count = vector_count(&g_editor_scenes);
+
+    while (scene_index < scene_count) {
+
+      scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&g_editor_scenes, scene_index);
+
+      uint8_t is_selected = (g_editor_selected_scene_asset == scene_index);
+
+      if (ImGui::Selectable(scene_asset->name, is_selected)) {
+        g_editor_selected_scene_asset = scene_index;
+      }
+
+      if (is_selected) {
+        ImGui::SetItemDefaultFocus();
+      }
+
+      scene_index++;
+    }
+
+    ImGui::EndCombo();
+  }
+
+  ImGui::SetCursorPos(ImVec2(window_size.x - 300.0F, 30.0F));
 
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0F);
   ImGui::PushFont(g_editor_material_symbols_h5);

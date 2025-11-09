@@ -38,13 +38,45 @@ scene_t *scene_create(context_t *context) {
   return scene;
 }
 void scene_update(scene_t *scene) {
+  PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_SCENE);
+
   ecs_run(scene->world, scene->controller_system, 0.0F, 0);
   ecs_run(scene->world, scene->rigidbody_system, 0.0F, 0);
+
+  PROFILER_SCOPE_END(PROFILER_SAMPLE_LANE_SCENE);
 }
 void scene_destroy(scene_t *scene) {
   ecs_fini(scene->world);
 
   heap_free(scene);
+}
+
+camera_t const *scene_camera(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get(scene->world, entity, camera_t);
+}
+camera_t *scene_camera_mut(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get_mut(scene->world, entity, camera_t);
+}
+
+editor_controller_t const *scene_editor_controller(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get(scene->world, entity, editor_controller_t);
+}
+editor_controller_t *scene_editor_controller_mut(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get_mut(scene->world, entity, editor_controller_t);
+}
+
+rigidbody_t const *scene_rigidbody(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get(scene->world, entity, rigidbody_t);
+}
+rigidbody_t *scene_rigidbody_mut(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get_mut(scene->world, entity, rigidbody_t);
+}
+
+transform_t const *scene_transform(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get(scene->world, entity, transform_t);
+}
+transform_t *scene_transform_mut(scene_t *scene, ecs_entity_t entity) {
+  return ecs_get_mut(scene->world, entity, transform_t);
 }
 
 static void scene_create_root(scene_t *scene) {

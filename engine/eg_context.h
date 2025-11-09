@@ -6,7 +6,7 @@ extern "C" {
 #endif // __cplusplus
 
 extern editor_create_proc_t g_context_editor_create_proc;
-extern editor_dirty_proc_t g_context_editor_dirty_proc;
+extern editor_refresh_proc_t g_context_editor_refresh_proc;
 extern editor_draw_proc_t g_context_editor_draw_proc;
 extern editor_destroy_proc_t g_context_editor_destroy_proc;
 extern editor_message_proc_t g_context_editor_message_proc;

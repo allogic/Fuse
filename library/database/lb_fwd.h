@@ -18,6 +18,8 @@ typedef int64_t mesh_primitive_id_t;
 typedef int64_t mesh_attribute_id_t;
 typedef int64_t attribute_data_id_t;
 
+typedef int64_t scene_asset_id_t;
+
 typedef struct swapchain_asset_t {
   swapchain_asset_id_t id;
   char *name;
@@ -117,5 +119,11 @@ typedef struct attribute_buffer_t {
   uint8_t *data;
   uint64_t data_size;
 } attribute_buffer_t;
+
+typedef struct scene_asset_t {
+  scene_asset_id_t id;
+  char *name;
+  uint64_t name_size;
+} scene_asset_t;
 
 #endif // LB_DATABASE_FWD_H

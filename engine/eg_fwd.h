@@ -125,15 +125,30 @@ typedef enum mouse_key_t {
 } mouse_key_t;
 
 typedef void (*editor_create_proc_t)(struct context_t *context);
-typedef void (*editor_dirty_proc_t)(struct context_t *context);
+typedef void (*editor_refresh_proc_t)(struct context_t *context);
 typedef void (*editor_draw_proc_t)(struct context_t *context);
 typedef void (*editor_destroy_proc_t)(struct context_t *context);
 typedef LRESULT (*editor_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
+
+typedef enum profiler_sample_lane_t {
+  PROFILER_SAMPLE_LANE_CONTEXT,
+  PROFILER_SAMPLE_LANE_SCENE,
+  PROFILER_SAMPLE_LANE_RENDERER,
+  PROFILER_SAMPLE_LANE_COUNT,
+} profiler_sample_lane_t;
+
+typedef struct cpu_frame_sample_t {
+  float time;
+  float delta;
+} cpu_frame_sample_t;
 
 typedef struct context_t {
   HMODULE module_handle;
   HWND window_handle;
   MSG window_message;
+  LARGE_INTEGER time_freq;
+  LARGE_INTEGER time_start;
+  LARGE_INTEGER time_end;
   double time;
   double delta_time;
   int32_t mouse_position_x;

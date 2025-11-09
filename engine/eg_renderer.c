@@ -4,6 +4,7 @@
 #include <engine/eg_pipeline.h>
 #include <engine/eg_renderer.h>
 #include <engine/eg_swapchain.h>
+#include <engine/eg_profiler.h>
 
 #define RENDERER_DEBUG_LINE_VERTEX_COUNT (1048576LL)
 #define RENDERER_DEBUG_LINE_INDEX_COUNT (1048576LL)
@@ -28,7 +29,7 @@ static void renderer_create_command_buffer(renderer_t *renderer);
 
 static void renderer_update_uniform_buffers(renderer_t *renderer);
 
-static void renderer_record_viewport_resizes(renderer_t *renderer);
+static void renderer_record_editor_commands(renderer_t *renderer);
 static void renderer_record_compute_commands(renderer_t *renderer);
 static void renderer_record_graphic_commands(renderer_t *renderer);
 
@@ -99,6 +100,8 @@ void renderer_update(renderer_t *renderer) {
   renderer_draw_debug_line(renderer, front_position, front_direction, front_color);
 }
 void renderer_draw(renderer_t *renderer) {
+  PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_RENDERER);
+
   VkResult result = VK_SUCCESS;
 
   result = vkWaitForFences(renderer->context->device, 1, &renderer->frame_fence[renderer->frame_index], 1, UINT64_MAX);
@@ -174,7 +177,7 @@ void renderer_draw(renderer_t *renderer) {
 
   VULKAN_CHECK(vkBeginCommandBuffer(renderer->command_buffer[renderer->frame_index], &command_buffer_begin_info));
 
-  renderer_record_viewport_resizes(renderer);
+  renderer_record_editor_commands(renderer);
   renderer_record_compute_commands(renderer);
   renderer_record_graphic_commands(renderer);
 
@@ -237,6 +240,8 @@ void renderer_draw(renderer_t *renderer) {
   }
 
   renderer->frame_index = (renderer->frame_index + 1) % renderer->frames_in_flight;
+
+  PROFILER_SCOPE_END(PROFILER_SAMPLE_LANE_RENDERER);
 }
 void renderer_destroy(renderer_t *renderer) {
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->graphic_queue));
@@ -638,10 +643,10 @@ static void renderer_update_uniform_buffers(renderer_t *renderer) {
   }
 }
 
-static void renderer_record_viewport_resizes(renderer_t *renderer) {
+static void renderer_record_editor_commands(renderer_t *renderer) {
   if (renderer->context->is_editor_mode) {
 
-    g_context_editor_dirty_proc(renderer->context);
+    g_context_editor_refresh_proc(renderer->context);
   }
 }
 static void renderer_record_compute_commands(renderer_t *renderer) {

@@ -3,8 +3,6 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_main.h>
 
-#include <imgui/imgui_impl_vulkan.h>
-
 static char const *s_sceneview_gbuffer_attachment_names[] = {"Color", "Depth"};
 
 void sceneview_create(context_t *context, uint64_t link_index, uint32_t width, uint32_t height, char const *name) {
@@ -45,7 +43,7 @@ void sceneview_create(context_t *context, uint64_t link_index, uint32_t width, u
     image_index++;
   }
 
-  g_sceneviews[sceneview->link_index] = sceneview;
+  g_editor_sceneview[sceneview->link_index] = sceneview;
 }
 void sceneview_refresh(sceneview_t *sceneview) {
 }
@@ -120,7 +118,7 @@ void sceneview_draw(sceneview_t *sceneview) {
   }
 }
 void sceneview_destroy(sceneview_t *sceneview) {
-  g_sceneviews[sceneview->link_index] = 0;
+  g_editor_sceneview[sceneview->link_index] = 0;
 
   uint64_t image_index = 0;
   uint64_t image_count = sceneview->context->swapchain->image_count;

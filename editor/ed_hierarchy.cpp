@@ -106,17 +106,22 @@ static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity)
 static void hierarchy_draw_entity_buttons(ecs_world_t *world, ecs_entity_t entity) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
+  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
+
   ImGui::PushFont(g_editor_material_symbols);
 
-  if (ImGui::Button(ICON_MS_DELETE, ImVec2{20.0F, 0.0F})) {
+  if (ImGui::Button(ICON_MS_DELETE, ImVec2(20.0F, 0.0F))) {
     // TODO
   }
 
   ImGui::SameLine(ImGui::GetWindowSize().x - 40.0F);
 
-  if (ImGui::Button(ICON_MS_VISIBILITY, ImVec2{20.0F, 0.0F})) {
+  if (ImGui::Button(ICON_MS_VISIBILITY, ImVec2(20.0F, 0.0F))) {
     // TODO
   }
 
   ImGui::PopFont();
+  ImGui::PopStyleColor(3);
 }

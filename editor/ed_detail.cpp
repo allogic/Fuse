@@ -4,8 +4,6 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_titlebar.h>
 
-#include <imgui/imgui.h>
-
 static void detail_draw_swapchain(void);
 static void detail_draw_renderer(void);
 static void detail_draw_pipeline(void);
@@ -20,8 +18,8 @@ uint8_t g_detail_is_docked = 0;
 int64_t g_detail_selected_model_mesh = -1;
 int64_t g_detail_selected_mesh_primitive = -1;
 
-vector_t g_detail_mesh_primitives = {};
-vector_t g_detail_mesh_attributes = {};
+vector_t g_detail_mesh_primitives = {0};
+vector_t g_detail_mesh_attributes = {0};
 
 void detail_create(context_t *context) {
 }

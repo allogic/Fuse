@@ -3,9 +3,6 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_hierarchy.h>
-#include <editor/ed_ecs_compat.h>
-
-#include <imgui/imgui.h>
 
 static void inspector_draw_camera(camera_t *camera);
 static void inspector_draw_editor_controller(editor_controller_t *editor_controller);
@@ -26,25 +23,25 @@ void inspector_draw(context_t *context) {
 
     if (ecs_is_valid(world, g_hierarchy_selected_entity)) {
 
-      camera_t *camera = ecs_camera_mut(world, g_hierarchy_selected_entity);
+      camera_t *camera = scene_camera_mut(context->scene, g_hierarchy_selected_entity);
 
       if (camera) {
         inspector_draw_camera(camera);
       }
 
-      editor_controller_t *editor_controller = ecs_editor_controller_mut(world, g_hierarchy_selected_entity);
+      editor_controller_t *editor_controller = scene_editor_controller_mut(context->scene, g_hierarchy_selected_entity);
 
       if (editor_controller) {
         inspector_draw_editor_controller(editor_controller);
       }
 
-      rigidbody_t *rigidbody = ecs_rigidbody_mut(world, g_hierarchy_selected_entity);
+      rigidbody_t *rigidbody = scene_rigidbody_mut(context->scene, g_hierarchy_selected_entity);
 
       if (rigidbody) {
         inspector_draw_rigidbody(rigidbody);
       }
 
-      transform_t *transform = ecs_transform_mut(world, g_hierarchy_selected_entity);
+      transform_t *transform = scene_transform_mut(context->scene, g_hierarchy_selected_entity);
 
       if (transform) {
         inspector_draw_transform(transform);

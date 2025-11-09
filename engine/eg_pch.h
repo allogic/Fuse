@@ -17,5 +17,6 @@
 #include <engine/eg_buffer.h>
 #include <engine/eg_image.h>
 #include <engine/eg_viewport.h>
+#include <engine/eg_profiler.h>
 
 #endif // EG_PCH_H
