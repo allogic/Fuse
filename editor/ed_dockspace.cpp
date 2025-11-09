@@ -7,6 +7,8 @@
 #include <editor/ed_inspector.h>
 #include <editor/ed_sceneview.h>
 
+#include <imgui/imgui_internal.h>
+
 void dockspace_create(context_t *context) {
 }
 void dockspace_refresh(context_t *context) {
@@ -25,13 +27,9 @@ void dockspace_draw(context_t *context) {
     ImGuiWindowFlags_NoCollapse |
     ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0F, 5.0F));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0F, 5.0F));
   ImGui::Begin("Root", 0, docking_flags);
-
-  ImGuiDockNodeFlags dock_node_flags =
-    ImGuiDockNodeFlags_NoCloseButton;
-
-  ImGui::DockSpace(ImGui::GetID("Dockspace"), ImVec2(0.0F, 0.0F), dock_node_flags);
+  ImGui::DockSpace(ImGui::GetID("Dockspace"), ImVec2(0.0F, 0.0F), ImGuiDockNodeFlags_NoCloseButton);
   ImGui::PopStyleVar(1);
 
   catalog_draw(context);
@@ -68,10 +66,10 @@ uint8_t dockspace_begin_child(char const *name, uint8_t *is_open, uint8_t *is_do
       ImGui::BeginChild("FirstChild");
 
       ImVec2 second_window_size = ImGui::GetWindowSize();
-      ImVec2 second_cursor_position = ImVec2(5.0F, 5.0F);
+      ImVec2 second_cursor_position = ImVec2(3.0F, 3.0F);
 
-      second_window_size.x -= 10.0F;
-      second_window_size.y -= 10.0F;
+      second_window_size.x -= 6.0F;
+      second_window_size.y -= 6.0F;
 
       ImGui::SetCursorPos(second_cursor_position);
       ImGui::BeginChild("SecondChild", second_window_size);

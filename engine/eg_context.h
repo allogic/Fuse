@@ -5,18 +5,18 @@
 extern "C" {
 #endif // __cplusplus
 
-extern imgui_create_proc_t g_context_imgui_create_proc;
-extern imgui_draw_proc_t g_context_imgui_draw_proc;
-extern imgui_destroy_proc_t g_context_imgui_destroy_proc;
-extern imgui_message_proc_t g_context_imgui_message_proc;
+extern editor_create_proc_t g_context_editor_create_proc;
+extern editor_dirty_proc_t g_context_editor_dirty_proc;
+extern editor_draw_proc_t g_context_editor_draw_proc;
+extern editor_destroy_proc_t g_context_editor_destroy_proc;
+extern editor_message_proc_t g_context_editor_message_proc;
 
 context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode);
 void context_run(context_t *context);
 void context_destroy(context_t *context);
 
-void context_viewport_create(context_t *context, uint64_t index, uint32_t width, uint32_t height);
-viewport_t *context_viewport_at(context_t *context, uint64_t index);
-void context_viewport_destroy(context_t *context, uint64_t index);
+viewport_t *context_viewport_create(context_t *context, uint64_t link_index, uint32_t width, uint32_t height);
+void context_viewport_destroy(context_t *context, uint64_t link_index);
 
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key);
 uint8_t context_is_keyboard_key_held(context_t *context, keyboard_key_t key);

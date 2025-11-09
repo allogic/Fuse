@@ -124,10 +124,11 @@ typedef enum mouse_key_t {
   MOUSE_KEY_RIGHT,
 } mouse_key_t;
 
-typedef void (*imgui_create_proc_t)(struct context_t *context);
-typedef void (*imgui_draw_proc_t)(struct context_t *context);
-typedef void (*imgui_destroy_proc_t)(struct context_t *context);
-typedef LRESULT (*imgui_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
+typedef void (*editor_create_proc_t)(struct context_t *context);
+typedef void (*editor_dirty_proc_t)(struct context_t *context);
+typedef void (*editor_draw_proc_t)(struct context_t *context);
+typedef void (*editor_destroy_proc_t)(struct context_t *context);
+typedef LRESULT (*editor_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 typedef struct context_t {
   HMODULE module_handle;
@@ -167,7 +168,7 @@ typedef struct context_t {
   PFN_vkDestroyDebugUtilsMessengerEXT destroy_debug_utils_messenger_ext;
   VkDebugUtilsMessengerEXT debug_messenger;
 #endif // BUILD_DEBUG
-  struct viewport_t *viewports[0xFF];
+  struct viewport_t *viewport[0xFF];
   struct swapchain_t *swapchain;
   struct renderer_t *renderer;
   struct scene_t *scene;
@@ -274,12 +275,12 @@ typedef struct renderer_t {
   uint64_t frames_in_flight;
   uint32_t frame_index;
   uint32_t image_index;
-  VkCommandBuffer *graphic_command_buffers;
-  uint32_t pipeline_types[0xFF];
-  void *pipeline_links[0xFF];
-  VkSemaphore *render_finished_semaphores;
-  VkSemaphore *image_available_semaphores;
-  VkFence *frame_fences;
+  VkCommandBuffer *command_buffer;
+  uint32_t pipeline_type[0xFF];
+  void *pipeline_link[0xFF];
+  VkSemaphore *render_finished_semaphore;
+  VkSemaphore *image_available_semaphore;
+  VkFence *frame_fence;
   time_info_t **time_infos;
   screen_info_t **screen_infos;
   camera_info_t **camera_infos;
@@ -291,8 +292,8 @@ typedef struct renderer_t {
   uint32_t **debug_line_indices;
   buffer_t **debug_line_vertex_buffers;
   buffer_t **debug_line_index_buffers;
-  uint32_t *debug_line_vertex_offsets;
-  uint32_t *debug_line_index_offsets;
+  uint32_t *debug_line_vertex_offset;
+  uint32_t *debug_line_index_offset;
   VkRenderPass gbuffer_render_pass;
 } renderer_t;
 

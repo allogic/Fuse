@@ -9,11 +9,15 @@
 #include <editor/ed_statusbar.h>
 #include <editor/ed_sceneview.h>
 
+#include <imgui/imgui_impl_win32.h>
+#include <imgui/imgui_impl_vulkan.h>
+
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
-static void imgui_create(context_t *context);
-static void imgui_draw(context_t *context);
-static void imgui_destroy(context_t *context);
+static void editor_create(context_t *context);
+static void editor_dirty(context_t *context);
+static void editor_draw(context_t *context);
+static void editor_destroy(context_t *context);
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
 
@@ -38,10 +42,11 @@ sceneview_t *g_sceneviews[0xFF] = {};
 static VkDescriptorPool s_editor_descriptor_pool = 0;
 
 int32_t main(int32_t argc, char **argv) {
-  g_context_imgui_create_proc = imgui_create;
-  g_context_imgui_draw_proc = imgui_draw;
-  g_context_imgui_destroy_proc = imgui_destroy;
-  g_context_imgui_message_proc = ImGui_ImplWin32_WndProcHandler;
+  g_context_editor_create_proc = editor_create;
+  g_context_editor_dirty_proc = editor_dirty;
+  g_context_editor_draw_proc = editor_draw;
+  g_context_editor_destroy_proc = editor_destroy;
+  g_context_editor_message_proc = ImGui_ImplWin32_WndProcHandler;
 
   context_t *context = context_create(1920, 1080, 1);
 
@@ -59,7 +64,7 @@ int32_t main(int32_t argc, char **argv) {
   return 0;
 }
 
-static void imgui_create(context_t *context) {
+static void editor_create(context_t *context) {
   // TODO: double check descriptor pool's..
 
   VkDescriptorPoolSize s_editor_descriptor_pool_sizes[] = {
@@ -91,7 +96,7 @@ static void imgui_create(context_t *context) {
 
   // TODO: integrate fonts into database..
 
-  g_editor_commit_mono = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 14.0F);
+  g_editor_commit_mono = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 15.0F);
   g_editor_commit_mono_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 16.0F);
   g_editor_commit_mono_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 18.0F);
   g_editor_commit_mono_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 20.0F);
@@ -99,13 +104,13 @@ static void imgui_create(context_t *context) {
   g_editor_commit_mono_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 24.0F);
   g_editor_commit_mono_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 26.0F);
 
-  g_editor_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 14.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 18.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 22.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 26.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 30.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 34.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-outlined.ttf", 38.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 15.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 18.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 22.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 26.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 30.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 34.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 38.0F, 0, icon_glyph_ranges);
 
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -121,21 +126,21 @@ static void imgui_create(context_t *context) {
   style.WindowBorderSize = 0.0F;
   style.WindowTitleAlign = ImVec2{0.0F, 0.5F};
   style.WindowMenuButtonPosition = ImGuiDir_None;
-  style.ChildRounding = 5.0F;
+  style.ChildRounding = 1.0F;
   style.ChildBorderSize = 0.0F;
   style.PopupRounding = 0.0F;
   style.FrameRounding = 0.0F;
   style.ItemSpacing = ImVec2{8.0F, 4.0F};
-  style.ScrollbarSize = 15.0F;
-  style.ScrollbarRounding = 5.0F;
+  style.ScrollbarSize = 12.0F;
+  style.ScrollbarRounding = 2.5F;
   style.GrabRounding = 0.0F;
-  style.TabRounding = 5.0F;
+  style.TabRounding = 2.5F;
   style.TabBorderSize = 2.0F;
   style.TabCloseButtonMinWidthSelected = -1.0F;
   style.TabCloseButtonMinWidthUnselected = -1.0F;
   style.TabBarBorderSize = 0.0F;
   style.TabBarOverlineSize = 0.0F;
-  style.DockingSeparatorSize = 10.0F;
+  style.DockingSeparatorSize = 5.0F;
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(30, 30, 30, 255));
   ImGui::PushStyleColor(ImGuiCol_Border, IM_COL32(50, 50, 50, 255));
@@ -188,10 +193,32 @@ static void imgui_create(context_t *context) {
   inspector_create(context);
   dockspace_create(context);
   statusbar_create(context);
-  sceneview_create(context, 0, "Scene");
+  sceneview_create(context, 0, 1, 1, "Scene");
+  sceneview_create(context, 1, 1, 1, "Game");
 }
-static void imgui_draw(context_t *context) {
-  VkCommandBuffer command_buffer = context->renderer->graphic_command_buffers[context->renderer->frame_index];
+static void editor_dirty(context_t *context) {
+  static char name[0xFF] = {};
+
+  uint64_t link_index = 0;
+
+  while (g_sceneviews[link_index]) {
+
+    if (g_sceneviews[link_index]->is_dirty) {
+
+      uint32_t width = g_sceneviews[link_index]->width;
+      uint32_t height = g_sceneviews[link_index]->height;
+      strcpy(name, g_sceneviews[link_index]->name);
+
+      sceneview_destroy(g_sceneviews[link_index]);
+
+      sceneview_create(context, link_index, width, height, name);
+    }
+
+    link_index++;
+  }
+}
+static void editor_draw(context_t *context) {
+  VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
 
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplWin32_NewFrame();
@@ -208,7 +235,7 @@ static void imgui_draw(context_t *context) {
 
   ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
-static void imgui_destroy(context_t *context) {
+static void editor_destroy(context_t *context) {
   uint64_t sceneview_index = 0;
 
   while (g_sceneviews[sceneview_index]) {

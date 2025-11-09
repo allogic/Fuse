@@ -2,7 +2,7 @@
 #define ED_FWD_H
 
 typedef enum asset_type_t {
-  ASSET_TYPE_NONE,
+  ASSET_TYPE_NONE = 0,
   ASSET_TYPE_SWAPCHAIN,
   ASSET_TYPE_RENDERER,
   ASSET_TYPE_PIPELINE,
@@ -16,7 +16,7 @@ typedef enum gbuffer_attachment_type_t {
 
 typedef struct sceneview_t {
   context_t *context;
-  uint64_t index;
+  uint64_t link_index;
   uint32_t width;
   uint32_t height;
   uint32_t prev_width;
@@ -25,6 +25,7 @@ typedef struct sceneview_t {
   uint8_t is_open;
   uint8_t is_docked;
   char name[0xFF];
+  viewport_t *viewport;
   VkDescriptorSet *gbuffer_color_attachment;
   VkDescriptorSet *gbuffer_depth_attachment;
   gbuffer_attachment_type_t gbuffer_attachment_type;

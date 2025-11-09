@@ -154,9 +154,9 @@ __forceinline vector3_t quaternion_to_euler_angles(quaternion_t a) {
   }
 
   vector3_t q = {
-    rad_to_deg(pitch),
-    rad_to_deg(yaw),
-    rad_to_deg(roll),
+    pitch,
+    yaw,
+    roll,
   };
 
   return q;
@@ -183,9 +183,9 @@ __forceinline vector3_t quaternion_to_euler_angles_xyzw(float x, float y, float 
   }
 
   vector3_t q = {
-    rad_to_deg(pitch),
-    rad_to_deg(yaw),
-    rad_to_deg(roll),
+    pitch,
+    yaw,
+    roll,
   };
 
   return q;

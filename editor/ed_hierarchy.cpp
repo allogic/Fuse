@@ -2,19 +2,27 @@
 #include <editor/ed_hierarchy.h>
 #include <editor/ed_dockspace.h>
 #include <editor/ed_titlebar.h>
+#include <editor/ed_main.h>
 
-static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t e);
+static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity);
+static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity);
+static void hierarchy_draw_entity_buttons(ecs_world_t *world, ecs_entity_t entity);
+
+uint8_t g_hierarchy_is_open = 1;
+uint8_t g_hierarchy_is_docked = 0;
+
+ecs_entity_t g_hierarchy_selected_entity = 0;
 
 void hierarchy_create(context_t *context) {
 }
 void hierarchy_refresh(context_t *context) {
 }
 void hierarchy_draw(context_t *context) {
-  if (dockspace_begin_child("Hierarchy", &g_titlebar_hierarchy_is_open, &g_titlebar_hierarchy_is_docked)) {
+  if (dockspace_begin_child("Hierarchy", &g_hierarchy_is_open, &g_hierarchy_is_docked)) {
 
     hierarchy_draw_tree(context->scene->world, context->scene->root);
 
-    dockspace_end_child(g_titlebar_hierarchy_is_docked);
+    dockspace_end_child(g_hierarchy_is_docked);
   }
 }
 void hierarchy_destroy(context_t *context) {
@@ -27,11 +35,6 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
 
   ecs_children_next(&child_iter);
 
-  // camera_t const *camera = ecs_get(world, entity, camera_t);
-  // editor_controller_t const *editor_controller = ecs_get(world, entity, editor_controller_t);
-  // rigidbody_t const *controller = ecs_get(world, entity, rigidbody_t);
-  // transform_t const *transform = ecs_get(world, entity, transform_t);
-
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
@@ -42,9 +45,24 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
     tree_node_flags |= ImGuiTreeNodeFlags_Leaf;
   }
 
-  if (ImGui::TreeNodeEx(name, tree_node_flags)) {
+  if (entity == g_hierarchy_selected_entity) {
+    tree_node_flags |= ImGuiTreeNodeFlags_Selected;
+  }
 
-    ImGui::Dummy(ImVec2(0.0f, 5.0F));
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0F));
+
+  uint8_t is_open = ImGui::TreeNodeEx(name, tree_node_flags);
+
+  if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    g_hierarchy_selected_entity = entity;
+  }
+
+  hierarchy_draw_context_menu(world, entity);
+  hierarchy_draw_entity_buttons(world, entity);
+
+  ImGui::PopStyleVar(1);
+
+  if (is_open) {
 
     do {
 
@@ -60,8 +78,45 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
 
     } while (ecs_children_next(&child_iter));
 
-    ImGui::Dummy(ImVec2(0.0f, 5.0F));
-
     ImGui::TreePop();
   }
+}
+static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity) {
+  if (ImGui::BeginPopupContextItem("Hierarchy Context Menu")) {
+
+    ImGui::PushFont(g_editor_material_symbols_h5);
+
+    if (ImGui::MenuItem(ICON_MS_ADD)) {
+      // TODO
+    }
+    if (ImGui::MenuItem(ICON_MS_REMOVE)) {
+      // TODO
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::MenuItem(ICON_MS_EDIT)) {
+      // TODO
+    }
+
+    ImGui::PopFont();
+    ImGui::EndPopup();
+  }
+}
+static void hierarchy_draw_entity_buttons(ecs_world_t *world, ecs_entity_t entity) {
+  ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
+
+  ImGui::PushFont(g_editor_material_symbols);
+
+  if (ImGui::Button(ICON_MS_DELETE, ImVec2{20.0F, 0.0F})) {
+    // TODO
+  }
+
+  ImGui::SameLine(ImGui::GetWindowSize().x - 40.0F);
+
+  if (ImGui::Button(ICON_MS_VISIBILITY, ImVec2{20.0F, 0.0F})) {
+    // TODO
+  }
+
+  ImGui::PopFont();
 }

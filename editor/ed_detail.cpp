@@ -4,6 +4,8 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_titlebar.h>
 
+#include <imgui/imgui.h>
+
 static void detail_draw_swapchain(void);
 static void detail_draw_renderer(void);
 static void detail_draw_pipeline(void);
@@ -11,6 +13,9 @@ static void detail_draw_model(void);
 
 static void detail_select_model_mesh(uint64_t selected_index);
 static void detail_select_mesh_primitive(uint64_t selected_index);
+
+uint8_t g_detail_is_open = 0;
+uint8_t g_detail_is_docked = 0;
 
 int64_t g_detail_selected_model_mesh = -1;
 int64_t g_detail_selected_mesh_primitive = -1;
@@ -23,7 +28,7 @@ void detail_create(context_t *context) {
 void detail_refresh(context_t *context) {
 }
 void detail_draw(context_t *context) {
-  if (dockspace_begin_child("Detail", &g_titlebar_detail_is_open, &g_titlebar_detail_is_docked)) {
+  if (dockspace_begin_child("Detail", &g_detail_is_open, &g_detail_is_docked)) {
     switch (g_catalog_selected_asset_type) {
       case ASSET_TYPE_NONE: {
 
@@ -63,7 +68,7 @@ void detail_draw(context_t *context) {
       }
     }
 
-    dockspace_end_child(g_titlebar_detail_is_docked);
+    dockspace_end_child(g_detail_is_docked);
   }
 }
 void detail_destroy(context_t *context) {

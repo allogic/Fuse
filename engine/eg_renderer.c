@@ -28,6 +28,7 @@ static void renderer_create_command_buffer(renderer_t *renderer);
 
 static void renderer_update_uniform_buffers(renderer_t *renderer);
 
+static void renderer_record_viewport_resizes(renderer_t *renderer);
 static void renderer_record_compute_commands(renderer_t *renderer);
 static void renderer_record_graphic_commands(renderer_t *renderer);
 
@@ -62,8 +63,8 @@ void renderer_create(context_t *context) {
   renderer->frame_index = 0;
   renderer->image_index = 0;
 
-  memset(renderer->pipeline_types, 0, sizeof(renderer->pipeline_types));
-  memset(renderer->pipeline_links, 0, sizeof(renderer->pipeline_links));
+  memset(renderer->pipeline_type, 0, sizeof(renderer->pipeline_type));
+  memset(renderer->pipeline_link, 0, sizeof(renderer->pipeline_link));
 
   renderer_create_global_buffers(renderer);
   renderer_create_debug_buffers(renderer);
@@ -73,7 +74,7 @@ void renderer_create(context_t *context) {
   renderer_create_command_buffer(renderer);
 
   if (renderer->context->is_editor_mode) {
-    g_context_imgui_create_proc(renderer->context);
+    g_context_editor_create_proc(renderer->context);
   }
 
   database_destroy_renderer_asset(&renderer_asset);
@@ -100,7 +101,7 @@ void renderer_update(renderer_t *renderer) {
 void renderer_draw(renderer_t *renderer) {
   VkResult result = VK_SUCCESS;
 
-  result = vkWaitForFences(renderer->context->device, 1, &renderer->frame_fences[renderer->frame_index], 1, UINT64_MAX);
+  result = vkWaitForFences(renderer->context->device, 1, &renderer->frame_fence[renderer->frame_index], 1, UINT64_MAX);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -116,7 +117,7 @@ void renderer_draw(renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  result = vkResetFences(renderer->context->device, 1, &renderer->frame_fences[renderer->frame_index]);
+  result = vkResetFences(renderer->context->device, 1, &renderer->frame_fence[renderer->frame_index]);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -129,7 +130,7 @@ void renderer_draw(renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  result = vkResetCommandBuffer(renderer->graphic_command_buffers[renderer->frame_index], 0);
+  result = vkResetCommandBuffer(renderer->command_buffer[renderer->frame_index], 0);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -142,7 +143,7 @@ void renderer_draw(renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  result = vkAcquireNextImageKHR(renderer->context->device, renderer->context->swapchain->handle, UINT64_MAX, renderer->image_available_semaphores[renderer->frame_index], 0, &renderer->image_index);
+  result = vkAcquireNextImageKHR(renderer->context->device, renderer->context->swapchain->handle, UINT64_MAX, renderer->image_available_semaphore[renderer->frame_index], 0, &renderer->image_index);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -171,27 +172,28 @@ void renderer_draw(renderer_t *renderer) {
   command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
   command_buffer_begin_info.pInheritanceInfo = 0;
 
-  VULKAN_CHECK(vkBeginCommandBuffer(renderer->graphic_command_buffers[renderer->frame_index], &command_buffer_begin_info));
+  VULKAN_CHECK(vkBeginCommandBuffer(renderer->command_buffer[renderer->frame_index], &command_buffer_begin_info));
 
+  renderer_record_viewport_resizes(renderer);
   renderer_record_compute_commands(renderer);
   renderer_record_graphic_commands(renderer);
 
-  VULKAN_CHECK(vkEndCommandBuffer(renderer->graphic_command_buffers[renderer->frame_index]));
+  VULKAN_CHECK(vkEndCommandBuffer(renderer->command_buffer[renderer->frame_index]));
 
   // TODO: re-validate VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
   VkPipelineStageFlags graphic_wait_stages[] = {VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
   VkSubmitInfo graphic_submit_info = {0};
   graphic_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  graphic_submit_info.pWaitSemaphores = &renderer->image_available_semaphores[renderer->frame_index];
+  graphic_submit_info.pWaitSemaphores = &renderer->image_available_semaphore[renderer->frame_index];
   graphic_submit_info.waitSemaphoreCount = 1;
-  graphic_submit_info.pSignalSemaphores = &renderer->render_finished_semaphores[renderer->image_index];
+  graphic_submit_info.pSignalSemaphores = &renderer->render_finished_semaphore[renderer->image_index];
   graphic_submit_info.signalSemaphoreCount = 1;
-  graphic_submit_info.pCommandBuffers = &renderer->graphic_command_buffers[renderer->frame_index];
+  graphic_submit_info.pCommandBuffers = &renderer->command_buffer[renderer->frame_index];
   graphic_submit_info.commandBufferCount = 1;
   graphic_submit_info.pWaitDstStageMask = graphic_wait_stages;
 
-  result = vkQueueSubmit(renderer->context->graphic_queue, 1, &graphic_submit_info, renderer->frame_fences[renderer->frame_index]);
+  result = vkQueueSubmit(renderer->context->graphic_queue, 1, &graphic_submit_info, renderer->frame_fence[renderer->frame_index]);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -209,7 +211,7 @@ void renderer_draw(renderer_t *renderer) {
 
   VkPresentInfoKHR present_info = {0};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  present_info.pWaitSemaphores = &renderer->render_finished_semaphores[renderer->image_index];
+  present_info.pWaitSemaphores = &renderer->render_finished_semaphore[renderer->image_index];
   present_info.waitSemaphoreCount = 1;
   present_info.pSwapchains = &renderer->context->swapchain->handle;
   present_info.swapchainCount = 1;
@@ -241,7 +243,7 @@ void renderer_destroy(renderer_t *renderer) {
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->present_queue));
 
   if (renderer->context->is_editor_mode) {
-    g_context_imgui_destroy_proc(renderer->context);
+    g_context_editor_destroy_proc(renderer->context);
   }
 
   renderer_destroy_command_buffer(renderer);
@@ -258,11 +260,11 @@ void renderer_destroy(renderer_t *renderer) {
 
 void renderer_draw_debug_line(renderer_t *renderer, vector3_t from, vector3_t to, vector4_t color) {
   if (renderer->is_debug_enabled) {
-    graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+    graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_link[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
-      uint32_t vertex_offset = renderer->debug_line_vertex_offsets[renderer->frame_index];
-      uint32_t index_offset = renderer->debug_line_index_offsets[renderer->frame_index];
+      uint32_t vertex_offset = renderer->debug_line_vertex_offset[renderer->frame_index];
+      uint32_t index_offset = renderer->debug_line_index_offset[renderer->frame_index];
 
       debug_vertex_t *vertices = renderer->debug_line_vertices[renderer->frame_index];
       uint32_t *indices = renderer->debug_line_indices[renderer->frame_index];
@@ -276,18 +278,18 @@ void renderer_draw_debug_line(renderer_t *renderer, vector3_t from, vector3_t to
       indices[index_offset + 0] = (uint32_t)(vertex_offset + 0);
       indices[index_offset + 1] = (uint32_t)(vertex_offset + 1);
 
-      renderer->debug_line_vertex_offsets[renderer->frame_index] += 2;
-      renderer->debug_line_index_offsets[renderer->frame_index] += 2;
+      renderer->debug_line_vertex_offset[renderer->frame_index] += 2;
+      renderer->debug_line_index_offset[renderer->frame_index] += 2;
     }
   }
 }
 void renderer_draw_debug_box(renderer_t *renderer, vector3_t position, vector3_t size, vector4_t color) {
   if (renderer->is_debug_enabled) {
-    graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+    graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_link[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
-      uint32_t vertex_offset = renderer->debug_line_vertex_offsets[renderer->frame_index];
-      uint32_t index_offset = renderer->debug_line_index_offsets[renderer->frame_index];
+      uint32_t vertex_offset = renderer->debug_line_vertex_offset[renderer->frame_index];
+      uint32_t index_offset = renderer->debug_line_index_offset[renderer->frame_index];
 
       debug_vertex_t *vertices = renderer->debug_line_vertices[renderer->frame_index];
       uint32_t *indices = renderer->debug_line_indices[renderer->frame_index];
@@ -335,31 +337,31 @@ void renderer_draw_debug_box(renderer_t *renderer, vector3_t position, vector3_t
       indices[index_offset + 22] = (uint32_t)(vertex_offset + 3);
       indices[index_offset + 23] = (uint32_t)(vertex_offset + 7);
 
-      renderer->debug_line_vertex_offsets[renderer->frame_index] += 8;
-      renderer->debug_line_index_offsets[renderer->frame_index] += 24;
+      renderer->debug_line_vertex_offset[renderer->frame_index] += 8;
+      renderer->debug_line_index_offset[renderer->frame_index] += 24;
     }
   }
 }
 
 static void renderer_link_pipeline(renderer_t *renderer, uint32_t link_index, uint32_t pipeline_type, void *pipeline) {
-  if (renderer->pipeline_links[link_index]) {
+  if (renderer->pipeline_link[link_index]) {
 
-    switch (renderer->pipeline_types[link_index]) {
+    switch (renderer->pipeline_type[link_index]) {
       case 0: {
-        graphic_pipeline_destroy(renderer->pipeline_links[link_index]);
+        graphic_pipeline_destroy(renderer->pipeline_link[link_index]);
 
         break;
       }
       case 1: {
-        compute_pipeline_destroy(renderer->pipeline_links[link_index]);
+        compute_pipeline_destroy(renderer->pipeline_link[link_index]);
 
         break;
       }
     }
   }
 
-  renderer->pipeline_types[link_index] = pipeline_type;
-  renderer->pipeline_links[link_index] = pipeline;
+  renderer->pipeline_type[link_index] = pipeline_type;
+  renderer->pipeline_link[link_index] = pipeline;
 }
 
 static void renderer_create_global_buffers(renderer_t *renderer) {
@@ -392,8 +394,8 @@ static void renderer_create_global_buffers(renderer_t *renderer) {
   }
 }
 static void renderer_create_debug_buffers(renderer_t *renderer) {
-  renderer->debug_line_vertex_offsets = (uint32_t *)heap_alloc(sizeof(uint32_t) * renderer->frames_in_flight, 1, 0);
-  renderer->debug_line_index_offsets = (uint32_t *)heap_alloc(sizeof(uint32_t) * renderer->frames_in_flight, 1, 0);
+  renderer->debug_line_vertex_offset = (uint32_t *)heap_alloc(sizeof(uint32_t) * renderer->frames_in_flight, 1, 0);
+  renderer->debug_line_index_offset = (uint32_t *)heap_alloc(sizeof(uint32_t) * renderer->frames_in_flight, 1, 0);
 
   renderer->debug_line_vertices = (debug_vertex_t **)heap_alloc(sizeof(debug_vertex_t *) * renderer->frames_in_flight, 0, 0);
   renderer->debug_line_indices = (uint32_t **)heap_alloc(sizeof(uint32_t *) * renderer->frames_in_flight, 0, 0);
@@ -549,9 +551,9 @@ static void renderer_create_pipelines(renderer_t *renderer) {
   database_destroy_pipeline_assets(&compute_pipeline_assets);
 }
 static void renderer_create_sync_objects(renderer_t *renderer) {
-  renderer->render_finished_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * renderer->context->swapchain->image_count, 0, 0);
-  renderer->image_available_semaphores = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * renderer->frames_in_flight, 0, 0);
-  renderer->frame_fences = (VkFence *)heap_alloc(sizeof(VkFence) * renderer->frames_in_flight, 0, 0);
+  renderer->render_finished_semaphore = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * renderer->context->swapchain->image_count, 0, 0);
+  renderer->image_available_semaphore = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * renderer->frames_in_flight, 0, 0);
+  renderer->frame_fence = (VkFence *)heap_alloc(sizeof(VkFence) * renderer->frames_in_flight, 0, 0);
 
   VkSemaphoreCreateInfo semaphore_create_info = {0};
   semaphore_create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -566,7 +568,7 @@ static void renderer_create_sync_objects(renderer_t *renderer) {
 
   while (image_index < image_count) {
 
-    VULKAN_CHECK(vkCreateSemaphore(renderer->context->device, &semaphore_create_info, 0, &renderer->render_finished_semaphores[image_index]));
+    VULKAN_CHECK(vkCreateSemaphore(renderer->context->device, &semaphore_create_info, 0, &renderer->render_finished_semaphore[image_index]));
 
     image_index++;
   }
@@ -576,14 +578,14 @@ static void renderer_create_sync_objects(renderer_t *renderer) {
 
   while (frame_index < frame_count) {
 
-    VULKAN_CHECK(vkCreateSemaphore(renderer->context->device, &semaphore_create_info, 0, &renderer->image_available_semaphores[frame_index]));
-    VULKAN_CHECK(vkCreateFence(renderer->context->device, &fence_create_info, 0, &renderer->frame_fences[frame_index]));
+    VULKAN_CHECK(vkCreateSemaphore(renderer->context->device, &semaphore_create_info, 0, &renderer->image_available_semaphore[frame_index]));
+    VULKAN_CHECK(vkCreateFence(renderer->context->device, &fence_create_info, 0, &renderer->frame_fence[frame_index]));
 
     frame_index++;
   }
 }
 static void renderer_create_command_buffer(renderer_t *renderer) {
-  renderer->graphic_command_buffers = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * renderer->frames_in_flight, 0, 0);
+  renderer->command_buffer = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * renderer->frames_in_flight, 0, 0);
 
   VkCommandBufferAllocateInfo command_buffer_alloc_create_info = {0};
   command_buffer_alloc_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -591,7 +593,7 @@ static void renderer_create_command_buffer(renderer_t *renderer) {
   command_buffer_alloc_create_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   command_buffer_alloc_create_info.commandBufferCount = (uint32_t)renderer->frames_in_flight;
 
-  VULKAN_CHECK(vkAllocateCommandBuffers(renderer->context->device, &command_buffer_alloc_create_info, renderer->graphic_command_buffers));
+  VULKAN_CHECK(vkAllocateCommandBuffers(renderer->context->device, &command_buffer_alloc_create_info, renderer->command_buffer));
 }
 
 static void renderer_update_uniform_buffers(renderer_t *renderer) {
@@ -636,6 +638,12 @@ static void renderer_update_uniform_buffers(renderer_t *renderer) {
   }
 }
 
+static void renderer_record_viewport_resizes(renderer_t *renderer) {
+  if (renderer->context->is_editor_mode) {
+
+    g_context_editor_dirty_proc(renderer->context);
+  }
+}
 static void renderer_record_compute_commands(renderer_t *renderer) {
   // TODO
   // vkCmdBindPipeline(g_renderer_graphic_command_buffers[g_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline);
@@ -647,46 +655,46 @@ static void renderer_record_graphic_commands(renderer_t *renderer) {
 
   if (renderer->context->is_editor_mode) {
 
-    uint64_t viewport_index = 0;
+    uint64_t link_index = 0;
 
-    while (renderer->context->viewports[viewport_index]) {
+    while (renderer->context->viewport[link_index]) {
 
-      viewport_t *viewport = renderer->context->viewports[viewport_index];
+      viewport_t *viewport = renderer->context->viewport[link_index];
 
       VkImage color_image = viewport->color_image[renderer->image_index];
       VkImage depth_image = viewport->depth_image[renderer->image_index];
 
-      image_layout_transition(renderer->context, color_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-      image_layout_transition(renderer->context, depth_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+      image_layout_transition(renderer->context, color_image, renderer->command_buffer[renderer->frame_index], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+      image_layout_transition(renderer->context, depth_image, renderer->command_buffer[renderer->frame_index], VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-      viewport_index++;
+      link_index++;
     }
 
     renderer_editor_pass(renderer);
 
-    viewport_index = 0;
+    link_index = 0;
 
-    while (renderer->context->viewports[viewport_index]) {
+    while (renderer->context->viewport[link_index]) {
 
-      viewport_t *viewport = renderer->context->viewports[viewport_index];
+      viewport_t *viewport = renderer->context->viewport[link_index];
 
       VkImage color_image = viewport->color_image[renderer->image_index];
       VkImage depth_image = viewport->depth_image[renderer->image_index];
 
-      image_layout_transition(renderer->context, color_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
-      image_layout_transition(renderer->context, depth_image, renderer->graphic_command_buffers[renderer->frame_index], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+      image_layout_transition(renderer->context, color_image, renderer->command_buffer[renderer->frame_index], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
+      image_layout_transition(renderer->context, depth_image, renderer->command_buffer[renderer->frame_index], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-      viewport_index++;
+      link_index++;
     }
   }
 }
 
 static void renderer_gbuffer_pass(renderer_t *renderer) {
-  VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
+  VkCommandBuffer command_buffer = renderer->command_buffer[renderer->frame_index];
 
-  uint64_t viewport_index = 0;
+  uint64_t link_index = 0;
 
-  while (renderer->context->viewports[viewport_index]) {
+  while (renderer->context->viewport[link_index]) {
 
     VkClearValue color_clear_value = {0};
     color_clear_value.color.float32[0] = 0.0F;
@@ -700,13 +708,13 @@ static void renderer_gbuffer_pass(renderer_t *renderer) {
 
     VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
 
-    uint32_t width = renderer->context->viewports[viewport_index]->width;
-    uint32_t height = renderer->context->viewports[viewport_index]->height;
+    uint32_t width = renderer->context->viewport[link_index]->width;
+    uint32_t height = renderer->context->viewport[link_index]->height;
 
     VkRenderPassBeginInfo render_pass_create_info = {0};
     render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_create_info.renderPass = renderer->gbuffer_render_pass;
-    render_pass_create_info.framebuffer = renderer->context->viewports[viewport_index]->frame_buffer[renderer->image_index];
+    render_pass_create_info.framebuffer = renderer->context->viewport[link_index]->frame_buffer[renderer->image_index];
     render_pass_create_info.renderArea.offset.x = 0;
     render_pass_create_info.renderArea.offset.y = 0;
     render_pass_create_info.renderArea.extent.width = width;
@@ -736,26 +744,28 @@ static void renderer_gbuffer_pass(renderer_t *renderer) {
 
     if (renderer->is_debug_enabled) {
 
-      graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_links[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+      graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_link[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
       if (debug_pipeline) {
 
-        uint32_t index_count = renderer->debug_line_index_offsets[renderer->frame_index];
+        uint32_t index_count = renderer->debug_line_index_offset[renderer->frame_index];
 
         graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
       }
-
-      renderer->debug_line_vertex_offsets[renderer->frame_index] = 0;
-      renderer->debug_line_index_offsets[renderer->frame_index] = 0;
     }
 
     vkCmdEndRenderPass(command_buffer);
 
-    viewport_index++;
+    link_index++;
+  }
+
+  if (renderer->is_debug_enabled) {
+    renderer->debug_line_vertex_offset[renderer->frame_index] = 0;
+    renderer->debug_line_index_offset[renderer->frame_index] = 0;
   }
 }
 static void renderer_editor_pass(renderer_t *renderer) {
-  VkCommandBuffer command_buffer = renderer->graphic_command_buffers[renderer->frame_index];
+  VkCommandBuffer command_buffer = renderer->command_buffer[renderer->frame_index];
 
   VkClearValue color_clear_value = {0};
   color_clear_value.color.float32[0] = 0.0F;
@@ -803,7 +813,7 @@ static void renderer_editor_pass(renderer_t *renderer) {
 
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  g_context_imgui_draw_proc(renderer->context);
+  g_context_editor_draw_proc(renderer->context);
 
   vkCmdEndRenderPass(command_buffer);
 }
@@ -852,31 +862,31 @@ static void renderer_destroy_debug_buffers(renderer_t *renderer) {
   heap_free(renderer->debug_line_vertices);
   heap_free(renderer->debug_line_indices);
 
-  heap_free(renderer->debug_line_vertex_offsets);
-  heap_free(renderer->debug_line_index_offsets);
+  heap_free(renderer->debug_line_vertex_offset);
+  heap_free(renderer->debug_line_index_offset);
 }
 static void renderer_destroy_pipelines(renderer_t *renderer) {
   uint64_t pipeline_link_index = 0;
-  uint64_t pipeline_link_count = ARRAY_COUNT(renderer->pipeline_links);
+  uint64_t pipeline_link_count = ARRAY_COUNT(renderer->pipeline_link);
 
   while (pipeline_link_index < pipeline_link_count) {
 
-    if (renderer->pipeline_links[pipeline_link_index]) {
+    if (renderer->pipeline_link[pipeline_link_index]) {
 
-      switch (renderer->pipeline_types[pipeline_link_index]) {
+      switch (renderer->pipeline_type[pipeline_link_index]) {
         case 0: {
-          graphic_pipeline_destroy(renderer->pipeline_links[pipeline_link_index]);
+          graphic_pipeline_destroy(renderer->pipeline_link[pipeline_link_index]);
           break;
         }
         case 1: {
-          compute_pipeline_destroy(renderer->pipeline_links[pipeline_link_index]);
+          compute_pipeline_destroy(renderer->pipeline_link[pipeline_link_index]);
           break;
         }
       }
     }
 
-    renderer->pipeline_types[pipeline_link_index] = 0;
-    renderer->pipeline_links[pipeline_link_index] = 0;
+    renderer->pipeline_type[pipeline_link_index] = 0;
+    renderer->pipeline_link[pipeline_link_index] = 0;
 
     pipeline_link_index++;
   }
@@ -887,7 +897,7 @@ static void renderer_destroy_sync_objects(renderer_t *renderer) {
 
   while (image_index < image_count) {
 
-    vkDestroySemaphore(renderer->context->device, renderer->render_finished_semaphores[image_index], 0);
+    vkDestroySemaphore(renderer->context->device, renderer->render_finished_semaphore[image_index], 0);
 
     image_index++;
   }
@@ -897,21 +907,21 @@ static void renderer_destroy_sync_objects(renderer_t *renderer) {
 
   while (frame_index < frame_count) {
 
-    vkDestroySemaphore(renderer->context->device, renderer->image_available_semaphores[frame_index], 0);
+    vkDestroySemaphore(renderer->context->device, renderer->image_available_semaphore[frame_index], 0);
 
-    vkDestroyFence(renderer->context->device, renderer->frame_fences[frame_index], 0);
+    vkDestroyFence(renderer->context->device, renderer->frame_fence[frame_index], 0);
 
     frame_index++;
   }
 
-  heap_free(renderer->render_finished_semaphores);
-  heap_free(renderer->image_available_semaphores);
-  heap_free(renderer->frame_fences);
+  heap_free(renderer->render_finished_semaphore);
+  heap_free(renderer->image_available_semaphore);
+  heap_free(renderer->frame_fence);
 }
 static void renderer_destroy_command_buffer(renderer_t *renderer) {
-  vkFreeCommandBuffers(renderer->context->device, renderer->context->command_pool, (uint32_t)renderer->frames_in_flight, renderer->graphic_command_buffers);
+  vkFreeCommandBuffers(renderer->context->device, renderer->context->command_pool, (uint32_t)renderer->frames_in_flight, renderer->command_buffer);
 
-  heap_free(renderer->graphic_command_buffers);
+  heap_free(renderer->command_buffer);
 }
 static void renderer_destroy_gbuffer_render_pass(renderer_t *renderer) {
   vkDestroyRenderPass(renderer->context->device, renderer->gbuffer_render_pass, 0);

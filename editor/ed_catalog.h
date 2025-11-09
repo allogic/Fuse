@@ -1,6 +1,9 @@
 #ifndef ED_CATALOG_H
 #define ED_CATALOG_H
 
+extern uint8_t g_catalog_is_open;
+extern uint8_t g_catalog_is_docked;
+
 extern asset_type_t g_catalog_selected_asset_type;
 
 extern vector_t g_catalog_swapchain_assets;

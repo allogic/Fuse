@@ -52,10 +52,11 @@ static char const *s_context_device_extensions[] = {
   "VK_EXT_descriptor_indexing",
 };
 
-imgui_create_proc_t g_context_imgui_create_proc = 0;
-imgui_draw_proc_t g_context_imgui_draw_proc = 0;
-imgui_destroy_proc_t g_context_imgui_destroy_proc = 0;
-imgui_message_proc_t g_context_imgui_message_proc = 0;
+editor_create_proc_t g_context_editor_create_proc = 0;
+editor_dirty_proc_t g_context_editor_dirty_proc = 0;
+editor_draw_proc_t g_context_editor_draw_proc = 0;
+editor_destroy_proc_t g_context_editor_destroy_proc = 0;
+editor_message_proc_t g_context_editor_message_proc = 0;
 
 context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
   context_t *context = (context_t *)heap_alloc(sizeof(context_t), 1, 0);
@@ -153,17 +154,6 @@ void context_run(context_t *context) {
       renderer_create(context);
     }
 
-    // TODO
-    // if (context->is_editor_mode) {
-    //   if (g_context_imgui_viewport_dirty_proc(context)) {
-    //     renderer_destroy(context->renderer);
-    //
-    //     swapchain_update_gbuffer(context->swapchain);
-    //
-    //     renderer_create(context);
-    //   }
-    // }
-
     while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
 
       TranslateMessage(&context->window_message);
@@ -198,16 +188,13 @@ void context_destroy(context_t *context) {
   heap_free(context);
 }
 
-void context_viewport_create(context_t *context, uint64_t index, uint32_t width, uint32_t height) {
-  context->viewports[index] = viewport_create(context, width, height);
+viewport_t *context_viewport_create(context_t *context, uint64_t link_index, uint32_t width, uint32_t height) {
+  return context->viewport[link_index] = viewport_create(context, width, height);
 }
-viewport_t *context_viewport_at(context_t *context, uint64_t index) {
-  return context->viewports[index];
-}
-void context_viewport_destroy(context_t *context, uint64_t index) {
-  viewport_destroy(context->viewports[index]);
+void context_viewport_destroy(context_t *context, uint64_t link_index) {
+  viewport_destroy(context->viewport[link_index]);
 
-  context->viewports[index] = 0;
+  context->viewport[link_index] = 0;
 }
 
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key) {
@@ -287,7 +274,7 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
 
   if (context) {
     if (context->is_editor_mode) {
-      g_context_imgui_message_proc(window_handle, message, w_param, l_param);
+      g_context_editor_message_proc(window_handle, message, w_param, l_param);
     }
   }
 

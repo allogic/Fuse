@@ -1,6 +1,9 @@
 #ifndef ED_DETAIL_H
 #define ED_DETAIL_H
 
+extern uint8_t g_detail_is_open;
+extern uint8_t g_detail_is_docked;
+
 extern int64_t g_detail_selected_model_mesh;
 extern int64_t g_detail_selected_mesh_primitive;
 

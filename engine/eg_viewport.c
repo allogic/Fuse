@@ -37,6 +37,11 @@ viewport_t *viewport_create(context_t *context, uint32_t width, uint32_t height)
 
   return viewport;
 }
+void viewport_resize(viewport_t *viewport, uint32_t width, uint32_t height) {
+  viewport->width = width;
+  viewport->height = height;
+  viewport->is_dirty = 1;
+}
 void viewport_destroy(viewport_t *viewport) {
   viewport_destroy_frame_buffer(viewport);
   viewport_destroy_depth_images(viewport);
@@ -255,7 +260,7 @@ static void viewport_destroy_depth_images(viewport_t *viewport) {
   }
 }
 static void viewport_destroy_frame_buffer(viewport_t *viewport) {
-  VULKAN_CHECK(vkQueueWaitIdle(viewport->context->graphic_queue));
+  // VULKAN_CHECK(vkQueueWaitIdle(viewport->context->graphic_queue)); // TODO
 
   uint64_t image_index = 0;
   uint64_t image_count = viewport->context->swapchain->image_count;

@@ -1,6 +1,8 @@
 #ifndef ED_MAIN_H
 #define ED_MAIN_H
 
+#include <imgui/imgui.h> // TODO: remove imgui stuff..
+
 extern ImFont *g_editor_commit_mono_h1;
 extern ImFont *g_editor_commit_mono_h2;
 extern ImFont *g_editor_commit_mono_h3;

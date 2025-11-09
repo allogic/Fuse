@@ -1,21 +1,15 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_main.h>
+#include <editor/ed_catalog.h>
+#include <editor/ed_hierarchy.h>
+#include <editor/ed_inspector.h>
+#include <editor/ed_detail.h>
 
 static void titlebar_reset_drag_state(context_t *context);
 
 static void titlebar_draw_window_controls(context_t *context);
 static void titlebar_draw_scene_controls(context_t *context);
-
-uint8_t g_titlebar_catalog_is_open = 1;
-uint8_t g_titlebar_hierarchy_is_open = 1;
-uint8_t g_titlebar_inspector_is_open = 1;
-uint8_t g_titlebar_detail_is_open = 1;
-
-uint8_t g_titlebar_catalog_is_docked = 0;
-uint8_t g_titlebar_hierarchy_is_docked = 0;
-uint8_t g_titlebar_inspector_is_docked = 0;
-uint8_t g_titlebar_detail_is_docked = 0;
 
 void titlebar_create(context_t *context) {
 }
@@ -44,6 +38,7 @@ void titlebar_draw(context_t *context) {
   ImGui::Begin("Titlebar", 0, titlebar_flags);
   ImGui::PopStyleVar(1);
 
+  ImGui::SetCursorPos(ImVec2(10.0F, 10.0F));
   ImGui::PushFont(g_editor_material_symbols_h1);
   ImGui::Text(ICON_MS_DEPLOYED_CODE);
   ImGui::PopFont();
@@ -51,35 +46,23 @@ void titlebar_draw(context_t *context) {
   ImGui::SameLine(50);
 
   if (ImGui::Button("Catalog")) {
-    g_titlebar_catalog_is_open = 1;
+    g_catalog_is_open = !g_catalog_is_open;
   }
   ImGui::SameLine();
   if (ImGui::Button("Hierarchy")) {
-    g_titlebar_hierarchy_is_open = 1;
+    g_hierarchy_is_open = !g_hierarchy_is_open;
   }
   ImGui::SameLine();
   if (ImGui::Button("Inspector")) {
-    g_titlebar_inspector_is_open = 1;
+    g_inspector_is_open = !g_inspector_is_open;
   }
   ImGui::SameLine();
   if (ImGui::Button("Detail")) {
-    g_titlebar_detail_is_open = 1;
+    g_detail_is_open = !g_detail_is_open;
   }
   ImGui::SameLine();
-  if (ImGui::Button("Viewport 1")) {
-    // TODO
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Viewport 2")) {
-    // TODO
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Viewport 3")) {
-    // TODO
-  }
-  ImGui::SameLine();
-  if (ImGui::Button("Viewport 4")) {
-    // TODO
+  if (ImGui::Button("Sceneview")) {
+    g_sceneviews[0]->is_open = !g_sceneviews[0]->is_open;
   }
   ImGui::SameLine();
   if (ImGui::Button("Import")) {
@@ -131,7 +114,7 @@ static void titlebar_draw_window_controls(context_t *context) {
       ShowWindow(context->window_handle, SW_MAXIMIZE);
     }
 
-    is_maximized = ~is_maximized;
+    is_maximized = !is_maximized;
   }
 
   ImGui::SameLine();
