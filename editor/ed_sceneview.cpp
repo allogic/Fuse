@@ -3,49 +3,52 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_main.h>
 
+static void sceneview_create_attachments(sceneview_t *sceneview);
+static void sceneview_destroy_attachments(sceneview_t *sceneview);
+
 static char const *s_sceneview_gbuffer_attachment_names[] = {"Color", "Depth"};
 
-void sceneview_create(context_t *context, uint64_t link_index, uint32_t width, uint32_t height, char const *name) {
+sceneview_t *sceneview_create(context_t *context, char const *name) {
   sceneview_t *sceneview = (sceneview_t *)heap_alloc(sizeof(sceneview_t), 1, 0);
 
   sceneview->context = context;
-  sceneview->link_index = link_index;
-  sceneview->width = width;
-  sceneview->height = height;
-  sceneview->prev_width = width;
-  sceneview->prev_height = height;
+  sceneview->width = 1;
+  sceneview->height = 1;
+  sceneview->prev_width = 1;
+  sceneview->prev_height = 1;
   sceneview->is_dirty = 0;
   sceneview->is_open = 1;
   sceneview->is_docked = 0;
-  sceneview->viewport = context_viewport_create(sceneview->context, sceneview->link_index, sceneview->width, sceneview->height);
+  sceneview->viewport = viewport_create(sceneview->context, sceneview->width, sceneview->height);
   sceneview->gbuffer_color_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * sceneview->context->swapchain->image_count, 0, 0);
   sceneview->gbuffer_depth_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * sceneview->context->swapchain->image_count, 0, 0);
 
   strcpy(sceneview->name, name);
 
-  uint64_t image_index = 0;
-  uint64_t image_count = sceneview->context->swapchain->image_count;
+  sceneview_create_attachments(sceneview);
 
-  while (image_index < image_count) {
+  while (g_editor_sceneviews[sceneview->link_index]) {
 
-    VkSampler gbuffer_color_sampler = sceneview->viewport->color_sampler[image_index];
-    VkImageView gbuffer_color_image_view = sceneview->viewport->color_image_view[image_index];
-    VkImageLayout gbuffer_color_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    sceneview->gbuffer_color_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_color_sampler, gbuffer_color_image_view, gbuffer_color_image_layout);
-
-    VkSampler gbuffer_depth_sampler = sceneview->viewport->depth_sampler[image_index];
-    VkImageView gbuffer_depth_image_view = sceneview->viewport->depth_image_view[image_index];
-    VkImageLayout gbuffer_depth_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    sceneview->gbuffer_depth_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_depth_sampler, gbuffer_depth_image_view, gbuffer_depth_image_layout);
-
-    image_index++;
+    sceneview->link_index++;
   }
 
-  g_editor_sceneview[sceneview->link_index] = sceneview;
+  ASSERT(sceneview->link_index < 0xFF, "Invalid link index.");
+
+  g_editor_sceneviews[sceneview->link_index] = sceneview;
+
+  return sceneview;
 }
 void sceneview_refresh(sceneview_t *sceneview) {
+  if (sceneview->is_dirty) {
+
+    sceneview->is_dirty = 0;
+
+    sceneview_destroy_attachments(sceneview);
+
+    viewport_resize(sceneview->viewport, sceneview->width, sceneview->height);
+
+    sceneview_create_attachments(sceneview);
+  }
 }
 void sceneview_draw(sceneview_t *sceneview) {
   if (dockspace_begin_child(sceneview->name, &sceneview->is_open, &sceneview->is_docked)) {
@@ -118,8 +121,42 @@ void sceneview_draw(sceneview_t *sceneview) {
   }
 }
 void sceneview_destroy(sceneview_t *sceneview) {
-  g_editor_sceneview[sceneview->link_index] = 0;
+  ASSERT(sceneview->link_index < 0xFF, "Invalid link index.");
 
+  g_editor_sceneviews[sceneview->link_index] = 0;
+
+  sceneview_destroy_attachments(sceneview);
+
+  viewport_destroy(sceneview->viewport);
+
+  heap_free(sceneview->gbuffer_color_attachment);
+  heap_free(sceneview->gbuffer_depth_attachment);
+
+  heap_free(sceneview);
+}
+
+static void sceneview_create_attachments(sceneview_t *sceneview) {
+  uint64_t image_index = 0;
+  uint64_t image_count = sceneview->context->swapchain->image_count;
+
+  while (image_index < image_count) {
+
+    VkSampler gbuffer_color_sampler = sceneview->viewport->color_sampler[image_index];
+    VkImageView gbuffer_color_image_view = sceneview->viewport->color_image_view[image_index];
+    VkImageLayout gbuffer_color_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    sceneview->gbuffer_color_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_color_sampler, gbuffer_color_image_view, gbuffer_color_image_layout);
+
+    VkSampler gbuffer_depth_sampler = sceneview->viewport->depth_sampler[image_index];
+    VkImageView gbuffer_depth_image_view = sceneview->viewport->depth_image_view[image_index];
+    VkImageLayout gbuffer_depth_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    sceneview->gbuffer_depth_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_depth_sampler, gbuffer_depth_image_view, gbuffer_depth_image_layout);
+
+    image_index++;
+  }
+}
+static void sceneview_destroy_attachments(sceneview_t *sceneview) {
   uint64_t image_index = 0;
   uint64_t image_count = sceneview->context->swapchain->image_count;
 
@@ -130,11 +167,4 @@ void sceneview_destroy(sceneview_t *sceneview) {
 
     image_index++;
   }
-
-  context_viewport_destroy(sceneview->context, sceneview->link_index);
-
-  heap_free(sceneview->gbuffer_color_attachment);
-  heap_free(sceneview->gbuffer_depth_attachment);
-
-  heap_free(sceneview);
 }

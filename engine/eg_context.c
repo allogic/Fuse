@@ -158,7 +158,7 @@ void context_run(context_t *context) {
       DispatchMessageA(&context->window_message);
     }
 
-    QueryPerformanceCounter(&context->time_start);
+    QueryPerformanceCounter(&context->time_start); // TODO: measure whole loop..?
 
     PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_CONTEXT);
 
@@ -169,12 +169,21 @@ void context_run(context_t *context) {
 
     PROFILER_SCOPE_END(PROFILER_SAMPLE_LANE_CONTEXT);
 
-    QueryPerformanceCounter(&context->time_end);
+    QueryPerformanceCounter(&context->time_end); // TODO: measure whole loop..?
 
     PROFILER_INC_FRAME();
 
-    context->delta_time = (((double)context->time_end.QuadPart) - ((double)context->time_start.QuadPart)) / ((double)context->time_freq.QuadPart);
+    context->delta_time = ((double)(context->time_end.QuadPart - context->time_start.QuadPart)) / ((double)context->time_freq.QuadPart);
     context->time += context->delta_time;
+
+    context->elapsed_time_since_fps_count_update += context->delta_time;
+    context->fps_counter++;
+    context->frame_index++;
+
+    if (context->elapsed_time_since_fps_count_update > 1.0) {
+      context->elapsed_time_since_fps_count_update = 0.0;
+      context->fps_counter = 0;
+    }
   }
 }
 void context_destroy(context_t *context) {
@@ -190,15 +199,6 @@ void context_destroy(context_t *context) {
   context_destroy_window(context);
 
   heap_free(context);
-}
-
-viewport_t *context_viewport_create(context_t *context, uint64_t link_index, uint32_t width, uint32_t height) {
-  return context->viewport[link_index] = viewport_create(context, width, height);
-}
-void context_viewport_destroy(context_t *context, uint64_t link_index) {
-  viewport_destroy(context->viewport[link_index]);
-
-  context->viewport[link_index] = 0;
 }
 
 uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key) {

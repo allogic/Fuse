@@ -6,6 +6,7 @@
 #include <editor/ed_inspector.h>
 #include <editor/ed_detail.h>
 #include <editor/ed_profiler.h>
+#include <editor/ed_modelview.h>
 #include <editor/ed_main.h>
 
 static void titlebar_reset_drag_state(context_t *context);
@@ -78,6 +79,8 @@ static void titlebar_draw_icon(context_t *context) {
 static void titlebar_draw_main_menu(context_t *context) {
   ImGui::SetCursorPos(ImVec2(50.0F, 5.0F));
 
+  ImGui::PushID("Titlebar");
+
   if (ImGui::Button("Catalog")) {
     g_catalog_is_open = !g_catalog_is_open;
   }
@@ -103,14 +106,27 @@ static void titlebar_draw_main_menu(context_t *context) {
   }
 
   ImGui::SameLine();
-  if (ImGui::Button("Sceneview")) {
-    g_editor_sceneview[0]->is_open = !g_editor_sceneview[0]->is_open;
+  if (ImGui::Button("Scene")) {
+    g_editor_sceneviews[0]->is_open = !g_editor_sceneviews[0]->is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Game")) {
+    g_editor_sceneviews[1]->is_open = !g_editor_sceneviews[1]->is_open;
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Model")) {
+    modelview_t *modelview = modelview_create(context, "Model Viewer");
+    modelview->is_open = 1;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Import")) {
     importer_import_default_assets();
   }
+
+  ImGui::PopID();
 }
 static void titlebar_draw_window_controls(context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();

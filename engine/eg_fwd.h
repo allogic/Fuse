@@ -151,13 +151,16 @@ typedef struct context_t {
   LARGE_INTEGER time_end;
   double time;
   double delta_time;
-  int32_t mouse_position_x;
-  int32_t mouse_position_y;
-  int32_t mouse_wheel_delta;
-  int32_t window_width;
-  int32_t window_height;
-  int32_t window_titlebar_height;
-  int32_t window_statusbar_height;
+  double elapsed_time_since_fps_count_update;
+  uint64_t frame_index;
+  uint32_t fps_counter;
+  uint32_t mouse_position_x;
+  uint32_t mouse_position_y;
+  uint32_t mouse_wheel_delta;
+  uint32_t window_width;
+  uint32_t window_height;
+  uint32_t window_titlebar_height;
+  uint32_t window_statusbar_height;
   int32_t window_border_width;
   int32_t graphic_queue_index;
   int32_t present_queue_index;
@@ -207,9 +210,9 @@ typedef struct swapchain_t {
 
 typedef struct viewport_t {
   context_t *context;
+  uint64_t link_index;
   uint32_t width;
   uint32_t height;
-  uint8_t is_dirty;
   VkImage *color_image;
   VkDeviceMemory *color_device_memory;
   VkImageView *color_image_view;

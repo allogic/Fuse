@@ -34,6 +34,6 @@ extern cpu_frame_sample_t g_profiler_cpu_samples[PROFILER_SAMPLE_LANE_COUNT][PRO
   QueryPerformanceCounter(&profiler_scope_time_end);                                           \
   g_profiler_cpu_sample_names[LANE] = __func__;                                                \
   g_profiler_cpu_samples[LANE][g_profiler_frame_index].time = (float)g_profiler_context->time; \
-  g_profiler_cpu_samples[LANE][g_profiler_frame_index].delta = (float)((((double)profiler_scope_time_end.QuadPart) - ((double)profiler_scope_time_start.QuadPart)) / ((double)g_profiler_context->time_freq.QuadPart));
+  g_profiler_cpu_samples[LANE][g_profiler_frame_index].delta = (float)(((double)(profiler_scope_time_end.QuadPart - profiler_scope_time_start.QuadPart)) / ((double)g_profiler_context->time_freq.QuadPart));
 
 #endif // EG_PROFILER_H

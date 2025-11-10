@@ -5,6 +5,7 @@
 
 #define ARRAY_COUNT(ARRAY) ((uint64_t)(sizeof(ARRAY) / sizeof((ARRAY)[0ULL])))
 
+#define ASSERT(EXPRESSION, MESSAGE) assert((EXPRESSION) && (MESSAGE))
 #define STATIC_ASSERT(EXPRESSION) typedef uint8_t static_assert_of[(EXPRESSION) ? (1LL) : (-1LL)]
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))

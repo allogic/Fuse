@@ -6,6 +6,7 @@
 #include <editor/ed_main.h>
 #include <editor/ed_inspector.h>
 #include <editor/ed_sceneview.h>
+#include <editor/ed_modelview.h>
 #include <editor/ed_profiler.h>
 
 void dockspace_create(context_t *context) {
@@ -39,11 +40,20 @@ void dockspace_draw(context_t *context) {
 
   uint64_t sceneview_index = 0;
 
-  while (g_editor_sceneview[sceneview_index]) {
+  while (g_editor_sceneviews[sceneview_index]) {
 
-    sceneview_draw(g_editor_sceneview[sceneview_index]);
+    sceneview_draw(g_editor_sceneviews[sceneview_index]);
 
     sceneview_index++;
+  }
+
+  uint64_t modelview_index = 0;
+
+  while (g_editor_modelviews[modelview_index]) {
+
+    modelview_draw(g_editor_modelviews[modelview_index]);
+
+    modelview_index++;
   }
 
   ImGui::End();

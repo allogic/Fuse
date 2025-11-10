@@ -15,13 +15,17 @@ void profiler_refresh(context_t *context) {
 void profiler_draw(context_t *context) {
   if (dockspace_begin_child("Profiler", &g_profiler_is_open, &g_profiler_is_docked)) {
 
-    static float history = 4.0F;
+    static float history = 10.0F;
+    static int32_t interval = 120;
     static float target_30_fps = 1.0F / 30.0F;
     static float target_60_fps = 1.0F / 60.0F;
     static float target_120_fps = 1.0F / 120.0F;
 
     ImGui::SetNextItemWidth(200.0F);
     ImGui::SliderFloat("History", &history, 1, 30, "%.1F s");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(200.0F);
+    ImGui::InputInt("Interval", &interval);
 
     static ImPlotFlags plot_flags =
       ImPlotFlags_NoMouseText |
@@ -48,8 +52,6 @@ void profiler_draw(context_t *context) {
       ImPlot::SetupAxisLimits(ImAxis_X1, context->time - history, context->time, ImGuiCond_Always);
       ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 1.0F / 30.0F + 0.01);
 
-      ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5F);
-
       ImPlot::SetNextLineStyle(ImVec4(0.5F, 0.0F, 0.0F, 1.0F));
       ImPlot::PlotInfLines("##30Fps", &target_30_fps, 1, ImPlotInfLinesFlags_Horizontal);
 
@@ -58,6 +60,9 @@ void profiler_draw(context_t *context) {
 
       ImPlot::SetNextLineStyle(ImVec4(0.0F, 0.5F, 0.0F, 1.0F));
       ImPlot::PlotInfLines("##120Fps", &target_120_fps, 1, ImPlotInfLinesFlags_Horizontal);
+
+      // ImPlot::SetNextLineStyle(ImVec4(1.0F, 1.0F, 1.0F, 1.0F), 1.0f);
+      //  ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5F);
 
       uint64_t sample_index = 0;
       uint64_t sample_count = PROFILER_SAMPLE_LANE_COUNT;

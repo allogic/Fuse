@@ -8,6 +8,7 @@
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
 #include <editor/ed_sceneview.h>
+#include <editor/ed_modelview.h>
 #include <editor/ed_profiler.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
@@ -37,9 +38,10 @@ ImFont *g_editor_material_symbols = 0;
 
 vector_t g_editor_scenes = {0};
 
-int64_t g_editor_selected_scene_asset = 0;
+sceneview_t *g_editor_sceneviews[0xFF] = {0};
+modelview_t *g_editor_modelviews[0xFF] = {0};
 
-sceneview_t *g_editor_sceneview[0xFF] = {0};
+int64_t g_editor_selected_scene_asset = 0;
 
 static VkDescriptorPool s_editor_descriptor_pool = 0;
 
@@ -197,28 +199,26 @@ static void editor_create(context_t *context) {
   dockspace_create(context);
   statusbar_create(context);
   profiler_create(context);
-  sceneview_create(context, 0, 1, 1, "Scene");
-  sceneview_create(context, 1, 1, 1, "Game");
+  sceneview_create(context, "Scene");
+  sceneview_create(context, "Game");
 }
 static void editor_refresh(context_t *context) {
-  static char name[0xFF] = {0};
+  uint64_t sceneview_index = 0;
 
-  uint64_t link_index = 0;
+  while (g_editor_sceneviews[sceneview_index]) {
 
-  while (g_editor_sceneview[link_index]) {
+    sceneview_refresh(g_editor_sceneviews[sceneview_index]);
 
-    if (g_editor_sceneview[link_index]->is_dirty) {
+    sceneview_index++;
+  }
 
-      uint32_t width = g_editor_sceneview[link_index]->width;
-      uint32_t height = g_editor_sceneview[link_index]->height;
-      strcpy(name, g_editor_sceneview[link_index]->name);
+  uint64_t modelview_index = 0;
 
-      sceneview_destroy(g_editor_sceneview[link_index]);
+  while (g_editor_modelviews[modelview_index]) {
 
-      sceneview_create(context, link_index, width, height, name);
-    }
+    modelview_refresh(g_editor_modelviews[modelview_index]);
 
-    link_index++;
+    modelview_index++;
   }
 }
 static void editor_draw(context_t *context) {
@@ -244,11 +244,20 @@ static void editor_draw(context_t *context) {
 static void editor_destroy(context_t *context) {
   uint64_t sceneview_index = 0;
 
-  while (g_editor_sceneview[sceneview_index]) {
+  while (g_editor_sceneviews[sceneview_index]) {
 
-    sceneview_destroy(g_editor_sceneview[sceneview_index]);
+    sceneview_destroy(g_editor_sceneviews[sceneview_index]);
 
     sceneview_index++;
+  }
+
+  uint64_t modelview_index = 0;
+
+  while (g_editor_modelviews[modelview_index]) {
+
+    modelview_destroy(g_editor_modelviews[modelview_index]);
+
+    modelview_index++;
   }
 
   titlebar_destroy(context);

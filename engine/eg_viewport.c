@@ -12,37 +12,53 @@ static void viewport_destroy_frame_buffer(viewport_t *viewport);
 viewport_t *viewport_create(context_t *context, uint32_t width, uint32_t height) {
   viewport_t *viewport = (viewport_t *)heap_alloc(sizeof(viewport_t), 1, 0);
 
+  uint64_t image_count = context->swapchain->image_count;
+
   viewport->context = context;
   viewport->width = width;
   viewport->height = height;
-  viewport->is_dirty = 0;
-
-  uint64_t image_count = viewport->context->swapchain->image_count;
-
   viewport->color_image = (VkImage *)heap_alloc(sizeof(VkImage) * image_count, 0, 0);
   viewport->color_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * image_count, 0, 0);
   viewport->color_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * image_count, 0, 0);
   viewport->color_sampler = (VkSampler *)heap_alloc(sizeof(VkSampler) * image_count, 0, 0);
-
   viewport->depth_image = (VkImage *)heap_alloc(sizeof(VkImage) * image_count, 0, 0);
   viewport->depth_device_memory = (VkDeviceMemory *)heap_alloc(sizeof(VkDeviceMemory) * image_count, 0, 0);
   viewport->depth_image_view = (VkImageView *)heap_alloc(sizeof(VkImageView) * image_count, 0, 0);
   viewport->depth_sampler = (VkSampler *)heap_alloc(sizeof(VkSampler) * image_count, 0, 0);
-
   viewport->frame_buffer = (VkFramebuffer *)heap_alloc(sizeof(VkFramebuffer) * image_count, 0, 0);
 
   viewport_create_color_images(viewport);
   viewport_create_depth_images(viewport);
   viewport_create_frame_buffer(viewport);
 
+  while (viewport->context->viewport[viewport->link_index]) {
+
+    viewport->link_index++;
+  }
+
+  ASSERT(viewport->link_index < 0xFF, "Invalid link index");
+
+  viewport->context->viewport[viewport->link_index] = viewport;
+
   return viewport;
 }
 void viewport_resize(viewport_t *viewport, uint32_t width, uint32_t height) {
+  viewport_destroy_frame_buffer(viewport);
+  viewport_destroy_depth_images(viewport);
+  viewport_destroy_color_images(viewport);
+
   viewport->width = width;
   viewport->height = height;
-  viewport->is_dirty = 1;
+
+  viewport_create_color_images(viewport);
+  viewport_create_depth_images(viewport);
+  viewport_create_frame_buffer(viewport);
 }
 void viewport_destroy(viewport_t *viewport) {
+  ASSERT(viewport->link_index < 0xFF, "Invalid link index");
+
+  viewport->context->viewport[viewport->link_index] = 0;
+
   viewport_destroy_frame_buffer(viewport);
   viewport_destroy_depth_images(viewport);
   viewport_destroy_color_images(viewport);
