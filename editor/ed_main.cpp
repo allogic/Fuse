@@ -1,15 +1,15 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
-#include <editor/ed_catalog.h>
-#include <editor/ed_hierarchy.h>
-#include <editor/ed_detail.h>
-#include <editor/ed_dockspace.h>
-#include <editor/ed_inspector.h>
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
-#include <editor/ed_sceneview.h>
-#include <editor/ed_modelview.h>
-#include <editor/ed_profiler.h>
+#include <editor/ed_dockspace.h>
+
+#include <editor/dockable/ed_catalog.h>
+#include <editor/dockable/ed_hierarchy.h>
+#include <editor/dockable/ed_inspector.h>
+#include <editor/dockable/ed_profiler.h>
+
+#include <editor/view/ed_sceneview.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -37,9 +37,6 @@ ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
 
 vector_t g_editor_scenes = {0};
-
-sceneview_t *g_editor_sceneviews[0xFF] = {0};
-modelview_t *g_editor_modelviews[0xFF] = {0};
 
 int64_t g_editor_selected_scene_asset = 0;
 
@@ -112,7 +109,7 @@ static void editor_create(context_t *context) {
   g_editor_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 15.0F, 0, icon_glyph_ranges);
   g_editor_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 18.0F, 0, icon_glyph_ranges);
   g_editor_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 22.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 26.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 25.0F, 0, icon_glyph_ranges);
   g_editor_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 30.0F, 0, icon_glyph_ranges);
   g_editor_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 34.0F, 0, icon_glyph_ranges);
   g_editor_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 38.0F, 0, icon_glyph_ranges);
@@ -191,35 +188,17 @@ static void editor_create(context_t *context) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  titlebar_create(context);
+  titlebar_create(context);  // TODO: remove this..
+  statusbar_create(context); // TODO: remove this..
+
   catalog_create(context);
-  detail_create(context);
   hierarchy_create(context);
   inspector_create(context);
-  dockspace_create(context);
-  statusbar_create(context);
   profiler_create(context);
-  sceneview_create(context, "Scene");
-  sceneview_create(context, "Game");
+  sceneview_create(context);
 }
 static void editor_refresh(context_t *context) {
-  uint64_t sceneview_index = 0;
-
-  while (g_editor_sceneviews[sceneview_index]) {
-
-    sceneview_refresh(g_editor_sceneviews[sceneview_index]);
-
-    sceneview_index++;
-  }
-
-  uint64_t modelview_index = 0;
-
-  while (g_editor_modelviews[modelview_index]) {
-
-    modelview_refresh(g_editor_modelviews[modelview_index]);
-
-    modelview_index++;
-  }
+  sceneview_refresh(context);
 }
 static void editor_draw(context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
@@ -242,32 +221,14 @@ static void editor_draw(context_t *context) {
   ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
 static void editor_destroy(context_t *context) {
-  uint64_t sceneview_index = 0;
+  titlebar_destroy(context);  // TODO: remove this..
+  statusbar_destroy(context); // TODO: remove this..
 
-  while (g_editor_sceneviews[sceneview_index]) {
-
-    sceneview_destroy(g_editor_sceneviews[sceneview_index]);
-
-    sceneview_index++;
-  }
-
-  uint64_t modelview_index = 0;
-
-  while (g_editor_modelviews[modelview_index]) {
-
-    modelview_destroy(g_editor_modelviews[modelview_index]);
-
-    modelview_index++;
-  }
-
-  titlebar_destroy(context);
   catalog_destroy(context);
-  detail_destroy(context);
   hierarchy_destroy(context);
   inspector_destroy(context);
   profiler_destroy(context);
-  dockspace_destroy(context);
-  statusbar_destroy(context);
+  sceneview_destroy(context);
 
   ImGui::PopStyleColor(24);
 

@@ -12,6 +12,6 @@
 
 #include <editor/ed_fwd.h>
 
-#include <editor/ed_material_symbols.h>
+#include <editor/ed_material_symbol.h>
 
 #endif // ED_PCH_H

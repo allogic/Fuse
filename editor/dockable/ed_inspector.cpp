@@ -1,15 +1,16 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_inspector.h>
-#include <editor/ed_dockspace.h>
 #include <editor/ed_titlebar.h>
-#include <editor/ed_hierarchy.h>
+#include <editor/ed_dockspace.h>
+
+#include <editor/dockable/ed_inspector.h>
+#include <editor/dockable/ed_hierarchy.h>
 
 static void inspector_draw_camera(camera_t *camera);
 static void inspector_draw_editor_controller(editor_controller_t *editor_controller);
 static void inspector_draw_rigidbody(rigidbody_t *rigidbody);
 static void inspector_draw_transform(transform_t *transform);
 
-uint8_t g_inspector_is_open = 0;
+uint8_t g_inspector_is_open = 1;
 uint8_t g_inspector_is_docked = 0;
 
 void inspector_create(context_t *context) {

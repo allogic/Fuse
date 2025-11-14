@@ -24,9 +24,6 @@ extern ImFont *g_editor_material_symbols;
 
 extern vector_t g_editor_scenes;
 
-extern sceneview_t *g_editor_sceneviews[0xFF];
-extern modelview_t *g_editor_modelviews[0xFF];
-
 extern int64_t g_editor_selected_scene_asset;
 
 #endif // ED_MAIN_H

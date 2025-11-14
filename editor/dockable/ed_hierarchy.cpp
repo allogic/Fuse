@@ -1,8 +1,9 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_hierarchy.h>
-#include <editor/ed_dockspace.h>
-#include <editor/ed_titlebar.h>
 #include <editor/ed_main.h>
+#include <editor/ed_titlebar.h>
+#include <editor/ed_dockspace.h>
+
+#include <editor/dockable/ed_hierarchy.h>
 
 static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity);
 static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity);

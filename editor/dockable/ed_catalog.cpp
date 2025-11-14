@@ -1,8 +1,9 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_catalog.h>
-#include <editor/ed_dockspace.h>
-#include <editor/ed_titlebar.h>
 #include <editor/ed_main.h>
+#include <editor/ed_titlebar.h>
+#include <editor/ed_dockspace.h>
+
+#include <editor/dockable/ed_catalog.h>
 
 static void catalog_draw_swapchain(void);
 static void catalog_draw_renderer(void);
@@ -16,7 +17,7 @@ static void catalog_select_renderer(uint64_t selected_index);
 static void catalog_select_pipeline(uint64_t selected_index);
 static void catalog_select_model(uint64_t selected_index);
 
-uint8_t g_catalog_is_open = 0;
+uint8_t g_catalog_is_open = 1;
 uint8_t g_catalog_is_docked = 0;
 
 asset_type_t g_catalog_selected_asset_type = ASSET_TYPE_NONE;

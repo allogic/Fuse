@@ -1,13 +1,11 @@
 #include <editor/ed_pch.h>
+#include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
-#include <editor/ed_main.h>
-#include <editor/ed_catalog.h>
-#include <editor/ed_hierarchy.h>
-#include <editor/ed_inspector.h>
-#include <editor/ed_detail.h>
-#include <editor/ed_profiler.h>
-#include <editor/ed_modelview.h>
-#include <editor/ed_main.h>
+
+#include <editor/dockable/ed_catalog.h>
+#include <editor/dockable/ed_hierarchy.h>
+#include <editor/dockable/ed_inspector.h>
+#include <editor/dockable/ed_profiler.h>
 
 static void titlebar_reset_drag_state(context_t *context);
 
@@ -73,7 +71,7 @@ static void titlebar_reset_drag_state(context_t *context) {
 static void titlebar_draw_icon(context_t *context) {
   ImGui::SetCursorPos(ImVec2(10.0F, 10.0F));
   ImGui::PushFont(g_editor_material_symbols_h1);
-  ImGui::Text(ICON_MS_DEPLOYED_CODE);
+  ImGui::Text(ICON_MS_TOKEN);
   ImGui::PopFont();
 }
 static void titlebar_draw_main_menu(context_t *context) {
@@ -98,27 +96,6 @@ static void titlebar_draw_main_menu(context_t *context) {
   ImGui::SameLine();
   if (ImGui::Button("Profiler")) {
     g_profiler_is_open = !g_profiler_is_open;
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("Detail")) {
-    g_detail_is_open = !g_detail_is_open;
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("Scene")) {
-    g_editor_sceneviews[0]->is_open = !g_editor_sceneviews[0]->is_open;
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("Game")) {
-    g_editor_sceneviews[1]->is_open = !g_editor_sceneviews[1]->is_open;
-  }
-
-  ImGui::SameLine();
-  if (ImGui::Button("Model")) {
-    modelview_t *modelview = modelview_create(context, "Model Viewer");
-    modelview->is_open = 1;
   }
 
   ImGui::SameLine();

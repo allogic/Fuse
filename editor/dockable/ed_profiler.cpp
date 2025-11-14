@@ -1,7 +1,8 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_profiler.h>
-#include <editor/ed_dockspace.h>
 #include <editor/ed_main.h>
+#include <editor/ed_dockspace.h>
+
+#include <editor/dockable/ed_profiler.h>
 
 uint8_t g_profiler_is_open = 1;
 uint8_t g_profiler_is_docked = 0;
@@ -44,13 +45,15 @@ void profiler_draw(context_t *context) {
     ImPlot::PushStyleColor(ImPlotCol_FrameBg, EDITOR_DOCKING_BACKGROUND_COLOR);
     ImPlot::PushStyleColor(ImPlotCol_LegendBg, EDITOR_DOCKING_BACKGROUND_COLOR);
 
-    if (ImPlot::BeginPlot("##Profiler", ImVec2(-1.0F, 300.0F), plot_flags)) {
+    ImVec2 window_size = ImGui::GetWindowSize();
+
+    if (ImPlot::BeginPlot("##Profiler", ImVec2(window_size.x, window_size.y), plot_flags)) {
 
       ImPlot::SetupAxes(0, 0, x_axis_flags, y_axis_flags);
       ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Outside);
 
       ImPlot::SetupAxisLimits(ImAxis_X1, context->time - history, context->time, ImGuiCond_Always);
-      ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, 1.0F / 30.0F + 0.01);
+      ImPlot::SetupAxisLimits(ImAxis_Y1, -0.005F, 1.0F / 30.0F + 0.01F);
 
       ImPlot::SetNextLineStyle(ImVec4(0.5F, 0.0F, 0.0F, 1.0F));
       ImPlot::PlotInfLines("##30Fps", &target_30_fps, 1, ImPlotInfLinesFlags_Horizontal);
