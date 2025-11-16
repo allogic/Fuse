@@ -1,12 +1,9 @@
 #ifndef ED_INSPECTOR_H
 #define ED_INSPECTOR_H
 
-extern uint8_t g_inspector_is_open;
-extern uint8_t g_inspector_is_docked;
-
-void inspector_create(context_t *context);
-void inspector_refresh(context_t *context);
-void inspector_draw(context_t *context);
-void inspector_destroy(context_t *context);
+ed_inspector_t ed_inspector_create(context_t *context);
+void ed_inspector_refresh(ed_inspector_t *inspector);
+void ed_inspector_draw(ed_inspector_t *inspector);
+void ed_inspector_destroy(ed_inspector_t *inspector);
 
 #endif // ED_INSPECTOR_H

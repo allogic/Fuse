@@ -2,24 +2,18 @@
 #include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
 
-#include <editor/dockable/ed_catalog.h>
 #include <editor/dockable/ed_hierarchy.h>
 #include <editor/dockable/ed_inspector.h>
 #include <editor/dockable/ed_profiler.h>
 
-static void titlebar_reset_drag_state(context_t *context);
+static void ed_titlebar_reset_drag_state(context_t *context);
 
-static void titlebar_draw_icon(context_t *context);
-static void titlebar_draw_main_menu(context_t *context);
-static void titlebar_draw_window_controls(context_t *context);
-static void titlebar_draw_scene_controls(context_t *context);
+static void ed_titlebar_draw_icon(context_t *context);
+static void ed_titlebar_draw_main_menu(context_t *context);
+static void ed_titlebar_draw_window_controls(context_t *context);
+static void ed_titlebar_draw_scene_controls(context_t *context);
 
-void titlebar_create(context_t *context) {
-  g_editor_scenes = database_load_scene_assets();
-}
-void titlebar_refresh(context_t *context) {
-}
-void titlebar_draw(context_t *context) {
+void ed_titlebar_draw(context_t *context) {
   ImGui::SetNextWindowPos(ImVec2(0.0F, 0.0F));
   ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_titlebar_height));
 
@@ -42,21 +36,18 @@ void titlebar_draw(context_t *context) {
   ImGui::Begin("Titlebar", 0, titlebar_flags);
   ImGui::PopStyleVar(1);
 
-  titlebar_draw_icon(context);
-  titlebar_draw_main_menu(context);
-  titlebar_draw_window_controls(context);
-  titlebar_draw_scene_controls(context);
+  ed_titlebar_draw_icon(context);
+  ed_titlebar_draw_main_menu(context);
+  ed_titlebar_draw_window_controls(context);
+  ed_titlebar_draw_scene_controls(context);
 
-  titlebar_reset_drag_state(context);
+  ed_titlebar_reset_drag_state(context);
 
   ImGui::End();
   ImGui::PopStyleColor(3);
 }
-void titlebar_destroy(context_t *context) {
-  database_destroy_scene_assets(&g_editor_scenes);
-}
 
-static void titlebar_reset_drag_state(context_t *context) {
+static void ed_titlebar_reset_drag_state(context_t *context) {
   if (ImGui::IsWindowHovered() &&
       !ImGui::IsAnyItemHovered() &&
       ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -68,34 +59,30 @@ static void titlebar_reset_drag_state(context_t *context) {
   ImGui::GetIO().MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 }
 
-static void titlebar_draw_icon(context_t *context) {
+static void ed_titlebar_draw_icon(context_t *context) {
   ImGui::SetCursorPos(ImVec2(10.0F, 10.0F));
   ImGui::PushFont(g_editor_material_symbols_h1);
   ImGui::Text(ICON_MS_TOKEN);
   ImGui::PopFont();
 }
-static void titlebar_draw_main_menu(context_t *context) {
+static void ed_titlebar_draw_main_menu(context_t *context) {
   ImGui::SetCursorPos(ImVec2(50.0F, 5.0F));
 
   ImGui::PushID("Titlebar");
 
-  if (ImGui::Button("Catalog")) {
-    g_catalog_is_open = !g_catalog_is_open;
-  }
-
   ImGui::SameLine();
   if (ImGui::Button("Hierarchy")) {
-    g_hierarchy_is_open = !g_hierarchy_is_open;
+    g_hierarchy_scene.is_open = !g_hierarchy_scene.is_open;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Inspector")) {
-    g_inspector_is_open = !g_inspector_is_open;
+    g_inspector_scene.is_open = !g_inspector_scene.is_open;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Profiler")) {
-    g_profiler_is_open = !g_profiler_is_open;
+    g_profiler_scene.is_open = !g_profiler_scene.is_open;
   }
 
   ImGui::SameLine();
@@ -105,7 +92,7 @@ static void titlebar_draw_main_menu(context_t *context) {
 
   ImGui::PopID();
 }
-static void titlebar_draw_window_controls(context_t *context) {
+static void ed_titlebar_draw_window_controls(context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();
 
   ImGui::SetCursorPos(ImVec2(window_size.x - 90.0F, 5.0F));
@@ -139,27 +126,27 @@ static void titlebar_draw_window_controls(context_t *context) {
   ImGui::PopFont();
   ImGui::PopStyleVar();
 }
-static void titlebar_draw_scene_controls(context_t *context) {
+static void ed_titlebar_draw_scene_controls(context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();
 
   ImGui::SetCursorPos(ImVec2(50.0F, 30.0F));
   ImGui::SetNextItemWidth(150.0F);
 
-  scene_asset_t *selected_scene_asset = (scene_asset_t *)vector_at(&g_editor_scenes, g_editor_selected_scene_asset);
+  scene_asset_t *selected_scene_asset = (scene_asset_t *)vector_at(&g_scene_assets, g_scene_selected_asset);
 
   if (ImGui::BeginCombo("Scene", selected_scene_asset->name)) {
 
     uint64_t scene_index = 0;
-    uint64_t scene_count = vector_count(&g_editor_scenes);
+    uint64_t scene_count = vector_count(&g_scene_assets);
 
     while (scene_index < scene_count) {
 
-      scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&g_editor_scenes, scene_index);
+      scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&g_scene_assets, scene_index);
 
-      uint8_t is_selected = (g_editor_selected_scene_asset == scene_index);
+      uint8_t is_selected = (g_scene_selected_asset == scene_index);
 
       if (ImGui::Selectable(scene_asset->name, is_selected)) {
-        g_editor_selected_scene_asset = scene_index;
+        g_scene_selected_asset = scene_index;
       }
 
       if (is_selected) {

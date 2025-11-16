@@ -3,13 +3,12 @@
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
 #include <editor/ed_dockspace.h>
+#include <editor/ed_viewport.h>
 
 #include <editor/dockable/ed_catalog.h>
 #include <editor/dockable/ed_hierarchy.h>
 #include <editor/dockable/ed_inspector.h>
 #include <editor/dockable/ed_profiler.h>
-
-#include <editor/view/ed_sceneview.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -19,6 +18,12 @@ static void editor_draw(context_t *context);
 static void editor_destroy(context_t *context);
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
+
+//////////////////////////////////////////////////////////////////////////////
+// Editor Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+VkDescriptorPool g_editor_descriptor_pool = 0;
 
 ImFont *g_editor_commit_mono_h1 = 0;
 ImFont *g_editor_commit_mono_h2 = 0;
@@ -36,11 +41,65 @@ ImFont *g_editor_material_symbols_h5 = 0;
 ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
 
-vector_t g_editor_scenes = {0};
+//////////////////////////////////////////////////////////////////////////////
+// Scene Stuff
+//////////////////////////////////////////////////////////////////////////////
 
-int64_t g_editor_selected_scene_asset = 0;
+vector_t g_scene_assets = {0};
 
-static VkDescriptorPool s_editor_descriptor_pool = 0;
+int64_t g_scene_selected_asset = 0;
+
+//////////////////////////////////////////////////////////////////////////////
+// Catalog Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_catalog_t g_catalog_scene = {0};
+ed_catalog_t g_catalog_model = {0};
+
+//////////////////////////////////////////////////////////////////////////////
+// Hierarchy Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_hierarchy_t g_hierarchy_scene = {0};
+ed_hierarchy_t g_hierarchy_model = {0};
+
+//////////////////////////////////////////////////////////////////////////////
+// Inspector Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_inspector_t g_inspector_scene = {0};
+
+//////////////////////////////////////////////////////////////////////////////
+// Profiler Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_profiler_t g_profiler_scene = {0};
+
+//////////////////////////////////////////////////////////////////////////////
+// Dockspace Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+uint8_t g_dockspace_is_initialized = 0;
+
+ed_dockspace_type_t g_dockspace_selected_type = DOCKSPACE_TYPE_GAME;
+
+char const *g_dockspace_type_names[DOCKSPACE_TYPE_COUNT] = {
+  "Game",
+  "Scene",
+  "Model",
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Viewport Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_viewport_t g_viewport_game = {0};
+ed_viewport_t g_viewport_scene = {0};
+
+char const *g_viewport_gbuffer_attachment_names[GBUFFER_ATTACHMENT_TYPE_COUNT] = {
+  "Color",
+  "Depth",
+};
 
 int32_t main(int32_t argc, char **argv) {
   g_context_editor_create_proc = editor_create;
@@ -79,7 +138,7 @@ static void editor_create(context_t *context) {
   descriptor_pool_create_info.poolSizeCount = (uint32_t)ARRAY_COUNT(s_editor_descriptor_pool_sizes);
   descriptor_pool_create_info.maxSets = 1000 * (uint32_t)context->renderer->frames_in_flight;
 
-  vkCreateDescriptorPool(context->device, &descriptor_pool_create_info, 0, &s_editor_descriptor_pool);
+  vkCreateDescriptorPool(context->device, &descriptor_pool_create_info, 0, &g_editor_descriptor_pool);
 
   IMGUI_CHECKVERSION();
 
@@ -178,7 +237,7 @@ static void editor_create(context_t *context) {
   imgui_vulkan_init_info.QueueFamily = context->graphic_queue_index;
   imgui_vulkan_init_info.Queue = context->graphic_queue;
   imgui_vulkan_init_info.PipelineCache = 0;
-  imgui_vulkan_init_info.DescriptorPool = s_editor_descriptor_pool;
+  imgui_vulkan_init_info.DescriptorPool = g_editor_descriptor_pool;
   imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->main_render_pass;
   imgui_vulkan_init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
   imgui_vulkan_init_info.MinImageCount = context->surface_capabilities.minImageCount;
@@ -188,17 +247,24 @@ static void editor_create(context_t *context) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  titlebar_create(context);  // TODO: remove this..
-  statusbar_create(context); // TODO: remove this..
+  g_scene_assets = database_load_scene_assets();
 
-  catalog_create(context);
-  hierarchy_create(context);
-  inspector_create(context);
-  profiler_create(context);
-  sceneview_create(context);
+  g_viewport_game = ed_viewport_create(context);
+  g_viewport_scene = ed_viewport_create(context);
+
+  g_catalog_model = ed_catalog_create(context, ASSET_TYPE_MODEL);
+  g_catalog_scene = ed_catalog_create(context, ASSET_TYPE_SCENE);
+
+  g_hierarchy_scene = ed_hierarchy_create(context);
+  g_hierarchy_model = ed_hierarchy_create(context);
+
+  g_inspector_scene = ed_inspector_create(context);
+
+  g_profiler_scene = ed_profiler_create(context);
 }
 static void editor_refresh(context_t *context) {
-  sceneview_refresh(context);
+  ed_viewport_refresh(&g_viewport_game);
+  ed_viewport_refresh(&g_viewport_scene);
 }
 static void editor_draw(context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
@@ -208,10 +274,11 @@ static void editor_draw(context_t *context) {
 
   ImGui::NewFrame();
 
-  titlebar_draw(context);
-  dockspace_draw(context);
-  statusbar_draw(context);
+  ed_titlebar_draw(context);
+  ed_dockspace_draw(context);
+  ed_statusbar_draw(context);
 
+  // ImGui::ShowDemoWindow(); // TODO
   // ImPlot::ShowDemoWindow(); // TODO
 
   ImGui::Render();
@@ -221,14 +288,20 @@ static void editor_draw(context_t *context) {
   ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
 static void editor_destroy(context_t *context) {
-  titlebar_destroy(context);  // TODO: remove this..
-  statusbar_destroy(context); // TODO: remove this..
+  ed_profiler_destroy(&g_profiler_scene);
 
-  catalog_destroy(context);
-  hierarchy_destroy(context);
-  inspector_destroy(context);
-  profiler_destroy(context);
-  sceneview_destroy(context);
+  ed_inspector_destroy(&g_inspector_scene);
+
+  ed_hierarchy_destroy(&g_hierarchy_scene);
+  ed_hierarchy_destroy(&g_hierarchy_model);
+
+  ed_catalog_destroy(&g_catalog_model);
+  ed_catalog_destroy(&g_catalog_scene);
+
+  ed_viewport_destroy(&g_viewport_game);
+  ed_viewport_destroy(&g_viewport_scene);
+
+  database_destroy_scene_assets(&g_scene_assets);
 
   ImGui::PopStyleColor(24);
 
@@ -238,7 +311,7 @@ static void editor_destroy(context_t *context) {
 
   ImGui::DestroyContext();
 
-  vkDestroyDescriptorPool(context->device, s_editor_descriptor_pool, 0);
+  vkDestroyDescriptorPool(context->device, g_editor_descriptor_pool, 0);
 }
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface) {

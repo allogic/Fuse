@@ -1,35 +1,33 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
-#include <editor/ed_dockspace.h>
 
 #include <editor/dockable/ed_hierarchy.h>
 
-static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity);
-static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity);
-static void hierarchy_draw_entity_buttons(ecs_world_t *world, ecs_entity_t entity);
+static void ed_hierarchy_draw_tree(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
+static void ed_hierarchy_draw_context_menu(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
+static void ed_hierarchy_draw_entity_buttons(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 
-uint8_t g_hierarchy_is_open = 1;
-uint8_t g_hierarchy_is_docked = 0;
+ed_hierarchy_t ed_hierarchy_create(context_t *context) {
+  ed_hierarchy_t hierarchy = {0};
 
-ecs_entity_t g_hierarchy_selected_entity = 0;
+  hierarchy.context = context;
+  hierarchy.is_dirty = 0;
+  hierarchy.is_open = 1;
+  hierarchy.is_docked = 1;
+  hierarchy.selected_entity = 0;
 
-void hierarchy_create(context_t *context) {
+  return hierarchy;
 }
-void hierarchy_refresh(context_t *context) {
+void ed_hierarchy_refresh(ed_hierarchy_t *hierarchy) {
 }
-void hierarchy_draw(context_t *context) {
-  if (dockspace_begin_child("Hierarchy", &g_hierarchy_is_open, &g_hierarchy_is_docked)) {
-
-    hierarchy_draw_tree(context->scene->world, context->scene->root);
-
-    dockspace_end_child(g_hierarchy_is_docked);
-  }
+void ed_hierarchy_draw(ed_hierarchy_t *hierarchy) {
+  ed_hierarchy_draw_tree(hierarchy, hierarchy->context->scene->world, hierarchy->context->scene->root);
 }
-void hierarchy_destroy(context_t *context) {
+void ed_hierarchy_destroy(ed_hierarchy_t *hierarchy) {
 }
 
-static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
+static void ed_hierarchy_draw_tree(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity) {
   const char *name = ecs_get_name(world, entity);
 
   ecs_iter_t child_iter = ecs_children(world, entity);
@@ -46,7 +44,7 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
     tree_node_flags |= ImGuiTreeNodeFlags_Leaf;
   }
 
-  if (entity == g_hierarchy_selected_entity) {
+  if (entity == hierarchy->selected_entity) {
     tree_node_flags |= ImGuiTreeNodeFlags_Selected;
   }
 
@@ -55,11 +53,11 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
   uint8_t is_open = ImGui::TreeNodeEx(name, tree_node_flags);
 
   if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-    g_hierarchy_selected_entity = entity;
+    hierarchy->selected_entity = entity;
   }
 
-  hierarchy_draw_context_menu(world, entity);
-  hierarchy_draw_entity_buttons(world, entity);
+  ed_hierarchy_draw_context_menu(hierarchy, world, entity);
+  ed_hierarchy_draw_entity_buttons(hierarchy, world, entity);
 
   ImGui::PopStyleVar(1);
 
@@ -72,7 +70,7 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
 
       while (child_index < child_count) {
 
-        hierarchy_draw_tree(world, child_iter.entities[child_index]);
+        ed_hierarchy_draw_tree(hierarchy, world, child_iter.entities[child_index]);
 
         child_index++;
       }
@@ -82,7 +80,7 @@ static void hierarchy_draw_tree(ecs_world_t *world, ecs_entity_t entity) {
     ImGui::TreePop();
   }
 }
-static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity) {
+static void ed_hierarchy_draw_context_menu(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity) {
   if (ImGui::BeginPopupContextItem("Hierarchy Context Menu")) {
 
     ImGui::PushFont(g_editor_material_symbols_h5);
@@ -104,7 +102,7 @@ static void hierarchy_draw_context_menu(ecs_world_t *world, ecs_entity_t entity)
     ImGui::EndPopup();
   }
 }
-static void hierarchy_draw_entity_buttons(ecs_world_t *world, ecs_entity_t entity) {
+static void ed_hierarchy_draw_entity_buttons(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
   ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_DOCKING_BACKGROUND_COLOR);

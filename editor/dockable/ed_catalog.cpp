@@ -5,93 +5,154 @@
 
 #include <editor/dockable/ed_catalog.h>
 
-static void catalog_draw_swapchain(void);
-static void catalog_draw_renderer(void);
-static void catalog_draw_pipeline(void);
-static void catalog_draw_model(void);
+static void ed_catalog_draw_swapchain(void);
+static void ed_catalog_draw_renderer(void);
+static void ed_catalog_draw_pipeline(void);
+static void ed_catalog_draw_model(void);
 
-static void catalog_draw_asset_buttons(void);
+static void ed_catalog_draw_asset_buttons(void);
 
-static void catalog_select_swapchain(uint64_t selected_index);
-static void catalog_select_renderer(uint64_t selected_index);
-static void catalog_select_pipeline(uint64_t selected_index);
-static void catalog_select_model(uint64_t selected_index);
+static void ed_catalog_select_swapchain(uint64_t selected_index);
+static void ed_catalog_select_renderer(uint64_t selected_index);
+static void ed_catalog_select_pipeline(uint64_t selected_index);
+static void ed_catalog_select_model(uint64_t selected_index);
 
-uint8_t g_catalog_is_open = 1;
-uint8_t g_catalog_is_docked = 0;
+ed_catalog_t ed_catalog_create(context_t *context, ed_asset_type_t asset_type) {
+  ed_catalog_t catalog = {0};
 
-asset_type_t g_catalog_selected_asset_type = ASSET_TYPE_NONE;
+  catalog.context = context;
+  catalog.is_dirty = 0;
+  catalog.is_open = 1;
+  catalog.is_docked = 0;
+  catalog.selected_asset = -1;
+  catalog.asset_type = asset_type;
 
-vector_t g_catalog_swapchain_assets = {0};
-vector_t g_catalog_renderer_assets = {0};
-vector_t g_catalog_pipeline_assets = {0};
-vector_t g_catalog_model_assets = {0};
+  switch (catalog.asset_type) {
+    case ASSET_TYPE_SWAPCHAIN: {
 
-int64_t g_catalog_selected_swapchain_asset = -1;
-int64_t g_catalog_selected_renderer_asset = -1;
-int64_t g_catalog_selected_pipeline_asset = -1;
-int64_t g_catalog_selected_model_asset = -1;
+      catalog.assets = database_load_swapchain_assets();
 
-vector_t g_catalog_pipeline_vertex_input_bindings = {0};
-vector_t g_catalog_pipeline_descriptor_bindings = {0};
+      break;
+    }
+    case ASSET_TYPE_RENDERER: {
 
-vector_t g_catalog_model_meshes = {0};
+      catalog.assets = database_load_renderer_assets();
 
-void catalog_create(context_t *context) {
-  g_catalog_swapchain_assets = database_load_swapchain_assets();
-  g_catalog_renderer_assets = database_load_renderer_assets();
-  g_catalog_pipeline_assets = database_load_pipeline_assets();
-  g_catalog_model_assets = database_load_model_assets();
-}
-void catalog_refresh(context_t *context) {
-  database_destroy_swapchain_assets(&g_catalog_swapchain_assets);
-  database_destroy_renderer_assets(&g_catalog_renderer_assets);
-  database_destroy_pipeline_assets(&g_catalog_pipeline_assets);
-  database_destroy_model_assets(&g_catalog_model_assets);
+      break;
+    }
+    case ASSET_TYPE_PIPELINE: {
 
-  g_catalog_selected_swapchain_asset = -1;
-  g_catalog_selected_renderer_asset = -1;
-  g_catalog_selected_pipeline_asset = -1;
-  g_catalog_selected_model_asset = -1;
+      catalog.assets = database_load_pipeline_assets();
 
-  g_catalog_swapchain_assets = database_load_swapchain_assets();
-  g_catalog_renderer_assets = database_load_renderer_assets();
-  g_catalog_pipeline_assets = database_load_pipeline_assets();
-  g_catalog_model_assets = database_load_model_assets();
-}
-void catalog_draw(context_t *context) {
-  if (dockspace_begin_child("Catalog", &g_catalog_is_open, &g_catalog_is_docked)) {
+      break;
+    }
+    case ASSET_TYPE_MODEL: {
 
-    catalog_draw_swapchain();
-    catalog_draw_renderer();
-    catalog_draw_pipeline();
-    catalog_draw_model();
+      catalog.assets = database_load_model_assets();
 
-    dockspace_end_child(g_catalog_is_docked);
-  }
-}
-void catalog_destroy(context_t *context) {
-  if (g_catalog_selected_pipeline_asset != -1) {
-    database_destroy_pipeline_vertex_input_bindings(&g_catalog_pipeline_vertex_input_bindings);
-    database_destroy_pipeline_descriptor_bindings(&g_catalog_pipeline_descriptor_bindings);
+      break;
+    }
   }
 
-  if (g_catalog_selected_model_asset != -1) {
-    database_destroy_model_meshes(&g_catalog_model_meshes);
+  return catalog;
+}
+void ed_catalog_refresh(ed_catalog_t *catalog) {
+  switch (catalog->asset_type) {
+    case ASSET_TYPE_SWAPCHAIN: {
+
+      database_destroy_swapchain_assets(&catalog->assets);
+
+      break;
+    }
+    case ASSET_TYPE_RENDERER: {
+
+      database_destroy_renderer_assets(&catalog->assets);
+
+      break;
+    }
+    case ASSET_TYPE_PIPELINE: {
+
+      database_destroy_pipeline_assets(&catalog->assets);
+
+      break;
+    }
+    case ASSET_TYPE_MODEL: {
+
+      database_destroy_model_assets(&catalog->assets);
+
+      break;
+    }
   }
 
-  database_destroy_swapchain_assets(&g_catalog_swapchain_assets);
-  database_destroy_renderer_assets(&g_catalog_renderer_assets);
-  database_destroy_pipeline_assets(&g_catalog_pipeline_assets);
-  database_destroy_model_assets(&g_catalog_model_assets);
+  switch (catalog->asset_type) {
+    case ASSET_TYPE_SWAPCHAIN: {
 
-  g_catalog_selected_swapchain_asset = -1;
-  g_catalog_selected_renderer_asset = -1;
-  g_catalog_selected_pipeline_asset = -1;
-  g_catalog_selected_model_asset = -1;
+      catalog->assets = database_load_swapchain_assets();
+
+      break;
+    }
+    case ASSET_TYPE_RENDERER: {
+
+      catalog->assets = database_load_renderer_assets();
+
+      break;
+    }
+    case ASSET_TYPE_PIPELINE: {
+
+      catalog->assets = database_load_pipeline_assets();
+
+      break;
+    }
+    case ASSET_TYPE_MODEL: {
+
+      catalog->assets = database_load_model_assets();
+
+      break;
+    }
+  }
+}
+void ed_catalog_draw(ed_catalog_t *catalog) {
+  // if (dockspace_begin_child("Catalog", &g_catalog_is_open, &g_catalog_is_docked)) {
+  //
+  //   catalog_draw_swapchain();
+  //   catalog_draw_renderer();
+  //   catalog_draw_pipeline();
+  //   catalog_draw_model();
+  //
+  //   dockspace_end_child(g_catalog_is_docked);
+  // }
+}
+void ed_catalog_destroy(ed_catalog_t *catalog) {
+  switch (catalog->asset_type) {
+    case ASSET_TYPE_SWAPCHAIN: {
+
+      database_destroy_swapchain_assets(&catalog->assets);
+
+      break;
+    }
+    case ASSET_TYPE_RENDERER: {
+
+      database_destroy_renderer_assets(&catalog->assets);
+
+      break;
+    }
+    case ASSET_TYPE_PIPELINE: {
+
+      database_destroy_pipeline_assets(&catalog->assets);
+
+      break;
+    }
+    case ASSET_TYPE_MODEL: {
+
+      database_destroy_model_assets(&catalog->assets);
+
+      break;
+    }
+  }
 }
 
-static void catalog_draw_swapchain(void) {
+static void ed_catalog_draw_swapchain(void) {
+  /*
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
@@ -130,8 +191,10 @@ static void catalog_draw_swapchain(void) {
 
     ImGui::TreePop();
   }
+  */
 }
-static void catalog_draw_renderer(void) {
+static void ed_catalog_draw_renderer(void) {
+  /*
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
@@ -170,8 +233,10 @@ static void catalog_draw_renderer(void) {
 
     ImGui::TreePop();
   }
+  */
 }
-static void catalog_draw_pipeline(void) {
+static void ed_catalog_draw_pipeline(void) {
+  /*
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
@@ -210,8 +275,10 @@ static void catalog_draw_pipeline(void) {
 
     ImGui::TreePop();
   }
+  */
 }
-static void catalog_draw_model(void) {
+static void ed_catalog_draw_model(void) {
+  /*
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
@@ -250,9 +317,10 @@ static void catalog_draw_model(void) {
 
     ImGui::TreePop();
   }
+  */
 }
 
-static void catalog_draw_asset_buttons(void) {
+static void ed_catalog_draw_asset_buttons(void) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
   ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_DOCKING_BACKGROUND_COLOR);
@@ -275,37 +343,37 @@ static void catalog_draw_asset_buttons(void) {
   ImGui::PopStyleColor(3);
 }
 
-static void catalog_select_swapchain(uint64_t selected_index) {
-  g_catalog_selected_asset_type = ASSET_TYPE_SWAPCHAIN;
-  g_catalog_selected_swapchain_asset = selected_index;
+static void ed_catalog_select_swapchain(uint64_t selected_index) {
+  // g_catalog_selected_asset_type = ASSET_TYPE_SWAPCHAIN;
+  // g_catalog_selected_swapchain_asset = selected_index;
 }
-static void catalog_select_renderer(uint64_t selected_index) {
-  g_catalog_selected_asset_type = ASSET_TYPE_RENDERER;
-  g_catalog_selected_renderer_asset = selected_index;
+static void ed_catalog_select_renderer(uint64_t selected_index) {
+  // g_catalog_selected_asset_type = ASSET_TYPE_RENDERER;
+  // g_catalog_selected_renderer_asset = selected_index;
 }
-static void catalog_select_pipeline(uint64_t selected_index) {
-  if (g_catalog_selected_pipeline_asset != -1) {
-    database_destroy_pipeline_vertex_input_bindings(&g_catalog_pipeline_vertex_input_bindings);
-    database_destroy_pipeline_descriptor_bindings(&g_catalog_pipeline_descriptor_bindings);
-  }
-
-  g_catalog_selected_asset_type = ASSET_TYPE_PIPELINE;
-  g_catalog_selected_pipeline_asset = selected_index;
-
-  pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&g_catalog_pipeline_assets, g_catalog_selected_pipeline_asset);
-
-  g_catalog_pipeline_vertex_input_bindings = database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
-  g_catalog_pipeline_descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
+static void ed_catalog_select_pipeline(uint64_t selected_index) {
+  // if (g_catalog_selected_pipeline_asset != -1) {
+  //   database_destroy_pipeline_vertex_input_bindings(&g_catalog_pipeline_vertex_input_bindings);
+  //   database_destroy_pipeline_descriptor_bindings(&g_catalog_pipeline_descriptor_bindings);
+  // }
+  //
+  // g_catalog_selected_asset_type = ASSET_TYPE_PIPELINE;
+  // g_catalog_selected_pipeline_asset = selected_index;
+  //
+  // pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&g_catalog_pipeline_assets, g_catalog_selected_pipeline_asset);
+  //
+  // g_catalog_pipeline_vertex_input_bindings = database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
+  // g_catalog_pipeline_descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
 }
-static void catalog_select_model(uint64_t selected_index) {
-  if (g_catalog_selected_model_asset != -1) {
-    database_destroy_model_meshes(&g_catalog_model_meshes);
-  }
-
-  g_catalog_selected_asset_type = ASSET_TYPE_MODEL;
-  g_catalog_selected_model_asset = selected_index;
-
-  model_asset_t *model_asset = (model_asset_t *)vector_at(&g_catalog_model_assets, g_catalog_selected_model_asset);
-
-  g_catalog_model_meshes = database_load_model_meshes_by_id(model_asset->id);
+static void ed_catalog_select_model(uint64_t selected_index) {
+  // if (g_catalog_selected_model_asset != -1) {
+  //   database_destroy_model_meshes(&g_catalog_model_meshes);
+  // }
+  //
+  // g_catalog_selected_asset_type = ASSET_TYPE_MODEL;
+  // g_catalog_selected_model_asset = selected_index;
+  //
+  // model_asset_t *model_asset = (model_asset_t *)vector_at(&g_catalog_model_assets, g_catalog_selected_model_asset);
+  //
+  // g_catalog_model_meshes = database_load_model_meshes_by_id(model_asset->id);
 }

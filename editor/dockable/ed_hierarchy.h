@@ -1,14 +1,9 @@
 #ifndef ED_HIERARCHY_H
 #define ED_HIERARCHY_H
 
-extern uint8_t g_hierarchy_is_open;
-extern uint8_t g_hierarchy_is_docked;
-
-extern ecs_entity_t g_hierarchy_selected_entity;
-
-void hierarchy_create(context_t *context);
-void hierarchy_refresh(context_t *context);
-void hierarchy_draw(context_t *context);
-void hierarchy_destroy(context_t *context);
+ed_hierarchy_t ed_hierarchy_create(context_t *context);
+void ed_hierarchy_refresh(ed_hierarchy_t *hierarchy);
+void ed_hierarchy_draw(ed_hierarchy_t *hierarchy);
+void ed_hierarchy_destroy(ed_hierarchy_t *hierarchy);
 
 #endif // ED_HIERARCHY_H
