@@ -1,9 +1,10 @@
 #ifndef ED_MAIN_H
 #define ED_MAIN_H
 
-#define ED_DARK_GREY IM_COL32(25, 25, 25, 255)
-#define ED_SHALLOW_GRAY_COLOR IM_COL32(50, 50, 50, 255)
-#define ED_LIGHT_GRAY_COLOR IM_COL32(70, 70, 70, 255)
+#define ED_DARK_GREY IM_COL32(31, 31, 31, 255)
+#define ED_SPARSE_GRAY_COLOR IM_COL32(40, 40, 40, 255)
+#define ED_SHALLOW_GRAY_COLOR IM_COL32(51, 51, 51, 255)
+#define ED_LIGHT_GRAY_COLOR IM_COL32(77, 77, 77, 255)
 #define ED_ACTIVE_GREY_COLOR IM_COL32(90, 90, 90, 255)
 
 //////////////////////////////////////////////////////////////////////////////
@@ -29,6 +30,12 @@ extern ImFont *g_editor_material_symbols_h6;
 extern ImFont *g_editor_material_symbols;
 
 //////////////////////////////////////////////////////////////////////////////
+// Canvas Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+extern ed_canvas_t g_canvas_model;
+
+//////////////////////////////////////////////////////////////////////////////
 // Hierarchy Stuff
 //////////////////////////////////////////////////////////////////////////////
 
@@ -40,6 +47,7 @@ extern ed_hierarchy_t g_hierarchy_model;
 //////////////////////////////////////////////////////////////////////////////
 
 extern ed_inspector_t g_inspector_scene;
+extern ed_inspector_t g_inspector_model;
 
 //////////////////////////////////////////////////////////////////////////////
 // Profiler Stuff
@@ -70,6 +78,7 @@ extern char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT];
 
 extern ed_viewport_t g_viewport_game;
 extern ed_viewport_t g_viewport_scene;
+extern ed_viewport_t g_viewport_model;
 
 extern char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT];
 

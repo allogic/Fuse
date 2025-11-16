@@ -5,6 +5,7 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_viewport.h>
 
+#include <editor/dockable/ed_canvas.h>
 #include <editor/dockable/ed_catalog.h>
 #include <editor/dockable/ed_hierarchy.h>
 #include <editor/dockable/ed_inspector.h>
@@ -42,6 +43,12 @@ ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
 
 //////////////////////////////////////////////////////////////////////////////
+// Canvas Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_canvas_t g_canvas_model = {0};
+
+//////////////////////////////////////////////////////////////////////////////
 // Catalog Stuff
 //////////////////////////////////////////////////////////////////////////////
 
@@ -60,6 +67,7 @@ ed_hierarchy_t g_hierarchy_model = {0};
 //////////////////////////////////////////////////////////////////////////////
 
 ed_inspector_t g_inspector_scene = {0};
+ed_inspector_t g_inspector_model = {0};
 
 //////////////////////////////////////////////////////////////////////////////
 // Profiler Stuff
@@ -87,6 +95,7 @@ char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT] = {
 
 ed_viewport_t g_viewport_game = {0};
 ed_viewport_t g_viewport_scene = {0};
+ed_viewport_t g_viewport_model = {0};
 
 char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
   "Color",
@@ -128,7 +137,7 @@ static void editor_create(eg_context_t *context) {
   descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   descriptor_pool_create_info.pPoolSizes = s_editor_descriptor_pool_sizes;
   descriptor_pool_create_info.poolSizeCount = (uint32_t)ARRAY_COUNT(s_editor_descriptor_pool_sizes);
-  descriptor_pool_create_info.maxSets = 1000 * (uint32_t)context->renderer->frames_in_flight;
+  descriptor_pool_create_info.maxSets = 1000 * (uint32_t)context->renderer->frames_in_flight; // TODO: adjust this value..
 
   vkCreateDescriptorPool(context->device, &descriptor_pool_create_info, 0, &g_editor_descriptor_pool);
 
@@ -136,10 +145,12 @@ static void editor_create(eg_context_t *context) {
 
   ImGuiContext *imgui_context = ImGui::CreateContext();
   ImPlotContext *implot_context = ImPlot::CreateContext();
+  ImNodesContext *imnodes_context = ImNodes::CreateContext();
 
   ImGuiIO &io = ImGui::GetIO();
   ImGuiPlatformIO &platform_io = ImGui::GetPlatformIO();
   ImGuiStyle &style = ImGui::GetStyle();
+  ImNodesStyle &nodes_style = ImNodes::GetStyle();
 
   static ImWchar icon_glyph_ranges[] = {
     (wchar_t)ICON_MIN_MS,
@@ -195,6 +206,23 @@ static void editor_create(eg_context_t *context) {
   style.TabBarOverlineSize = 0.0F;
   style.DockingSeparatorSize = 5.0F;
 
+  nodes_style.GridSpacing = 10.0F;
+  nodes_style.NodeCornerRounding = 1.0F;
+  // nodes_style.NodePadding = ImVec2(0.0F, 0.0F);
+  nodes_style.NodeBorderThickness = 0.0F;
+  // nodes_style.LinkThickness = 0.0F;
+  nodes_style.LinkLineSegmentsPerLength = 0.0F;
+  // nodes_style.LinkHoverDistance = 0.0F;
+  // nodes_style.PinCircleRadius = 0.0F;
+  // nodes_style.PinQuadSideLength = 0.0F;
+  // nodes_style.PinTriangleSideLength = 0.0F;
+  // nodes_style.PinLineThickness = 0.0F;
+  // nodes_style.PinHoverRadius = 0.0F;
+  // nodes_style.PinOffset = 0.0F;
+  // nodes_style.MiniMapPadding = ImVec2(0.0F, 0.0F);
+  // nodes_style.MiniMapOffset = ImVec2(0.0F, 0.0F);
+  nodes_style.Flags = ImNodesStyleFlags_GridSnapping;
+
   ImGui::PushStyleColor(ImGuiCol_WindowBg, ED_DARK_GREY);
   ImGui::PushStyleColor(ImGuiCol_Border, ED_SHALLOW_GRAY_COLOR);
   ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_DARK_GREY);
@@ -220,6 +248,24 @@ static void editor_create(eg_context_t *context) {
   ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ED_DARK_GREY);
   ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ED_DARK_GREY);
 
+  // ImNodes::PushColorStyle(ImNodesCol_NodeBackground);
+  // ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered);
+  // ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected);
+  // ImNodes::PushColorStyle(ImNodesCol_NodeOutline);
+  // ImNodes::PushColorStyle(ImNodesCol_TitleBar);
+  // ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered);
+  // ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected);
+  // ImNodes::PushColorStyle(ImNodesCol_Link);
+  // ImNodes::PushColorStyle(ImNodesCol_LinkHovered);
+  // ImNodes::PushColorStyle(ImNodesCol_LinkSelected);
+  // ImNodes::PushColorStyle(ImNodesCol_Pin);
+  // ImNodes::PushColorStyle(ImNodesCol_PinHovered);
+  // ImNodes::PushColorStyle(ImNodesCol_BoxSelector);
+  // ImNodes::PushColorStyle(ImNodesCol_BoxSelectorOutline);
+  ImNodes::PushColorStyle(ImNodesCol_GridBackground, ED_SPARSE_GRAY_COLOR);
+  // ImNodes::PushColorStyle(ImNodesCol_GridLine, ED_DARK_GREY);
+  // ImNodes::PushColorStyle(ImNodesCol_GridLinePrimary, ED_SHALLOW_GRAY_COLOR);
+
   ImGui_ImplWin32_Init(context->window_handle);
 
   ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {0};
@@ -241,20 +287,25 @@ static void editor_create(eg_context_t *context) {
 
   g_viewport_game = ed_viewport_create(context);
   g_viewport_scene = ed_viewport_create(context);
+  g_viewport_model = ed_viewport_create(context);
 
-  g_catalog_model = ed_catalog_create(context, ASSET_TYPE_MODEL);
+  g_canvas_model = ed_canvas_create(context);
+
   g_catalog_scene = ed_catalog_create(context, ASSET_TYPE_SCENE);
+  g_catalog_model = ed_catalog_create(context, ASSET_TYPE_MODEL);
 
   g_hierarchy_scene = ed_hierarchy_create(context);
   g_hierarchy_model = ed_hierarchy_create(context);
 
   g_inspector_scene = ed_inspector_create(context);
+  g_inspector_model = ed_inspector_create(context);
 
   g_profiler_scene = ed_profiler_create(context);
 }
 static void editor_refresh(eg_context_t *context) {
   ed_viewport_refresh(&g_viewport_game);
   ed_viewport_refresh(&g_viewport_scene);
+  ed_viewport_refresh(&g_viewport_model);
 }
 static void editor_draw(eg_context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
@@ -281,6 +332,7 @@ static void editor_destroy(eg_context_t *context) {
   ed_profiler_destroy(&g_profiler_scene);
 
   ed_inspector_destroy(&g_inspector_scene);
+  ed_inspector_destroy(&g_inspector_model);
 
   ed_hierarchy_destroy(&g_hierarchy_scene);
   ed_hierarchy_destroy(&g_hierarchy_model);
@@ -288,8 +340,15 @@ static void editor_destroy(eg_context_t *context) {
   ed_catalog_destroy(&g_catalog_model);
   ed_catalog_destroy(&g_catalog_scene);
 
+  ed_canvas_destroy(&g_canvas_model);
+
   ed_viewport_destroy(&g_viewport_game);
   ed_viewport_destroy(&g_viewport_scene);
+  ed_viewport_destroy(&g_viewport_model);
+
+  // ImNodes::PopColorStyle();
+  // ImNodes::PopColorStyle();
+  ImNodes::PopColorStyle();
 
   ImGui::PopStyleColor(24);
 
@@ -297,6 +356,8 @@ static void editor_destroy(eg_context_t *context) {
 
   ImGui_ImplWin32_Shutdown();
 
+  ImNodes::DestroyContext();
+  ImPlot::DestroyContext();
   ImGui::DestroyContext();
 
   vkDestroyDescriptorPool(context->device, g_editor_descriptor_pool, 0);

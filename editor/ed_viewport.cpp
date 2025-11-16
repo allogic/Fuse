@@ -16,7 +16,7 @@ ed_viewport_t ed_viewport_create(eg_context_t *context) {
   viewport.is_dirty = 0;
   viewport.is_open = 1;
   viewport.is_docked = 0;
-  viewport.viewport = eg_viewport_create(context, 1, 1);
+  viewport.handle = eg_viewport_create(context, 1, 1);
   viewport.gbuffer_color_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
   viewport.gbuffer_depth_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
 
@@ -31,7 +31,7 @@ void ed_viewport_refresh(ed_viewport_t *viewport) {
 
     ed_viewport_destroy_attachments(viewport);
 
-    eg_viewport_resize(viewport->viewport, viewport->width, viewport->height);
+    eg_viewport_resize(viewport->handle, viewport->width, viewport->height);
 
     ed_viewport_create_attachments(viewport);
   }
@@ -108,7 +108,7 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
 void ed_viewport_destroy(ed_viewport_t *viewport) {
   ed_viewport_destroy_attachments(viewport);
 
-  eg_viewport_destroy(viewport->viewport);
+  eg_viewport_destroy(viewport->handle);
 
   heap_free(viewport->gbuffer_color_attachment);
   heap_free(viewport->gbuffer_depth_attachment);
@@ -120,14 +120,14 @@ static void ed_viewport_create_attachments(ed_viewport_t *viewport) {
 
   while (image_index < image_count) {
 
-    VkSampler gbuffer_color_sampler = viewport->viewport->color_sampler[image_index];
-    VkImageView gbuffer_color_image_view = viewport->viewport->color_image_view[image_index];
+    VkSampler gbuffer_color_sampler = viewport->handle->color_sampler[image_index];
+    VkImageView gbuffer_color_image_view = viewport->handle->color_image_view[image_index];
     VkImageLayout gbuffer_color_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     viewport->gbuffer_color_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_color_sampler, gbuffer_color_image_view, gbuffer_color_image_layout);
 
-    VkSampler gbuffer_depth_sampler = viewport->viewport->depth_sampler[image_index];
-    VkImageView gbuffer_depth_image_view = viewport->viewport->depth_image_view[image_index];
+    VkSampler gbuffer_depth_sampler = viewport->handle->depth_sampler[image_index];
+    VkImageView gbuffer_depth_image_view = viewport->handle->depth_image_view[image_index];
     VkImageLayout gbuffer_depth_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     viewport->gbuffer_depth_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_depth_sampler, gbuffer_depth_image_view, gbuffer_depth_image_layout);

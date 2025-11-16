@@ -5,11 +5,11 @@
 
 #include <editor/dockable/ed_catalog.h>
 
-static void ed_catalog_draw_swapchain(ed_catalog_t *catalog);
-static void ed_catalog_draw_renderer(ed_catalog_t *catalog);
-static void ed_catalog_draw_pipeline(ed_catalog_t *catalog);
-static void ed_catalog_draw_model(ed_catalog_t *catalog);
-static void ed_catalog_draw_scene(ed_catalog_t *catalog);
+static void ed_catalog_draw_swapchain(ed_catalog_t *catalog, uint64_t asset_index);
+static void ed_catalog_draw_renderer(ed_catalog_t *catalog, uint64_t asset_index);
+static void ed_catalog_draw_pipeline(ed_catalog_t *catalog, uint64_t asset_index);
+static void ed_catalog_draw_model(ed_catalog_t *catalog, uint64_t asset_index);
+static void ed_catalog_draw_scene(ed_catalog_t *catalog, uint64_t asset_index);
 
 static void ed_catalog_draw_asset_buttons(ed_catalog_t *catalog);
 
@@ -126,37 +126,55 @@ void ed_catalog_refresh(ed_catalog_t *catalog) {
   }
 }
 void ed_catalog_draw(ed_catalog_t *catalog) {
-  switch (catalog->asset_type) {
-    case ASSET_TYPE_SWAPCHAIN: {
+  if (ImGui::BeginTable("##AssetTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp)) {
 
-      ed_catalog_draw_swapchain(catalog);
+    ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
 
-      break;
+    ImGui::TableHeadersRow();
+
+    uint64_t asset_index = 0;
+    uint64_t asset_count = vector_count(&catalog->assets);
+
+    while (asset_index < asset_count) {
+
+      switch (catalog->asset_type) {
+        case ASSET_TYPE_SWAPCHAIN: {
+
+          ed_catalog_draw_swapchain(catalog, asset_index);
+
+          break;
+        }
+        case ASSET_TYPE_RENDERER: {
+
+          ed_catalog_draw_renderer(catalog, asset_index);
+
+          break;
+        }
+        case ASSET_TYPE_PIPELINE: {
+
+          ed_catalog_draw_pipeline(catalog, asset_index);
+
+          break;
+        }
+        case ASSET_TYPE_MODEL: {
+
+          ed_catalog_draw_model(catalog, asset_index);
+
+          break;
+        }
+        case ASSET_TYPE_SCENE: {
+
+          ed_catalog_draw_scene(catalog, asset_index);
+
+          break;
+        }
+      }
+
+      asset_index++;
     }
-    case ASSET_TYPE_RENDERER: {
 
-      ed_catalog_draw_renderer(catalog);
-
-      break;
-    }
-    case ASSET_TYPE_PIPELINE: {
-
-      ed_catalog_draw_pipeline(catalog);
-
-      break;
-    }
-    case ASSET_TYPE_MODEL: {
-
-      ed_catalog_draw_model(catalog);
-
-      break;
-    }
-    case ASSET_TYPE_SCENE: {
-
-      ed_catalog_draw_scene(catalog);
-
-      break;
-    }
+    ImGui::EndTable();
   }
 }
 void ed_catalog_destroy(ed_catalog_t *catalog) {
@@ -194,174 +212,69 @@ void ed_catalog_destroy(ed_catalog_t *catalog) {
   }
 }
 
-static void ed_catalog_draw_swapchain(ed_catalog_t *catalog) {
-  ImGuiTreeNodeFlags tree_node_flags =
-    ImGuiTreeNodeFlags_None |
-    ImGuiTreeNodeFlags_SpanFullWidth |
-    ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding |
-    ImGuiTreeNodeFlags_Leaf;
+static void ed_catalog_draw_swapchain(ed_catalog_t *catalog, uint64_t asset_index) {
+  swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&catalog->assets, asset_index);
 
-  uint64_t asset_index = 0;
-  uint64_t asset_count = vector_count(&catalog->assets);
+  ImGui::TableNextRow();
 
-  while (asset_index < asset_count) {
+  ImGui::TableSetColumnIndex(0);
+  ImGui::Text("%d", swapchain_asset->id);
 
-    swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&catalog->assets, asset_index);
-
-    if (asset_index == catalog->selected_asset) {
-      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-    }
-
-    uint8_t is_open = ImGui::TreeNodeEx(swapchain_asset->name, tree_node_flags);
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-      catalog->selected_asset = asset_index;
-    }
-
-    ed_catalog_draw_asset_buttons(catalog);
-
-    if (is_open) {
-      ImGui::TreePop();
-    }
-
-    asset_index++;
+  ImGui::TableSetColumnIndex(1);
+  if (ImGui::Selectable(swapchain_asset->name, asset_index == catalog->selected_asset, ImGuiSelectableFlags_SpanAllColumns)) {
+    catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_renderer(ed_catalog_t *catalog) {
-  ImGuiTreeNodeFlags tree_node_flags =
-    ImGuiTreeNodeFlags_None |
-    ImGuiTreeNodeFlags_SpanFullWidth |
-    ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding |
-    ImGuiTreeNodeFlags_Leaf;
+static void ed_catalog_draw_renderer(ed_catalog_t *catalog, uint64_t asset_index) {
+  renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&catalog->assets, asset_index);
 
-  uint64_t asset_index = 0;
-  uint64_t asset_count = vector_count(&catalog->assets);
+  ImGui::TableNextRow();
 
-  while (asset_index < asset_count) {
+  ImGui::TableSetColumnIndex(0);
+  ImGui::Text("%d", renderer_asset->id);
 
-    renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&catalog->assets, asset_index);
-
-    if (asset_index == catalog->selected_asset) {
-      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-    }
-
-    uint8_t is_open = ImGui::TreeNodeEx(renderer_asset->name, tree_node_flags);
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-      catalog->selected_asset = asset_index;
-    }
-
-    ed_catalog_draw_asset_buttons(catalog);
-
-    if (is_open) {
-      ImGui::TreePop();
-    }
-
-    asset_index++;
+  ImGui::TableSetColumnIndex(1);
+  if (ImGui::Selectable(renderer_asset->name, asset_index == catalog->selected_asset, ImGuiSelectableFlags_SpanAllColumns)) {
+    catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_pipeline(ed_catalog_t *catalog) {
-  ImGuiTreeNodeFlags tree_node_flags =
-    ImGuiTreeNodeFlags_None |
-    ImGuiTreeNodeFlags_SpanFullWidth |
-    ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding |
-    ImGuiTreeNodeFlags_Leaf;
+static void ed_catalog_draw_pipeline(ed_catalog_t *catalog, uint64_t asset_index) {
+  pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&catalog->assets, asset_index);
 
-  uint64_t asset_index = 0;
-  uint64_t asset_count = vector_count(&catalog->assets);
+  ImGui::TableNextRow();
 
-  while (asset_index < asset_count) {
+  ImGui::TableSetColumnIndex(0);
+  ImGui::Text("%d", pipeline_asset->id);
 
-    pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&catalog->assets, asset_index);
-
-    if (asset_index == catalog->selected_asset) {
-      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-    }
-
-    uint8_t is_open = ImGui::TreeNodeEx(pipeline_asset->name, tree_node_flags);
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-      catalog->selected_asset = asset_index;
-    }
-
-    ed_catalog_draw_asset_buttons(catalog);
-
-    if (is_open) {
-      ImGui::TreePop();
-    }
-
-    asset_index++;
+  ImGui::TableSetColumnIndex(1);
+  if (ImGui::Selectable(pipeline_asset->name, asset_index == catalog->selected_asset, ImGuiSelectableFlags_SpanAllColumns)) {
+    catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_model(ed_catalog_t *catalog) {
-  ImGuiTreeNodeFlags tree_node_flags =
-    ImGuiTreeNodeFlags_None |
-    ImGuiTreeNodeFlags_SpanFullWidth |
-    ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding |
-    ImGuiTreeNodeFlags_Leaf;
+static void ed_catalog_draw_model(ed_catalog_t *catalog, uint64_t asset_index) {
+  model_asset_t *model_asset = (model_asset_t *)vector_at(&catalog->assets, asset_index);
 
-  uint64_t asset_index = 0;
-  uint64_t asset_count = vector_count(&catalog->assets);
+  ImGui::TableNextRow();
 
-  while (asset_index < asset_count) {
+  ImGui::TableSetColumnIndex(0);
+  ImGui::Text("%d", model_asset->id);
 
-    model_asset_t *model_asset = (model_asset_t *)vector_at(&catalog->assets, asset_index);
-
-    if (asset_index == catalog->selected_asset) {
-      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-    }
-
-    uint8_t is_open = ImGui::TreeNodeEx(model_asset->name, tree_node_flags);
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-      catalog->selected_asset = asset_index;
-    }
-
-    ed_catalog_draw_asset_buttons(catalog);
-
-    if (is_open) {
-      ImGui::TreePop();
-    }
-
-    asset_index++;
+  ImGui::TableSetColumnIndex(1);
+  if (ImGui::Selectable(model_asset->name, asset_index == catalog->selected_asset, ImGuiSelectableFlags_SpanAllColumns)) {
+    catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_scene(ed_catalog_t *catalog) {
-  ImGuiTreeNodeFlags tree_node_flags =
-    ImGuiTreeNodeFlags_None |
-    ImGuiTreeNodeFlags_SpanFullWidth |
-    ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding |
-    ImGuiTreeNodeFlags_Leaf;
+static void ed_catalog_draw_scene(ed_catalog_t *catalog, uint64_t asset_index) {
+  scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&catalog->assets, asset_index);
 
-  uint64_t asset_index = 0;
-  uint64_t asset_count = vector_count(&catalog->assets);
+  ImGui::TableNextRow();
 
-  while (asset_index < asset_count) {
+  ImGui::TableSetColumnIndex(0);
+  ImGui::Text("%d", scene_asset->id);
 
-    scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&catalog->assets, asset_index);
-
-    if (asset_index == catalog->selected_asset) {
-      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-    }
-
-    uint8_t is_open = ImGui::TreeNodeEx(scene_asset->name, tree_node_flags);
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-      catalog->selected_asset = asset_index;
-    }
-
-    ed_catalog_draw_asset_buttons(catalog);
-
-    if (is_open) {
-      ImGui::TreePop();
-    }
-
-    asset_index++;
+  ImGui::TableSetColumnIndex(1);
+  if (ImGui::Selectable(scene_asset->name, asset_index == catalog->selected_asset, ImGuiSelectableFlags_SpanAllColumns)) {
+    catalog->selected_asset = asset_index;
   }
 }
 

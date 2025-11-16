@@ -23,18 +23,25 @@ typedef struct ed_viewport_t {
   uint8_t is_dirty;
   uint8_t is_open;
   uint8_t is_docked;
-  eg_viewport_t *viewport;
+  eg_viewport_t *handle;
   VkDescriptorSet *gbuffer_color_attachment;
   VkDescriptorSet *gbuffer_depth_attachment;
   ed_gbuffer_attachment_type_t gbuffer_attachment_type;
 } ed_viewport_t;
+
+typedef struct ed_canvas_t {
+  eg_context_t *context;
+  uint8_t is_dirty;
+  uint8_t is_open;
+  uint8_t is_docked;
+} ed_canvas_t;
 
 typedef struct ed_catalog_t {
   eg_context_t *context;
   uint8_t is_dirty;
   uint8_t is_open;
   uint8_t is_docked;
-  int64_t selected_asset = -1;
+  int64_t selected_asset;
   asset_type_t asset_type;
   vector_t assets;
 } ed_catalog_t;

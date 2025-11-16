@@ -8,6 +8,8 @@
 #include <imgui/imgui_impl_win32.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#include <imnodes/imnodes.h>
+
 #include <implot/implot.h>
 
 #include <editor/ed_fwd.h>

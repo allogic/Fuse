@@ -8,11 +8,15 @@ extern "C" {
 void database_create(void);
 void database_destroy(void);
 
+scene_asset_id_t database_load_default_scene_asset_id(void);
+swapchain_asset_id_t database_load_default_swapchain_asset_id(void);
+renderer_asset_id_t database_load_default_renderer_asset_id(void);
+
 vector_t database_load_swapchain_assets(void);
-swapchain_asset_t database_load_swapchain_default_asset(void);
+swapchain_asset_t database_load_swapchain_asset_by_id(swapchain_asset_id_t swapchain_asset_id);
 
 vector_t database_load_renderer_assets(void);
-renderer_asset_t database_load_renderer_default_asset(void);
+renderer_asset_t database_load_renderer_asset_by_id(renderer_asset_id_t renderer_asset_id);
 
 uint64_t database_load_vertex_input_binding_count_by_id(pipeline_asset_id_t pipeline_asset_id);
 uint64_t database_load_descriptor_binding_count_by_id(pipeline_asset_id_t pipeline_asset_id);

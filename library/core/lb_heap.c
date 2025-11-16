@@ -3,6 +3,8 @@
 #include <library/core/lb_heap.h>
 
 #ifdef BUILD_DEBUG
+uint64_t g_heap_allocation_count = 0;
+uint64_t g_heap_rellocation_count = 0;
 uint64_t g_heap_allocated_bytes = 0;
 #endif // BUILD_DEBUG
 
@@ -12,6 +14,7 @@ void *heap_alloc(uint64_t size, uint8_t zero_block, void const *reference) {
 
   uint64_t *new_block = (uint64_t *)malloc(new_size);
 
+  g_heap_allocation_count += 1;
   g_heap_allocated_bytes += new_size;
 
   *new_block = new_size;
@@ -25,6 +28,8 @@ void *heap_alloc(uint64_t size, uint8_t zero_block, void const *reference) {
   if (reference) {
     memcpy(new_block, reference, size);
   }
+
+  printf("Allocation(%llu) Size(%llu) HeapSize(%llu)\n", g_heap_allocation_count, size, g_heap_allocated_bytes);
 
   return new_block;
 #else
@@ -55,11 +60,14 @@ void *heap_realloc(void *block, uint64_t size) {
 
     uint64_t *new_block = (uint64_t *)realloc(old_block, new_size);
 
+    g_heap_rellocation_count += 1;
     g_heap_allocated_bytes += new_size;
 
     *new_block = new_size;
 
     new_block++;
+
+    printf("Rellocation(%llu) Size(%llu) HeapSize(%llu)\n", g_heap_allocation_count, size, g_heap_allocated_bytes);
 
     return new_block;
   } else {

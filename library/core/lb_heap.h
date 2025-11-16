@@ -6,6 +6,8 @@ extern "C" {
 #endif // __cplusplus
 
 #ifdef BUILD_DEBUG
+extern uint64_t g_heap_allocation_count;
+extern uint64_t g_heap_rellocation_count;
 extern uint64_t g_heap_allocated_bytes;
 #endif // BUILD_DEBUG
 

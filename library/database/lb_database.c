@@ -15,6 +15,79 @@ void database_destroy(void) {
   SQL_CHECK(sqlite3_close(s_database_handle));
 }
 
+scene_asset_id_t database_load_default_scene_asset_id(void) {
+  scene_asset_id_t scene_asset_id = -1;
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT SA.ID\n");
+  string_appendf(&sql, "FROM SCENE_ASSETS AS SA\n");
+  string_appendf(&sql, "WHERE SA.IS_DEFAULT = 1\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    scene_asset_id = sqlite3_column_int64(stmt, 0);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return scene_asset_id;
+}
+swapchain_asset_id_t database_load_default_swapchain_asset_id(void) {
+  swapchain_asset_id_t swapchain_asset_id = -1;
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT SA.ID\n");
+  string_appendf(&sql, "FROM SWAPCHAIN_ASSETS AS SA\n");
+  string_appendf(&sql, "WHERE SA.IS_DEFAULT = 1\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    swapchain_asset_id = sqlite3_column_int64(stmt, 0);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return swapchain_asset_id;
+}
+renderer_asset_id_t database_load_default_renderer_asset_id(void) {
+  renderer_asset_id_t renderer_asset_id = -1;
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT RA.ID\n");
+  string_appendf(&sql, "FROM RENDERER_ASSETS AS RA\n");
+  string_appendf(&sql, "WHERE RA.IS_DEFAULT = 1\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    renderer_asset_id = sqlite3_column_int64(stmt, 0);
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return renderer_asset_id;
+}
+
 vector_t database_load_swapchain_assets(void) {
   vector_t swapchain_assets = vector_create(sizeof(swapchain_asset_t));
 
@@ -55,14 +128,14 @@ vector_t database_load_swapchain_assets(void) {
 
   return swapchain_assets;
 }
-swapchain_asset_t database_load_swapchain_default_asset(void) {
+swapchain_asset_t database_load_swapchain_asset_by_id(swapchain_asset_id_t swapchain_asset_id) {
   swapchain_asset_t swapchain_asset = {0};
 
   string_t sql = string_create();
 
   string_appendf(&sql, "SELECT SA.ID, SA.NAME, SA.IMAGE_COUNT, SA.DEPTH_FORMAT, SA.IS_DEFAULT\n");
   string_appendf(&sql, "FROM SWAPCHAIN_ASSETS AS SA\n");
-  string_appendf(&sql, "WHERE SA.IS_DEFAULT = 1\n");
+  string_appendf(&sql, "WHERE SA.ID = %lld\n", swapchain_asset_id);
 
   sqlite3_stmt *stmt = 0;
 
@@ -129,14 +202,14 @@ vector_t database_load_renderer_assets(void) {
 
   return renderer_assets;
 }
-renderer_asset_t database_load_renderer_default_asset(void) {
+renderer_asset_t database_load_renderer_asset_by_id(renderer_asset_id_t renderer_asset_id) {
   renderer_asset_t renderer_asset = {0};
 
   string_t sql = string_create();
 
   string_appendf(&sql, "SELECT RA.ID, RA.NAME, RA.FRAMES_IN_FLIGHT, RA.IS_DEFAULT\n");
   string_appendf(&sql, "FROM RENDERER_ASSETS AS RA\n");
-  string_appendf(&sql, "WHERE RA.IS_DEFAULT = 1\n");
+  string_appendf(&sql, "WHERE RA.ID = %lld\n", renderer_asset_id);
 
   sqlite3_stmt *stmt = 0;
 

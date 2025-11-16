@@ -1,4 +1,5 @@
 #include <editor/ed_pch.h>
+#include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
 
 #include <editor/dockable/ed_inspector.h>
@@ -22,35 +23,41 @@ ed_inspector_t ed_inspector_create(eg_context_t *context) {
 void ed_inspector_refresh(ed_inspector_t *inspector) {
 }
 void ed_inspector_draw(ed_inspector_t *inspector) {
-  ecs_world_t *world = inspector->context->scene->world;
+  switch (g_dockspace_selected_type) {
+    case ED_DOCKSPACE_TYPE_SCENE: {
 
-  // TODO
-  // if (ecs_is_valid(world, g_hierarchy_selected_entity)) {
-  //
-  //   camera_t *camera = scene_camera_mut(context->scene, g_hierarchy_selected_entity);
-  //
-  //   if (camera) {
-  //     inspector_draw_camera(camera);
-  //   }
-  //
-  //   editor_controller_t *editor_controller = scene_editor_controller_mut(context->scene, g_hierarchy_selected_entity);
-  //
-  //   if (editor_controller) {
-  //     inspector_draw_editor_controller(editor_controller);
-  //   }
-  //
-  //   rigidbody_t *rigidbody = scene_rigidbody_mut(context->scene, g_hierarchy_selected_entity);
-  //
-  //   if (rigidbody) {
-  //     inspector_draw_rigidbody(rigidbody);
-  //   }
-  //
-  //   transform_t *transform = scene_transform_mut(context->scene, g_hierarchy_selected_entity);
-  //
-  //   if (transform) {
-  //     inspector_draw_transform(transform);
-  //   }
-  // }
+      ecs_world_t *world = inspector->context->scene->world;
+
+      if (ecs_is_valid(world, g_hierarchy_scene.selected_entity)) {
+
+        eg_camera_t *camera = eg_scene_camera_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+
+        if (camera) {
+          ed_inspector_draw_camera(camera);
+        }
+
+        eg_editor_controller_t *editor_controller = eg_scene_editor_controller_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+
+        if (editor_controller) {
+          ed_inspector_draw_editor_controller(editor_controller);
+        }
+
+        eg_rigidbody_t *rigidbody = eg_scene_rigidbody_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+
+        if (rigidbody) {
+          ed_inspector_draw_rigidbody(rigidbody);
+        }
+
+        eg_transform_t *transform = eg_scene_transform_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+
+        if (transform) {
+          ed_inspector_draw_transform(transform);
+        }
+      }
+
+      break;
+    }
+  }
 }
 void ed_inspector_destroy(ed_inspector_t *inspector) {
 }

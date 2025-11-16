@@ -142,6 +142,12 @@ typedef struct eg_cpu_frame_sample_t {
   float delta;
 } eg_cpu_frame_sample_t;
 
+typedef struct eg_world_settings_t {
+  scene_asset_id_t default_scene_id;
+  swapchain_asset_id_t default_swapchain_id;
+  renderer_asset_id_t default_renderer_id;
+} eg_world_settings_t;
+
 typedef struct eg_context_t {
   HMODULE module_handle;
   HWND window_handle;
@@ -186,6 +192,7 @@ typedef struct eg_context_t {
   PFN_vkDestroyDebugUtilsMessengerEXT destroy_debug_utils_messenger_ext;
   VkDebugUtilsMessengerEXT debug_messenger;
 #endif // BUILD_DEBUG
+  eg_world_settings_t world_settings;
   struct eg_viewport_t *viewport[0xFF];
   struct eg_swapchain_t *swapchain;
   struct eg_renderer_t *renderer;
@@ -369,7 +376,7 @@ typedef struct eg_compute_pipeline_t {
 } eg_compute_pipeline_t;
 
 typedef struct eg_terrain_t {
-  void *dummy; // TODO
+  eg_context_t *context;
 } eg_terrain_t;
 
 #endif // EG_FWD_H

@@ -18,7 +18,7 @@ void eg_swapchain_create(eg_context_t *context) {
   swapchain->context = context;
   swapchain->context->swapchain = swapchain;
 
-  swapchain_asset_t swapchain_asset = database_load_swapchain_default_asset();
+  swapchain_asset_t swapchain_asset = database_load_swapchain_asset_by_id(swapchain->context->world_settings.default_swapchain_id);
 
   swapchain->image_count = swapchain_asset.image_count;
   swapchain->depth_format = swapchain_asset.depth_format;

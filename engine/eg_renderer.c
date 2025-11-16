@@ -53,7 +53,7 @@ void eg_renderer_create(eg_context_t *context) {
   strcpy(renderer->screen_info_descriptor_binding_name, "screen_info");
   strcpy(renderer->camera_info_descriptor_binding_name, "camera_info");
 
-  renderer_asset_t renderer_asset = database_load_renderer_default_asset();
+  renderer_asset_t renderer_asset = database_load_renderer_asset_by_id(renderer->context->world_settings.default_renderer_id);
 
   renderer->frames_in_flight = renderer_asset.frames_in_flight;
 

@@ -59,6 +59,14 @@ eg_editor_destroy_proc_t g_context_editor_destroy_proc = 0;
 eg_editor_message_proc_t g_context_editor_message_proc = 0;
 
 eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
+  database_create();
+
+  eg_world_settings_t world_settings = {0};
+
+  world_settings.default_scene_id = database_load_default_scene_asset_id();
+  world_settings.default_swapchain_id = database_load_default_swapchain_asset_id();
+  world_settings.default_renderer_id = database_load_default_renderer_asset_id();
+
   eg_context_t *context = (eg_context_t *)heap_alloc(sizeof(eg_context_t), 1, 0);
 
   context->is_editor_mode = is_editor_mode;
@@ -70,6 +78,7 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
   context->window_height = height;
   context->graphic_queue_index = -1;
   context->present_queue_index = -1;
+  context->world_settings = world_settings;
 
   eg_context_create_window(context);
   eg_context_create_instance(context);
@@ -87,8 +96,6 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
   eg_context_resize_surface(context);
 
   eg_context_create_command_pool(context);
-
-  database_create();
 
   eg_swapchain_create(context);
   eg_renderer_create(context);
@@ -190,8 +197,6 @@ void eg_context_destroy(eg_context_t *context) {
   eg_renderer_destroy(context->renderer);
   eg_swapchain_destroy(context->swapchain);
 
-  database_destroy();
-
   eg_context_destroy_command_pool(context);
   eg_context_destroy_device(context);
   eg_context_destroy_surface(context);
@@ -199,6 +204,8 @@ void eg_context_destroy(eg_context_t *context) {
   eg_context_destroy_window(context);
 
   heap_free(context);
+
+  database_destroy();
 }
 
 uint8_t eg_context_is_keyboard_key_pressed(eg_context_t *context, eg_keyboard_key_t key) {
