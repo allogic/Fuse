@@ -2,8 +2,8 @@
 #include <engine/eg_buffer.h>
 #include <engine/eg_context.h>
 
-buffer_t *buffer_create(context_t *context, uint64_t buffer_size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_properties) {
-  buffer_t *buffer = (buffer_t *)heap_alloc(sizeof(buffer_t), 1, 0);
+eg_buffer_t *eg_buffer_create(eg_context_t *context, uint64_t buffer_size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_properties) {
+  eg_buffer_t *buffer = (eg_buffer_t *)heap_alloc(sizeof(eg_buffer_t), 1, 0);
 
   buffer->context = context;
   buffer->size = buffer_size;
@@ -23,22 +23,22 @@ buffer_t *buffer_create(context_t *context, uint64_t buffer_size, VkBufferUsageF
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   memory_allocate_info.allocationSize = memory_requirements.size;
-  memory_allocate_info.memoryTypeIndex = context_find_memory_type(buffer->context, memory_requirements.memoryTypeBits, memory_properties);
+  memory_allocate_info.memoryTypeIndex = eg_context_find_memory_type(buffer->context, memory_requirements.memoryTypeBits, memory_properties);
 
   VULKAN_CHECK(vkAllocateMemory(buffer->context->device, &memory_allocate_info, 0, &buffer->device_memory));
   VULKAN_CHECK(vkBindBufferMemory(buffer->context->device, buffer->handle, buffer->device_memory, 0));
 
   return buffer;
 }
-void buffer_map(buffer_t *buffer) {
+void eg_buffer_map(eg_buffer_t *buffer) {
   VULKAN_CHECK(vkMapMemory(buffer->context->device, buffer->device_memory, 0, buffer->size, 0, &buffer->mapped_memory));
 }
-void buffer_unmap(buffer_t *buffer) {
+void eg_buffer_unmap(eg_buffer_t *buffer) {
   vkUnmapMemory(buffer->context->device, buffer->device_memory);
 
   buffer->mapped_memory = 0;
 }
-void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer command_buffer) {
+void eg_buffer_copy_to_buffer(eg_buffer_t *buffer, eg_buffer_t *target, VkCommandBuffer command_buffer) {
   VkBufferCopy buffer_copy = {0};
   buffer_copy.srcOffset = 0;
   buffer_copy.dstOffset = 0;
@@ -46,7 +46,7 @@ void buffer_copy_to_buffer(buffer_t *buffer, buffer_t *target, VkCommandBuffer c
 
   vkCmdCopyBuffer(command_buffer, buffer->handle, target->handle, 1, &buffer_copy);
 }
-void buffer_copy_to_image(buffer_t *buffer, image_t *target, VkCommandBuffer command_buffer) {
+void eg_buffer_copy_to_image(eg_buffer_t *buffer, eg_image_t *target, VkCommandBuffer command_buffer) {
   VkBufferImageCopy buffer_image_copy = {0};
   buffer_image_copy.bufferOffset = 0;
   buffer_image_copy.bufferRowLength = 0;
@@ -66,7 +66,7 @@ void buffer_copy_to_image(buffer_t *buffer, image_t *target, VkCommandBuffer com
 
   vkCmdCopyBufferToImage(command_buffer, buffer->handle, target->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy);
 }
-void buffer_destroy(buffer_t *buffer) {
+void eg_buffer_destroy(eg_buffer_t *buffer) {
   if (buffer->mapped_memory) {
     vkUnmapMemory(buffer->context->device, buffer->device_memory);
   }
@@ -78,96 +78,96 @@ void buffer_destroy(buffer_t *buffer) {
   heap_free(buffer);
 }
 
-buffer_t *buffer_create_vertex(context_t *context, void *buffer, uint64_t buffer_size) {
-  buffer_t *staging_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+eg_buffer_t *eg_buffer_create_vertex(eg_context_t *context, void *buffer, uint64_t buffer_size) {
+  eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  buffer_map(staging_buffer);
+  eg_buffer_map(staging_buffer);
   memcpy(staging_buffer->mapped_memory, buffer, buffer_size);
-  buffer_unmap(staging_buffer);
+  eg_buffer_unmap(staging_buffer);
 
-  VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
-  context_end_command_buffer(context, command_buffer);
+  VkCommandBuffer command_buffer = eg_context_begin_command_buffer(context);
+  eg_buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
+  eg_context_end_command_buffer(context, command_buffer);
 
-  buffer_destroy(staging_buffer);
+  eg_buffer_destroy(staging_buffer);
 
   return target_buffer;
 }
-buffer_t *buffer_create_index(context_t *context, void *buffer, uint64_t buffer_size) {
-  buffer_t *staging_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+eg_buffer_t *eg_buffer_create_index(eg_context_t *context, void *buffer, uint64_t buffer_size) {
+  eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  buffer_map(staging_buffer);
+  eg_buffer_map(staging_buffer);
   memcpy(staging_buffer->mapped_memory, buffer, buffer_size);
-  buffer_unmap(staging_buffer);
+  eg_buffer_unmap(staging_buffer);
 
-  VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
-  context_end_command_buffer(context, command_buffer);
+  VkCommandBuffer command_buffer = eg_context_begin_command_buffer(context);
+  eg_buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
+  eg_context_end_command_buffer(context, command_buffer);
 
-  buffer_destroy(staging_buffer);
+  eg_buffer_destroy(staging_buffer);
 
   return target_buffer;
 }
-buffer_t *buffer_create_uniform(context_t *context, void *buffer, uint64_t buffer_size) {
-  buffer_t *staging_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+eg_buffer_t *eg_buffer_create_uniform(eg_context_t *context, void *buffer, uint64_t buffer_size) {
+  eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  buffer_map(staging_buffer);
+  eg_buffer_map(staging_buffer);
   memcpy(staging_buffer->mapped_memory, buffer, buffer_size);
-  buffer_unmap(staging_buffer);
+  eg_buffer_unmap(staging_buffer);
 
-  VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
-  context_end_command_buffer(context, command_buffer);
+  VkCommandBuffer command_buffer = eg_context_begin_command_buffer(context);
+  eg_buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
+  eg_context_end_command_buffer(context, command_buffer);
 
-  buffer_destroy(staging_buffer);
+  eg_buffer_destroy(staging_buffer);
 
   return target_buffer;
 }
-buffer_t *buffer_create_storage(context_t *context, void *buffer, uint64_t buffer_size) {
-  buffer_t *staging_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+eg_buffer_t *eg_buffer_create_storage(eg_context_t *context, void *buffer, uint64_t buffer_size) {
+  eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-  buffer_map(staging_buffer);
+  eg_buffer_map(staging_buffer);
   memcpy(staging_buffer->mapped_memory, buffer, buffer_size);
-  buffer_unmap(staging_buffer);
+  eg_buffer_unmap(staging_buffer);
 
-  VkCommandBuffer command_buffer = context_begin_command_buffer(context);
-  buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
-  context_end_command_buffer(context, command_buffer);
+  VkCommandBuffer command_buffer = eg_context_begin_command_buffer(context);
+  eg_buffer_copy_to_buffer(target_buffer, target_buffer, command_buffer);
+  eg_context_end_command_buffer(context, command_buffer);
 
-  buffer_destroy(staging_buffer);
-
-  return target_buffer;
-}
-
-buffer_t *buffer_create_vertex_coherent(context_t *context, uint64_t buffer_size) {
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-  buffer_map(target_buffer);
+  eg_buffer_destroy(staging_buffer);
 
   return target_buffer;
 }
-buffer_t *buffer_create_index_coherent(context_t *context, uint64_t buffer_size) {
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-  buffer_map(target_buffer);
+eg_buffer_t *eg_buffer_create_vertex_coherent(eg_context_t *context, uint64_t buffer_size) {
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-  return target_buffer;
-}
-buffer_t *buffer_create_uniform_coherent(context_t *context, uint64_t buffer_size) {
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-  buffer_map(target_buffer);
+  eg_buffer_map(target_buffer);
 
   return target_buffer;
 }
-buffer_t *buffer_create_storage_coherent(context_t *context, uint64_t buffer_size) {
-  buffer_t *target_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+eg_buffer_t *eg_buffer_create_index_coherent(eg_context_t *context, uint64_t buffer_size) {
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-  buffer_map(target_buffer);
+  eg_buffer_map(target_buffer);
+
+  return target_buffer;
+}
+eg_buffer_t *eg_buffer_create_uniform_coherent(eg_context_t *context, uint64_t buffer_size) {
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  eg_buffer_map(target_buffer);
+
+  return target_buffer;
+}
+eg_buffer_t *eg_buffer_create_storage_coherent(eg_context_t *context, uint64_t buffer_size) {
+  eg_buffer_t *target_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  eg_buffer_map(target_buffer);
 
   return target_buffer;
 }

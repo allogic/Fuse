@@ -4,31 +4,31 @@
 #include <engine/eg_renderer.h>
 #include <engine/eg_viewport.h>
 
-static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
+static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 #ifdef BUILD_DEBUG
-static VkBool32 context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const *callback_data, void *user_data);
+static VkBool32 eg_context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const *callback_data, void *user_data);
 #endif // BUILD_DEBUG
 
-static void context_create_window(context_t *context);
-static void context_create_instance(context_t *context);
-static void context_create_surface(context_t *context);
-static void context_create_device(context_t *context);
-static void context_create_command_pool(context_t *context);
+static void eg_context_create_window(eg_context_t *context);
+static void eg_context_create_instance(eg_context_t *context);
+static void eg_context_create_surface(eg_context_t *context);
+static void eg_context_create_device(eg_context_t *context);
+static void eg_context_create_command_pool(eg_context_t *context);
 
-static void context_destroy_window(context_t *context);
-static void context_destroy_instance(context_t *context);
-static void context_destroy_surface(context_t *context);
-static void context_destroy_device(context_t *context);
-static void context_destroy_command_pool(context_t *context);
+static void eg_context_destroy_window(eg_context_t *context);
+static void eg_context_destroy_instance(eg_context_t *context);
+static void eg_context_destroy_surface(eg_context_t *context);
+static void eg_context_destroy_device(eg_context_t *context);
+static void eg_context_destroy_command_pool(eg_context_t *context);
 
-static void context_check_surface_capabilities(context_t *context);
-static void context_check_physical_device_extensions(context_t *context);
+static void eg_context_check_surface_capabilities(eg_context_t *context);
+static void eg_context_check_physical_device_extensions(eg_context_t *context);
 
-static void context_resize_surface(context_t *context);
+static void eg_context_resize_surface(eg_context_t *context);
 
-static void context_find_physical_device(context_t *context);
-static void context_find_physical_device_queue_families(context_t *context);
+static void eg_context_find_physical_device(eg_context_t *context);
+static void eg_context_find_physical_device_queue_families(eg_context_t *context);
 
 static char const *s_context_window_class = "FUSE_CLASS";
 static char const *s_context_window_name = "FUSE";
@@ -52,18 +52,18 @@ static char const *s_context_device_extensions[] = {
   "VK_EXT_descriptor_indexing",
 };
 
-editor_create_proc_t g_context_editor_create_proc = 0;
-editor_refresh_proc_t g_context_editor_refresh_proc = 0;
-editor_draw_proc_t g_context_editor_draw_proc = 0;
-editor_destroy_proc_t g_context_editor_destroy_proc = 0;
-editor_message_proc_t g_context_editor_message_proc = 0;
+eg_editor_create_proc_t g_context_editor_create_proc = 0;
+eg_editor_refresh_proc_t g_context_editor_refresh_proc = 0;
+eg_editor_draw_proc_t g_context_editor_draw_proc = 0;
+eg_editor_destroy_proc_t g_context_editor_destroy_proc = 0;
+eg_editor_message_proc_t g_context_editor_message_proc = 0;
 
-context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
-  context_t *context = (context_t *)heap_alloc(sizeof(context_t), 1, 0);
+eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
+  eg_context_t *context = (eg_context_t *)heap_alloc(sizeof(eg_context_t), 1, 0);
 
   context->is_editor_mode = is_editor_mode;
   context->is_window_running = 1;
-  context->window_titlebar_height = 60;
+  context->window_titlebar_height = 65;
   context->window_statusbar_height = 30;
   context->window_border_width = 1;
   context->window_width = width;
@@ -71,34 +71,34 @@ context_t *context_create(int32_t width, int32_t height, uint8_t is_editor_mode)
   context->graphic_queue_index = -1;
   context->present_queue_index = -1;
 
-  context_create_window(context);
-  context_create_instance(context);
-  context_create_surface(context);
+  eg_context_create_window(context);
+  eg_context_create_instance(context);
+  eg_context_create_surface(context);
 
-  context_find_physical_device(context);
-  context_find_physical_device_queue_families(context);
+  eg_context_find_physical_device(context);
+  eg_context_find_physical_device_queue_families(context);
 
-  context_check_physical_device_extensions(context);
+  eg_context_check_physical_device_extensions(context);
 
-  context_create_device(context);
+  eg_context_create_device(context);
 
-  context_check_surface_capabilities(context);
+  eg_context_check_surface_capabilities(context);
 
-  context_resize_surface(context);
+  eg_context_resize_surface(context);
 
-  context_create_command_pool(context);
+  eg_context_create_command_pool(context);
 
   database_create();
 
-  swapchain_create(context);
-  renderer_create(context);
+  eg_swapchain_create(context);
+  eg_renderer_create(context);
 
   return context;
 }
-void context_run(context_t *context) {
+void eg_context_run(eg_context_t *context) {
   QueryPerformanceFrequency(&context->time_freq);
 
-  PROFILER_INIT(context);
+  EG_PROFILER_INIT(context);
 
   while (context->is_window_running) {
 
@@ -109,10 +109,10 @@ void context_run(context_t *context) {
 
     while (keyboard_key_index < keyboard_key_count) {
 
-      if (context->event_keyboard_key_states[keyboard_key_index] == KEY_STATE_PRESSED) {
-        context->event_keyboard_key_states[keyboard_key_index] = KEY_STATE_DOWN;
-      } else if (context->event_keyboard_key_states[keyboard_key_index] == KEY_STATE_RELEASED) {
-        context->event_keyboard_key_states[keyboard_key_index] = KEY_STATE_UP;
+      if (context->event_keyboard_key_states[keyboard_key_index] == EG_KEY_STATE_PRESSED) {
+        context->event_keyboard_key_states[keyboard_key_index] = EG_KEY_STATE_DOWN;
+      } else if (context->event_keyboard_key_states[keyboard_key_index] == EG_KEY_STATE_RELEASED) {
+        context->event_keyboard_key_states[keyboard_key_index] = EG_KEY_STATE_UP;
       }
 
       keyboard_key_index++;
@@ -123,10 +123,10 @@ void context_run(context_t *context) {
 
     while (mouse_key_index < mouse_key_count) {
 
-      if (context->event_mouse_key_states[mouse_key_index] == KEY_STATE_PRESSED) {
-        context->event_mouse_key_states[mouse_key_index] = KEY_STATE_DOWN;
-      } else if (context->event_mouse_key_states[mouse_key_index] == KEY_STATE_RELEASED) {
-        context->event_mouse_key_states[mouse_key_index] = KEY_STATE_UP;
+      if (context->event_mouse_key_states[mouse_key_index] == EG_KEY_STATE_PRESSED) {
+        context->event_mouse_key_states[mouse_key_index] = EG_KEY_STATE_DOWN;
+      } else if (context->event_mouse_key_states[mouse_key_index] == EG_KEY_STATE_RELEASED) {
+        context->event_mouse_key_states[mouse_key_index] = EG_KEY_STATE_UP;
       }
 
       mouse_key_index++;
@@ -135,21 +135,21 @@ void context_run(context_t *context) {
     if (context->swapchain->is_dirty) {
       context->swapchain->is_dirty = 0;
 
-      renderer_destroy(context->renderer);
-      swapchain_destroy(context->swapchain);
+      eg_renderer_destroy(context->renderer);
+      eg_swapchain_destroy(context->swapchain);
 
-      context_resize_surface(context);
+      eg_context_resize_surface(context);
 
-      swapchain_create(context);
-      renderer_create(context);
+      eg_swapchain_create(context);
+      eg_renderer_create(context);
     }
 
     if (context->renderer->is_dirty) {
       context->renderer->is_dirty = 0;
 
-      renderer_destroy(context->renderer);
+      eg_renderer_destroy(context->renderer);
 
-      renderer_create(context);
+      eg_renderer_create(context);
     }
 
     while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
@@ -160,18 +160,18 @@ void context_run(context_t *context) {
 
     QueryPerformanceCounter(&context->time_start); // TODO: measure whole loop..?
 
-    PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_CONTEXT);
+    EG_PROFILER_SCOPE_BEGIN(EG_PROFILER_SAMPLE_LANE_CONTEXT);
 
-    scene_update(context->scene);
+    eg_scene_update(context->scene);
 
-    renderer_update(context->renderer); // TODO: remove this..
-    renderer_draw(context->renderer);
+    eg_renderer_update(context->renderer); // TODO: remove this..
+    eg_renderer_draw(context->renderer);
 
-    PROFILER_SCOPE_END(PROFILER_SAMPLE_LANE_CONTEXT);
+    EG_PROFILER_SCOPE_END(EG_PROFILER_SAMPLE_LANE_CONTEXT);
 
     QueryPerformanceCounter(&context->time_end); // TODO: measure whole loop..?
 
-    PROFILER_INC_FRAME();
+    EG_PROFILER_INC_FRAME();
 
     context->delta_time = ((double)(context->time_end.QuadPart - context->time_start.QuadPart)) / ((double)context->time_freq.QuadPart);
     context->time += context->delta_time;
@@ -186,42 +186,42 @@ void context_run(context_t *context) {
     }
   }
 }
-void context_destroy(context_t *context) {
-  renderer_destroy(context->renderer);
-  swapchain_destroy(context->swapchain);
+void eg_context_destroy(eg_context_t *context) {
+  eg_renderer_destroy(context->renderer);
+  eg_swapchain_destroy(context->swapchain);
 
   database_destroy();
 
-  context_destroy_command_pool(context);
-  context_destroy_device(context);
-  context_destroy_surface(context);
-  context_destroy_instance(context);
-  context_destroy_window(context);
+  eg_context_destroy_command_pool(context);
+  eg_context_destroy_device(context);
+  eg_context_destroy_surface(context);
+  eg_context_destroy_instance(context);
+  eg_context_destroy_window(context);
 
   heap_free(context);
 }
 
-uint8_t context_is_keyboard_key_pressed(context_t *context, keyboard_key_t key) {
-  return context->event_keyboard_key_states[key] == KEY_STATE_PRESSED;
+uint8_t eg_context_is_keyboard_key_pressed(eg_context_t *context, eg_keyboard_key_t key) {
+  return context->event_keyboard_key_states[key] == EG_KEY_STATE_PRESSED;
 }
-uint8_t context_is_keyboard_key_held(context_t *context, keyboard_key_t key) {
-  return (context->event_keyboard_key_states[key] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[key] == KEY_STATE_PRESSED);
+uint8_t eg_context_is_keyboard_key_held(eg_context_t *context, eg_keyboard_key_t key) {
+  return (context->event_keyboard_key_states[key] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[key] == EG_KEY_STATE_PRESSED);
 }
-uint8_t context_is_keyboard_key_released(context_t *context, keyboard_key_t key) {
-  return context->event_keyboard_key_states[key] == KEY_STATE_RELEASED;
-}
-
-uint8_t context_is_mouse_key_pressed(context_t *context, mouse_key_t key) {
-  return context->event_mouse_key_states[key] == KEY_STATE_PRESSED;
-}
-uint8_t context_is_mouse_key_held(context_t *context, mouse_key_t key) {
-  return (context->event_mouse_key_states[key] == KEY_STATE_DOWN) || (context->event_mouse_key_states[key] == KEY_STATE_PRESSED);
-}
-uint8_t context_is_mouse_key_released(context_t *context, mouse_key_t key) {
-  return context->event_mouse_key_states[key] == KEY_STATE_RELEASED;
+uint8_t eg_context_is_keyboard_key_released(eg_context_t *context, eg_keyboard_key_t key) {
+  return context->event_keyboard_key_states[key] == EG_KEY_STATE_RELEASED;
 }
 
-int32_t context_find_memory_type(context_t *context, uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
+uint8_t eg_context_is_mouse_key_pressed(eg_context_t *context, eg_mouse_key_t key) {
+  return context->event_mouse_key_states[key] == EG_KEY_STATE_PRESSED;
+}
+uint8_t eg_context_is_mouse_key_held(eg_context_t *context, eg_mouse_key_t key) {
+  return (context->event_mouse_key_states[key] == EG_KEY_STATE_DOWN) || (context->event_mouse_key_states[key] == EG_KEY_STATE_PRESSED);
+}
+uint8_t eg_context_is_mouse_key_released(eg_context_t *context, eg_mouse_key_t key) {
+  return context->event_mouse_key_states[key] == EG_KEY_STATE_RELEASED;
+}
+
+int32_t eg_context_find_memory_type(eg_context_t *context, uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
   int32_t memory_type = -1;
 
   uint32_t memory_type_index = 0;
@@ -240,7 +240,7 @@ int32_t context_find_memory_type(context_t *context, uint32_t type_filter, VkMem
   return memory_type;
 }
 
-VkCommandBuffer context_begin_command_buffer(context_t *context) {
+VkCommandBuffer eg_context_begin_command_buffer(eg_context_t *context) {
   VkCommandBuffer command_buffer = 0;
 
   VkCommandBufferAllocateInfo command_buffer_allocate_info = {0};
@@ -259,7 +259,7 @@ VkCommandBuffer context_begin_command_buffer(context_t *context) {
 
   return command_buffer;
 }
-void context_end_command_buffer(context_t *context, VkCommandBuffer command_buffer) {
+void eg_context_end_command_buffer(eg_context_t *context, VkCommandBuffer command_buffer) {
   VULKAN_CHECK(vkEndCommandBuffer(command_buffer));
 
   VkSubmitInfo submit_info = {0};
@@ -273,8 +273,8 @@ void context_end_command_buffer(context_t *context, VkCommandBuffer command_buff
   vkFreeCommandBuffers(context->device, context->command_pool, 1, &command_buffer);
 }
 
-static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
-  context_t *context = (context_t *)GetWindowLongPtr(window_handle, GWLP_USERDATA);
+static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
+  eg_context_t *context = (eg_context_t *)GetWindowLongPtr(window_handle, GWLP_USERDATA);
 
   if (context) {
     if (context->is_editor_mode) {
@@ -314,26 +314,26 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       UINT virtual_key = MapVirtualKeyExA(scan_code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
 
       switch (virtual_key) {
-        case KEYBOARD_KEY_LEFT_SHIFT:
-          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+        case EG_KEYBOARD_KEY_LEFT_SHIFT:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_SHIFT] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_SHIFT] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_SHIFT] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
-        case KEYBOARD_KEY_RIGHT_SHIFT:
-          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+        case EG_KEYBOARD_KEY_RIGHT_SHIFT:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_SHIFT] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_SHIFT] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_SHIFT] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
-        case KEYBOARD_KEY_LEFT_CONTROL:
-          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+        case EG_KEYBOARD_KEY_LEFT_CONTROL:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_CONTROL] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_CONTROL] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_CONTROL] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
-        case KEYBOARD_KEY_RIGHT_CONTROL:
-          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+        case EG_KEYBOARD_KEY_RIGHT_CONTROL:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_CONTROL] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_CONTROL] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_CONTROL] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
-        case KEYBOARD_KEY_LEFT_MENU:
-          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+        case EG_KEYBOARD_KEY_LEFT_MENU:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_MENU] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_MENU] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_MENU] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
-        case KEYBOARD_KEY_RIGHT_MENU:
-          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_UP) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+        case EG_KEYBOARD_KEY_RIGHT_MENU:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_MENU] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_MENU] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_MENU] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
         default:
-          context->event_keyboard_key_states[virtual_key] = ((context->event_keyboard_key_states[virtual_key] == KEY_STATE_UP) || (context->event_keyboard_key_states[virtual_key] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+          context->event_keyboard_key_states[virtual_key] = ((context->event_keyboard_key_states[virtual_key] == EG_KEY_STATE_UP) || (context->event_keyboard_key_states[virtual_key] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
           break;
       }
 
@@ -346,26 +346,26 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
       UINT virtual_key = MapVirtualKeyExA(scan_code, MAPVK_VSC_TO_VK_EX, GetKeyboardLayout(0));
 
       switch (virtual_key) {
-        case KEYBOARD_KEY_LEFT_SHIFT:
-          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_SHIFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+        case EG_KEYBOARD_KEY_LEFT_SHIFT:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_SHIFT] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_SHIFT] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_SHIFT] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
-        case KEYBOARD_KEY_RIGHT_SHIFT:
-          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_SHIFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+        case EG_KEYBOARD_KEY_RIGHT_SHIFT:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_SHIFT] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_SHIFT] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_SHIFT] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
-        case KEYBOARD_KEY_LEFT_CONTROL:
-          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_CONTROL] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+        case EG_KEYBOARD_KEY_LEFT_CONTROL:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_CONTROL] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_CONTROL] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_CONTROL] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
-        case KEYBOARD_KEY_RIGHT_CONTROL:
-          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_CONTROL] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+        case EG_KEYBOARD_KEY_RIGHT_CONTROL:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_CONTROL] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_CONTROL] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_CONTROL] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
-        case KEYBOARD_KEY_LEFT_MENU:
-          context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_LEFT_MENU] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+        case EG_KEYBOARD_KEY_LEFT_MENU:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_MENU] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_MENU] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_LEFT_MENU] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
-        case KEYBOARD_KEY_RIGHT_MENU:
-          context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] = ((context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[KEYBOARD_KEY_RIGHT_MENU] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+        case EG_KEYBOARD_KEY_RIGHT_MENU:
+          context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_MENU] = ((context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_MENU] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[EG_KEYBOARD_KEY_RIGHT_MENU] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
         default:
-          context->event_keyboard_key_states[virtual_key] = ((context->event_keyboard_key_states[virtual_key] == KEY_STATE_DOWN) || (context->event_keyboard_key_states[virtual_key] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+          context->event_keyboard_key_states[virtual_key] = ((context->event_keyboard_key_states[virtual_key] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[virtual_key] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
           break;
       }
 
@@ -373,37 +373,37 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
     }
     case WM_LBUTTONDOWN: {
 
-      context->event_mouse_key_states[MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+      context->event_mouse_key_states[EG_MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[EG_MOUSE_KEY_LEFT] == EG_KEY_STATE_UP) || (context->event_mouse_key_states[EG_MOUSE_KEY_LEFT] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
 
       break;
     }
     case WM_LBUTTONUP: {
 
-      context->event_mouse_key_states[MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_LEFT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+      context->event_mouse_key_states[EG_MOUSE_KEY_LEFT] = ((context->event_mouse_key_states[EG_MOUSE_KEY_LEFT] == EG_KEY_STATE_DOWN) || (context->event_mouse_key_states[EG_MOUSE_KEY_LEFT] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
 
       break;
     }
     case WM_MBUTTONDOWN: {
 
-      context->event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+      context->event_mouse_key_states[EG_MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[EG_MOUSE_KEY_MIDDLE] == EG_KEY_STATE_UP) || (context->event_mouse_key_states[EG_MOUSE_KEY_MIDDLE] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
 
       break;
     }
     case WM_MBUTTONUP: {
 
-      context->event_mouse_key_states[MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_MIDDLE] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+      context->event_mouse_key_states[EG_MOUSE_KEY_MIDDLE] = ((context->event_mouse_key_states[EG_MOUSE_KEY_MIDDLE] == EG_KEY_STATE_DOWN) || (context->event_mouse_key_states[EG_MOUSE_KEY_MIDDLE] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
 
       break;
     }
     case WM_RBUTTONDOWN: {
 
-      context->event_mouse_key_states[MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_UP) || (context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_RELEASED)) ? KEY_STATE_PRESSED : KEY_STATE_DOWN;
+      context->event_mouse_key_states[EG_MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[EG_MOUSE_KEY_RIGHT] == EG_KEY_STATE_UP) || (context->event_mouse_key_states[EG_MOUSE_KEY_RIGHT] == EG_KEY_STATE_RELEASED)) ? EG_KEY_STATE_PRESSED : EG_KEY_STATE_DOWN;
 
       break;
     }
     case WM_RBUTTONUP: {
 
-      context->event_mouse_key_states[MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_DOWN) || (context->event_mouse_key_states[MOUSE_KEY_RIGHT] == KEY_STATE_PRESSED)) ? KEY_STATE_RELEASED : KEY_STATE_UP;
+      context->event_mouse_key_states[EG_MOUSE_KEY_RIGHT] = ((context->event_mouse_key_states[EG_MOUSE_KEY_RIGHT] == EG_KEY_STATE_DOWN) || (context->event_mouse_key_states[EG_MOUSE_KEY_RIGHT] == EG_KEY_STATE_PRESSED)) ? EG_KEY_STATE_RELEASED : EG_KEY_STATE_UP;
 
       break;
     }
@@ -515,20 +515,20 @@ static LRESULT context_window_message_proc(HWND window_handle, UINT message, WPA
 }
 
 #ifdef BUILD_DEBUG
-static VkBool32 context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const *callback_data, void *user_data) {
+static VkBool32 eg_context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const *callback_data, void *user_data) {
   printf("%s\n", callback_data->pMessage);
 
   return 0;
 }
 #endif // BUILD_DEBUG
 
-static void context_create_window(context_t *context) {
+static void eg_context_create_window(eg_context_t *context) {
   context->module_handle = GetModuleHandleA(0);
 
   WNDCLASSEX window_class_ex = {0};
   window_class_ex.cbSize = sizeof(WNDCLASSEX);
   window_class_ex.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-  window_class_ex.lpfnWndProc = context_window_message_proc;
+  window_class_ex.lpfnWndProc = eg_context_window_message_proc;
   window_class_ex.cbClsExtra = 0;
   window_class_ex.cbWndExtra = 0;
   window_class_ex.hInstance = context->module_handle;
@@ -553,7 +553,7 @@ static void context_create_window(context_t *context) {
 
   context->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, style, window_position_x, window_position_y, context->window_width, context->window_height, 0, 0, context->module_handle, context);
 }
-static void context_create_instance(context_t *context) {
+static void eg_context_create_instance(eg_context_t *context) {
   VkApplicationInfo app_info = {0};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   app_info.pApplicationName = "";
@@ -573,7 +573,7 @@ static void context_create_instance(context_t *context) {
   debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
   debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
   debug_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  debug_create_info.pfnUserCallback = context_vulkan_message_proc;
+  debug_create_info.pfnUserCallback = eg_context_vulkan_message_proc;
 
   instance_create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debug_create_info;
   instance_create_info.enabledLayerCount = ARRAY_COUNT(s_context_validation_layers);
@@ -589,7 +589,7 @@ static void context_create_instance(context_t *context) {
   VULKAN_CHECK(context->create_debug_utils_messenger_ext(context->instance, &debug_create_info, 0, &context->debug_messenger));
 #endif // BUILD_DEBUG
 }
-static void context_create_surface(context_t *context) {
+static void eg_context_create_surface(eg_context_t *context) {
   VkWin32SurfaceCreateInfoKHR surface_create_info = {0};
   surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
   surface_create_info.hwnd = context->window_handle;
@@ -597,7 +597,7 @@ static void context_create_surface(context_t *context) {
 
   VULKAN_CHECK(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, 0, &context->surface));
 }
-static void context_create_device(context_t *context) {
+static void eg_context_create_device(eg_context_t *context) {
   VkDeviceQueueCreateInfo device_queue_create_infos[2] = {0};
 
   float queue_priority = 1.0F;
@@ -649,7 +649,7 @@ static void context_create_device(context_t *context) {
   vkGetDeviceQueue(context->device, context->graphic_queue_index, 0, &context->graphic_queue);
   vkGetDeviceQueue(context->device, context->present_queue_index, 0, &context->present_queue);
 }
-static void context_create_command_pool(context_t *context) {
+static void eg_context_create_command_pool(eg_context_t *context) {
   VkCommandPoolCreateInfo command_pool_create_info = {0};
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -658,29 +658,29 @@ static void context_create_command_pool(context_t *context) {
   VULKAN_CHECK(vkCreateCommandPool(context->device, &command_pool_create_info, 0, &context->command_pool));
 }
 
-static void context_destroy_window(context_t *context) {
+static void eg_context_destroy_window(eg_context_t *context) {
   DestroyWindow(context->window_handle);
 
   UnregisterClassA(s_context_window_class, context->module_handle);
 }
-static void context_destroy_instance(context_t *context) {
+static void eg_context_destroy_instance(eg_context_t *context) {
 #ifdef BUILD_DEBUG
   context->destroy_debug_utils_messenger_ext(context->instance, context->debug_messenger, 0);
 #endif // BUILD_DEBUG
 
   vkDestroyInstance(context->instance, 0);
 }
-static void context_destroy_surface(context_t *context) {
+static void eg_context_destroy_surface(eg_context_t *context) {
   vkDestroySurfaceKHR(context->instance, context->surface, 0);
 }
-static void context_destroy_device(context_t *context) {
+static void eg_context_destroy_device(eg_context_t *context) {
   vkDestroyDevice(context->device, 0);
 }
-static void context_destroy_command_pool(context_t *context) {
+static void eg_context_destroy_command_pool(eg_context_t *context) {
   vkDestroyCommandPool(context->device, context->command_pool, 0);
 }
 
-static void context_check_surface_capabilities(context_t *context) {
+static void eg_context_check_surface_capabilities(eg_context_t *context) {
   int32_t surface_format_count = 0;
   VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(context->physical_device, context->surface, &surface_format_count, 0));
 
@@ -722,7 +722,7 @@ static void context_check_surface_capabilities(context_t *context) {
   heap_free(surface_formats);
   heap_free(present_modes);
 }
-static void context_check_physical_device_extensions(context_t *context) {
+static void eg_context_check_physical_device_extensions(eg_context_t *context) {
   int32_t available_device_extension_count = 0;
   VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(context->physical_device, 0, &available_device_extension_count, 0));
 
@@ -765,14 +765,14 @@ static void context_check_physical_device_extensions(context_t *context) {
   heap_free(available_device_extensions);
 }
 
-static void context_resize_surface(context_t *context) {
+static void eg_context_resize_surface(eg_context_t *context) {
   VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->physical_device, context->surface, &context->surface_capabilities));
 
   context->window_width = context->surface_capabilities.currentExtent.width;
   context->window_height = context->surface_capabilities.currentExtent.height;
 }
 
-static void context_find_physical_device(context_t *context) {
+static void eg_context_find_physical_device(eg_context_t *context) {
   int32_t physical_device_count = 0;
   VULKAN_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
 
@@ -802,7 +802,7 @@ static void context_find_physical_device(context_t *context) {
 
   heap_free(physical_devices);
 }
-static void context_find_physical_device_queue_families(context_t *context) {
+static void eg_context_find_physical_device_queue_families(eg_context_t *context) {
   int32_t queue_family_property_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(context->physical_device, &queue_family_property_count, 0);
 

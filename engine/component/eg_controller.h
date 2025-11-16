@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-typedef struct editor_controller_t {
+typedef struct eg_editor_controller_t {
   vector3_t mouse_begin;
   vector3_t mouse_end;
   vector3_t mouse_delta;
@@ -15,11 +15,11 @@ typedef struct editor_controller_t {
   float mouse_move_speed_normal;
   float mouse_rotation_speed;
   float mouse_rotation_drag_damping;
-} editor_controller_t;
+} eg_editor_controller_t;
 
-ECS_COMPONENT_DECLARE(editor_controller_t);
+ECS_COMPONENT_DECLARE(eg_editor_controller_t);
 
-void editor_controller_init(editor_controller_t *editor_controller);
+void eg_editor_controller_init(eg_editor_controller_t *editor_controller);
 
 #ifdef __cplusplus
 }

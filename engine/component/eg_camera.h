@@ -5,15 +5,15 @@
 extern "C" {
 #endif // __cplusplus
 
-typedef struct camera_t {
+typedef struct eg_camera_t {
   float fov;
   float near_z;
   float far_z;
-} camera_t;
+} eg_camera_t;
 
-ECS_COMPONENT_DECLARE(camera_t);
+ECS_COMPONENT_DECLARE(eg_camera_t);
 
-void camera_init(camera_t *camera);
+void eg_camera_init(eg_camera_t *camera);
 
 #ifdef __cplusplus
 }

@@ -20,6 +20,15 @@ typedef int64_t attribute_data_id_t;
 
 typedef int64_t scene_asset_id_t;
 
+typedef enum asset_type_t {
+  ASSET_TYPE_SWAPCHAIN,
+  ASSET_TYPE_RENDERER,
+  ASSET_TYPE_PIPELINE,
+  ASSET_TYPE_MODEL,
+  ASSET_TYPE_SCENE,
+  ASSET_TYPE_COUNT,
+} asset_type_t;
+
 typedef struct swapchain_asset_t {
   swapchain_asset_id_t id;
   char *name;

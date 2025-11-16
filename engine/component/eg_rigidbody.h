@@ -5,16 +5,16 @@
 extern "C" {
 #endif // __cplusplus
 
-typedef struct rigidbody_t {
+typedef struct eg_rigidbody_t {
   vector3_t linear_velocity;
   vector3_t angular_velocity;
   float linear_drag;
   float angular_drag;
-} rigidbody_t;
+} eg_rigidbody_t;
 
-ECS_COMPONENT_DECLARE(rigidbody_t);
+ECS_COMPONENT_DECLARE(eg_rigidbody_t);
 
-void rigidbody_init(rigidbody_t *rigidbody);
+void eg_rigidbody_init(eg_rigidbody_t *rigidbody);
 
 #ifdef __cplusplus
 }

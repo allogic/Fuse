@@ -5,7 +5,9 @@
 extern "C" {
 #endif // __cplusplus
 
-terrain_t terrain_create();
+eg_terrain_t eg_terrain_create(eg_context_t *context);
+void eg_terrain_rebuild(eg_terrain_t *terrain);
+void eg_terrain_destroy(eg_terrain_t *terrain);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 static void ed_viewport_create_attachments(ed_viewport_t *viewport);
 static void ed_viewport_destroy_attachments(ed_viewport_t *viewport);
 
-ed_viewport_t ed_viewport_create(context_t *context) {
+ed_viewport_t ed_viewport_create(eg_context_t *context) {
   ed_viewport_t viewport = {0};
 
   viewport.context = context;
@@ -16,7 +16,7 @@ ed_viewport_t ed_viewport_create(context_t *context) {
   viewport.is_dirty = 0;
   viewport.is_open = 1;
   viewport.is_docked = 0;
-  viewport.viewport = viewport_create(context, 1, 1);
+  viewport.viewport = eg_viewport_create(context, 1, 1);
   viewport.gbuffer_color_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
   viewport.gbuffer_depth_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
 
@@ -31,7 +31,7 @@ void ed_viewport_refresh(ed_viewport_t *viewport) {
 
     ed_viewport_destroy_attachments(viewport);
 
-    viewport_resize(viewport->viewport, viewport->width, viewport->height);
+    eg_viewport_resize(viewport->viewport, viewport->width, viewport->height);
 
     ed_viewport_create_attachments(viewport);
   }
@@ -43,7 +43,7 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
     if (ImGui::BeginCombo("Attachment", g_viewport_gbuffer_attachment_names[viewport->gbuffer_attachment_type])) {
 
       uint64_t attachment_index = 0;
-      uint64_t attachment_count = GBUFFER_ATTACHMENT_TYPE_COUNT;
+      uint64_t attachment_count = ED_GBUFFER_ATTACHMENT_TYPE_COUNT;
 
       while (attachment_index < attachment_count) {
 
@@ -86,14 +86,14 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
   VkDescriptorSet gbuffer_image = 0;
 
   switch (viewport->gbuffer_attachment_type) {
-    case GBUFFER_ATTACHMENT_TYPE_COLOR: {
+    case ED_GBUFFER_ATTACHMENT_TYPE_COLOR: {
 
       gbuffer_image = viewport->gbuffer_color_attachment[viewport->context->renderer->image_index];
 
       break;
     }
 
-    case GBUFFER_ATTACHMENT_TYPE_DEPTH: {
+    case ED_GBUFFER_ATTACHMENT_TYPE_DEPTH: {
 
       gbuffer_image = viewport->gbuffer_depth_attachment[viewport->context->renderer->image_index];
 
@@ -108,7 +108,7 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
 void ed_viewport_destroy(ed_viewport_t *viewport) {
   ed_viewport_destroy_attachments(viewport);
 
-  viewport_destroy(viewport->viewport);
+  eg_viewport_destroy(viewport->viewport);
 
   heap_free(viewport->gbuffer_color_attachment);
   heap_free(viewport->gbuffer_depth_attachment);

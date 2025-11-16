@@ -1,10 +1,10 @@
 #ifndef ED_MAIN_H
 #define ED_MAIN_H
 
-#define EDITOR_BACKGROUND_COLOR IM_COL32(25, 25, 25, 255)
-#define EDITOR_DOCKING_BACKGROUND_COLOR IM_COL32(50, 50, 50, 255)
-#define EDITOR_HIGHLIGHT_COLOR IM_COL32(70, 70, 70, 255)
-#define EDITOR_ACTIVE_COLOR IM_COL32(90, 90, 90, 255)
+#define ED_DARK_GREY IM_COL32(25, 25, 25, 255)
+#define ED_SHALLOW_GRAY_COLOR IM_COL32(50, 50, 50, 255)
+#define ED_LIGHT_GRAY_COLOR IM_COL32(70, 70, 70, 255)
+#define ED_ACTIVE_GREY_COLOR IM_COL32(90, 90, 90, 255)
 
 //////////////////////////////////////////////////////////////////////////////
 // Editor Stuff
@@ -27,14 +27,6 @@ extern ImFont *g_editor_material_symbols_h4;
 extern ImFont *g_editor_material_symbols_h5;
 extern ImFont *g_editor_material_symbols_h6;
 extern ImFont *g_editor_material_symbols;
-
-//////////////////////////////////////////////////////////////////////////////
-// Scene Stuff
-//////////////////////////////////////////////////////////////////////////////
-
-extern vector_t g_scene_assets;
-
-extern int64_t g_scene_selected_asset;
 
 //////////////////////////////////////////////////////////////////////////////
 // Hierarchy Stuff
@@ -66,11 +58,11 @@ extern ed_catalog_t g_catalog_model;
 // Dockspace Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-extern uint8_t g_dockspace_is_initialized;
+extern uint8_t g_dockspace_is_dirty;
 
 extern ed_dockspace_type_t g_dockspace_selected_type;
 
-extern char const *g_dockspace_type_names[DOCKSPACE_TYPE_COUNT];
+extern char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT];
 
 //////////////////////////////////////////////////////////////////////////////
 // Viewport Stuff
@@ -79,6 +71,6 @@ extern char const *g_dockspace_type_names[DOCKSPACE_TYPE_COUNT];
 extern ed_viewport_t g_viewport_game;
 extern ed_viewport_t g_viewport_scene;
 
-extern char const *g_viewport_gbuffer_attachment_names[GBUFFER_ATTACHMENT_TYPE_COUNT];
+extern char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT];
 
 #endif // ED_MAIN_H

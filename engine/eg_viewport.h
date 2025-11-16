@@ -5,9 +5,9 @@
 extern "C" {
 #endif // __cplusplus
 
-viewport_t *viewport_create(context_t *context, uint32_t width, uint32_t height);
-void viewport_resize(viewport_t *viewport, uint32_t width, uint32_t height);
-void viewport_destroy(viewport_t *viewport);
+eg_viewport_t *eg_viewport_create(eg_context_t *context, uint32_t width, uint32_t height);
+void eg_viewport_resize(eg_viewport_t *viewport, uint32_t width, uint32_t height);
+void eg_viewport_destroy(eg_viewport_t *viewport);
 
 #ifdef __cplusplus
 }

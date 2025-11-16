@@ -6,20 +6,20 @@
 #include <editor/dockable/ed_inspector.h>
 #include <editor/dockable/ed_profiler.h>
 
-static void ed_titlebar_reset_drag_state(context_t *context);
+static void ed_titlebar_reset_drag_state(eg_context_t *context);
 
-static void ed_titlebar_draw_icon(context_t *context);
-static void ed_titlebar_draw_main_menu(context_t *context);
-static void ed_titlebar_draw_window_controls(context_t *context);
-static void ed_titlebar_draw_scene_controls(context_t *context);
+static void ed_titlebar_draw_icon(eg_context_t *context);
+static void ed_titlebar_draw_main_menu(eg_context_t *context);
+static void ed_titlebar_draw_window_controls(eg_context_t *context);
+static void ed_titlebar_draw_scene_controls(eg_context_t *context);
 
-void ed_titlebar_draw(context_t *context) {
+void ed_titlebar_draw(eg_context_t *context) {
   ImGui::SetNextWindowPos(ImVec2(0.0F, 0.0F));
   ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_titlebar_height));
 
-  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Button, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ED_LIGHT_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ED_ACTIVE_GREY_COLOR);
 
   ImGuiWindowFlags titlebar_flags =
     ImGuiWindowFlags_NoDocking |
@@ -47,7 +47,7 @@ void ed_titlebar_draw(context_t *context) {
   ImGui::PopStyleColor(3);
 }
 
-static void ed_titlebar_reset_drag_state(context_t *context) {
+static void ed_titlebar_reset_drag_state(eg_context_t *context) {
   if (ImGui::IsWindowHovered() &&
       !ImGui::IsAnyItemHovered() &&
       ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -59,14 +59,14 @@ static void ed_titlebar_reset_drag_state(context_t *context) {
   ImGui::GetIO().MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 }
 
-static void ed_titlebar_draw_icon(context_t *context) {
+static void ed_titlebar_draw_icon(eg_context_t *context) {
   ImGui::SetCursorPos(ImVec2(10.0F, 10.0F));
   ImGui::PushFont(g_editor_material_symbols_h1);
   ImGui::Text(ICON_MS_TOKEN);
   ImGui::PopFont();
 }
-static void ed_titlebar_draw_main_menu(context_t *context) {
-  ImGui::SetCursorPos(ImVec2(50.0F, 5.0F));
+static void ed_titlebar_draw_main_menu(eg_context_t *context) {
+  ImGui::SetCursorPos(ImVec2(50.0F, 0.0F));
 
   ImGui::PushID("Titlebar");
 
@@ -92,7 +92,7 @@ static void ed_titlebar_draw_main_menu(context_t *context) {
 
   ImGui::PopID();
 }
-static void ed_titlebar_draw_window_controls(context_t *context) {
+static void ed_titlebar_draw_window_controls(eg_context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();
 
   ImGui::SetCursorPos(ImVec2(window_size.x - 90.0F, 5.0F));
@@ -126,43 +126,48 @@ static void ed_titlebar_draw_window_controls(context_t *context) {
   ImGui::PopFont();
   ImGui::PopStyleVar();
 }
-static void ed_titlebar_draw_scene_controls(context_t *context) {
+static void ed_titlebar_draw_scene_controls(eg_context_t *context) {
   ImVec2 window_size = ImGui::GetWindowSize();
 
-  ImGui::SetCursorPos(ImVec2(50.0F, 30.0F));
-  ImGui::SetNextItemWidth(150.0F);
+  static ImGuiComboFlags combo_flags =
+    ImGuiComboFlags_None;
 
-  scene_asset_t *selected_scene_asset = (scene_asset_t *)vector_at(&g_scene_assets, g_scene_selected_asset);
+  ImGui::SetCursorPos(ImVec2(50.0F, 37.0F));
+  ImGui::SetNextItemWidth(100.0F);
 
-  if (ImGui::BeginCombo("Scene", selected_scene_asset->name)) {
+  if (ImGui::BeginCombo("##DockspaceType", g_dockspace_type_names[g_dockspace_selected_type], combo_flags)) {
 
-    uint64_t scene_index = 0;
-    uint64_t scene_count = vector_count(&g_scene_assets);
+    uint64_t type_index = 0;
+    uint64_t type_count = ED_DOCKSPACE_TYPE_COUNT;
 
-    while (scene_index < scene_count) {
+    while (type_index < type_count) {
 
-      scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&g_scene_assets, scene_index);
+      uint8_t is_selected = (g_dockspace_selected_type == type_index);
 
-      uint8_t is_selected = (g_scene_selected_asset == scene_index);
-
-      if (ImGui::Selectable(scene_asset->name, is_selected)) {
-        g_scene_selected_asset = scene_index;
+      if (ImGui::Selectable(g_dockspace_type_names[type_index], is_selected)) {
+        g_dockspace_selected_type = (ed_dockspace_type_t)type_index;
+        g_dockspace_is_dirty = 1;
       }
 
       if (is_selected) {
         ImGui::SetItemDefaultFocus();
       }
 
-      scene_index++;
+      type_index++;
     }
 
     ImGui::EndCombo();
   }
 
-  ImGui::SetCursorPos(ImVec2(window_size.x - 300.0F, 30.0F));
-
   ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0F);
-  ImGui::PushFont(g_editor_material_symbols_h5);
+  ImGui::PushFont(g_editor_material_symbols_h6);
+
+  ImGui::SetCursorPos(ImVec2(170.0F, 35.0F));
+
+  if (ImGui::Button(ICON_MS_SAVE)) {
+  }
+
+  ImGui::SetCursorPos(ImVec2(220.0F, 35.0F));
 
   if (ImGui::Button(ICON_MS_PLAY_ARROW)) {
   }

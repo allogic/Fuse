@@ -2,7 +2,7 @@
 
 #include <engine/component/eg_controller.h>
 
-void editor_controller_init(editor_controller_t *editor_controller) {
+void eg_editor_controller_init(eg_editor_controller_t *editor_controller) {
   editor_controller->mouse_begin = vector3_zero();
   editor_controller->mouse_end = vector3_zero();
   editor_controller->mouse_delta = vector3_zero();

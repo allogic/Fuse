@@ -5,19 +5,15 @@
 
 #include <editor/dockable/ed_catalog.h>
 
-static void ed_catalog_draw_swapchain(void);
-static void ed_catalog_draw_renderer(void);
-static void ed_catalog_draw_pipeline(void);
-static void ed_catalog_draw_model(void);
+static void ed_catalog_draw_swapchain(ed_catalog_t *catalog);
+static void ed_catalog_draw_renderer(ed_catalog_t *catalog);
+static void ed_catalog_draw_pipeline(ed_catalog_t *catalog);
+static void ed_catalog_draw_model(ed_catalog_t *catalog);
+static void ed_catalog_draw_scene(ed_catalog_t *catalog);
 
-static void ed_catalog_draw_asset_buttons(void);
+static void ed_catalog_draw_asset_buttons(ed_catalog_t *catalog);
 
-static void ed_catalog_select_swapchain(uint64_t selected_index);
-static void ed_catalog_select_renderer(uint64_t selected_index);
-static void ed_catalog_select_pipeline(uint64_t selected_index);
-static void ed_catalog_select_model(uint64_t selected_index);
-
-ed_catalog_t ed_catalog_create(context_t *context, ed_asset_type_t asset_type) {
+ed_catalog_t ed_catalog_create(eg_context_t *context, asset_type_t asset_type) {
   ed_catalog_t catalog = {0};
 
   catalog.context = context;
@@ -52,6 +48,12 @@ ed_catalog_t ed_catalog_create(context_t *context, ed_asset_type_t asset_type) {
 
       break;
     }
+    case ASSET_TYPE_SCENE: {
+
+      catalog.assets = database_load_scene_assets();
+
+      break;
+    }
   }
 
   return catalog;
@@ -82,6 +84,12 @@ void ed_catalog_refresh(ed_catalog_t *catalog) {
 
       break;
     }
+    case ASSET_TYPE_SCENE: {
+
+      database_destroy_scene_assets(&catalog->assets);
+
+      break;
+    }
   }
 
   switch (catalog->asset_type) {
@@ -109,18 +117,47 @@ void ed_catalog_refresh(ed_catalog_t *catalog) {
 
       break;
     }
+    case ASSET_TYPE_SCENE: {
+
+      catalog->assets = database_load_scene_assets();
+
+      break;
+    }
   }
 }
 void ed_catalog_draw(ed_catalog_t *catalog) {
-  // if (dockspace_begin_child("Catalog", &g_catalog_is_open, &g_catalog_is_docked)) {
-  //
-  //   catalog_draw_swapchain();
-  //   catalog_draw_renderer();
-  //   catalog_draw_pipeline();
-  //   catalog_draw_model();
-  //
-  //   dockspace_end_child(g_catalog_is_docked);
-  // }
+  switch (catalog->asset_type) {
+    case ASSET_TYPE_SWAPCHAIN: {
+
+      ed_catalog_draw_swapchain(catalog);
+
+      break;
+    }
+    case ASSET_TYPE_RENDERER: {
+
+      ed_catalog_draw_renderer(catalog);
+
+      break;
+    }
+    case ASSET_TYPE_PIPELINE: {
+
+      ed_catalog_draw_pipeline(catalog);
+
+      break;
+    }
+    case ASSET_TYPE_MODEL: {
+
+      ed_catalog_draw_model(catalog);
+
+      break;
+    }
+    case ASSET_TYPE_SCENE: {
+
+      ed_catalog_draw_scene(catalog);
+
+      break;
+    }
+  }
 }
 void ed_catalog_destroy(ed_catalog_t *catalog) {
   switch (catalog->asset_type) {
@@ -148,184 +185,192 @@ void ed_catalog_destroy(ed_catalog_t *catalog) {
 
       break;
     }
+    case ASSET_TYPE_SCENE: {
+
+      database_destroy_scene_assets(&catalog->assets);
+
+      break;
+    }
   }
 }
 
-static void ed_catalog_draw_swapchain(void) {
-  /*
+static void ed_catalog_draw_swapchain(ed_catalog_t *catalog) {
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
     ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding;
+    ImGuiTreeNodeFlags_FramePadding |
+    ImGuiTreeNodeFlags_Leaf;
 
-  if (ImGui::TreeNodeEx("Swapchain", tree_node_flags)) {
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(&catalog->assets);
 
-    tree_node_flags |= ImGuiTreeNodeFlags_Leaf;
+  while (asset_index < asset_count) {
 
-    uint64_t swapchain_asset_index = 0;
-    uint64_t swapchain_asset_count = vector_count(&g_catalog_swapchain_assets);
+    swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&catalog->assets, asset_index);
 
-    while (swapchain_asset_index < swapchain_asset_count) {
-
-      swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&g_catalog_swapchain_assets, swapchain_asset_index);
-
-      if ((swapchain_asset_index == g_catalog_selected_swapchain_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_SWAPCHAIN)) {
-        tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-      }
-
-      uint8_t is_open = ImGui::TreeNodeEx(swapchain_asset->name, tree_node_flags);
-
-      if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        catalog_select_swapchain(swapchain_asset_index);
-      }
-
-      catalog_draw_asset_buttons();
-
-      if (is_open) {
-        ImGui::TreePop();
-      }
-
-      swapchain_asset_index++;
+    if (asset_index == catalog->selected_asset) {
+      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    ImGui::TreePop();
+    uint8_t is_open = ImGui::TreeNodeEx(swapchain_asset->name, tree_node_flags);
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      catalog->selected_asset = asset_index;
+    }
+
+    ed_catalog_draw_asset_buttons(catalog);
+
+    if (is_open) {
+      ImGui::TreePop();
+    }
+
+    asset_index++;
   }
-  */
 }
-static void ed_catalog_draw_renderer(void) {
-  /*
+static void ed_catalog_draw_renderer(ed_catalog_t *catalog) {
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
     ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding;
+    ImGuiTreeNodeFlags_FramePadding |
+    ImGuiTreeNodeFlags_Leaf;
 
-  if (ImGui::TreeNodeEx("Renderer", tree_node_flags)) {
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(&catalog->assets);
 
-    tree_node_flags |= ImGuiTreeNodeFlags_Leaf;
+  while (asset_index < asset_count) {
 
-    uint64_t renderer_asset_index = 0;
-    uint64_t renderer_asset_count = vector_count(&g_catalog_renderer_assets);
+    renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&catalog->assets, asset_index);
 
-    while (renderer_asset_index < renderer_asset_count) {
-
-      renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&g_catalog_renderer_assets, renderer_asset_index);
-
-      if ((renderer_asset_index == g_catalog_selected_renderer_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_RENDERER)) {
-        tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-      }
-
-      uint8_t is_open = ImGui::TreeNodeEx(renderer_asset->name, tree_node_flags);
-
-      if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        catalog_select_renderer(renderer_asset_index);
-      }
-
-      catalog_draw_asset_buttons();
-
-      if (is_open) {
-        ImGui::TreePop();
-      }
-
-      renderer_asset_index++;
+    if (asset_index == catalog->selected_asset) {
+      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    ImGui::TreePop();
+    uint8_t is_open = ImGui::TreeNodeEx(renderer_asset->name, tree_node_flags);
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      catalog->selected_asset = asset_index;
+    }
+
+    ed_catalog_draw_asset_buttons(catalog);
+
+    if (is_open) {
+      ImGui::TreePop();
+    }
+
+    asset_index++;
   }
-  */
 }
-static void ed_catalog_draw_pipeline(void) {
-  /*
+static void ed_catalog_draw_pipeline(ed_catalog_t *catalog) {
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
     ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding;
+    ImGuiTreeNodeFlags_FramePadding |
+    ImGuiTreeNodeFlags_Leaf;
 
-  if (ImGui::TreeNodeEx("Pipeline", tree_node_flags)) {
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(&catalog->assets);
 
-    tree_node_flags |= ImGuiTreeNodeFlags_Leaf;
+  while (asset_index < asset_count) {
 
-    uint64_t pipeline_asset_index = 0;
-    uint64_t pipeline_asset_count = vector_count(&g_catalog_pipeline_assets);
+    pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&catalog->assets, asset_index);
 
-    while (pipeline_asset_index < pipeline_asset_count) {
-
-      pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&g_catalog_pipeline_assets, pipeline_asset_index);
-
-      if ((pipeline_asset_index == g_catalog_selected_pipeline_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_PIPELINE)) {
-        tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-      }
-
-      uint8_t is_open = ImGui::TreeNodeEx(pipeline_asset->name, tree_node_flags);
-
-      if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        catalog_select_pipeline(pipeline_asset_index);
-      }
-
-      catalog_draw_asset_buttons();
-
-      if (is_open) {
-        ImGui::TreePop();
-      }
-
-      pipeline_asset_index++;
+    if (asset_index == catalog->selected_asset) {
+      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    ImGui::TreePop();
+    uint8_t is_open = ImGui::TreeNodeEx(pipeline_asset->name, tree_node_flags);
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      catalog->selected_asset = asset_index;
+    }
+
+    ed_catalog_draw_asset_buttons(catalog);
+
+    if (is_open) {
+      ImGui::TreePop();
+    }
+
+    asset_index++;
   }
-  */
 }
-static void ed_catalog_draw_model(void) {
-  /*
+static void ed_catalog_draw_model(ed_catalog_t *catalog) {
   ImGuiTreeNodeFlags tree_node_flags =
     ImGuiTreeNodeFlags_None |
     ImGuiTreeNodeFlags_SpanFullWidth |
     ImGuiTreeNodeFlags_OpenOnArrow |
-    ImGuiTreeNodeFlags_FramePadding;
+    ImGuiTreeNodeFlags_FramePadding |
+    ImGuiTreeNodeFlags_Leaf;
 
-  if (ImGui::TreeNodeEx("Model", tree_node_flags)) {
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(&catalog->assets);
 
-    tree_node_flags |= ImGuiTreeNodeFlags_Leaf;
+  while (asset_index < asset_count) {
 
-    uint64_t model_asset_index = 0;
-    uint64_t model_asset_count = vector_count(&g_catalog_model_assets);
+    model_asset_t *model_asset = (model_asset_t *)vector_at(&catalog->assets, asset_index);
 
-    while (model_asset_index < model_asset_count) {
-
-      model_asset_t *model_asset = (model_asset_t *)vector_at(&g_catalog_model_assets, model_asset_index);
-
-      if ((model_asset_index == g_catalog_selected_model_asset) && (g_catalog_selected_asset_type == ASSET_TYPE_MODEL)) {
-        tree_node_flags |= ImGuiTreeNodeFlags_Selected;
-      }
-
-      uint8_t is_open = ImGui::TreeNodeEx(model_asset->name, tree_node_flags);
-
-      if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-        catalog_select_model(model_asset_index);
-      }
-
-      catalog_draw_asset_buttons();
-
-      if (is_open) {
-        ImGui::TreePop();
-      }
-
-      model_asset_index++;
+    if (asset_index == catalog->selected_asset) {
+      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    ImGui::TreePop();
+    uint8_t is_open = ImGui::TreeNodeEx(model_asset->name, tree_node_flags);
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      catalog->selected_asset = asset_index;
+    }
+
+    ed_catalog_draw_asset_buttons(catalog);
+
+    if (is_open) {
+      ImGui::TreePop();
+    }
+
+    asset_index++;
   }
-  */
+}
+static void ed_catalog_draw_scene(ed_catalog_t *catalog) {
+  ImGuiTreeNodeFlags tree_node_flags =
+    ImGuiTreeNodeFlags_None |
+    ImGuiTreeNodeFlags_SpanFullWidth |
+    ImGuiTreeNodeFlags_OpenOnArrow |
+    ImGuiTreeNodeFlags_FramePadding |
+    ImGuiTreeNodeFlags_Leaf;
+
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(&catalog->assets);
+
+  while (asset_index < asset_count) {
+
+    scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&catalog->assets, asset_index);
+
+    if (asset_index == catalog->selected_asset) {
+      tree_node_flags |= ImGuiTreeNodeFlags_Selected;
+    }
+
+    uint8_t is_open = ImGui::TreeNodeEx(scene_asset->name, tree_node_flags);
+
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      catalog->selected_asset = asset_index;
+    }
+
+    ed_catalog_draw_asset_buttons(catalog);
+
+    if (is_open) {
+      ImGui::TreePop();
+    }
+
+    asset_index++;
+  }
 }
 
-static void ed_catalog_draw_asset_buttons(void) {
+static void ed_catalog_draw_asset_buttons(ed_catalog_t *catalog) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
-  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Button, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ED_LIGHT_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ED_ACTIVE_GREY_COLOR);
 
   ImGui::PushFont(g_editor_material_symbols);
 
@@ -341,39 +386,4 @@ static void ed_catalog_draw_asset_buttons(void) {
 
   ImGui::PopFont();
   ImGui::PopStyleColor(3);
-}
-
-static void ed_catalog_select_swapchain(uint64_t selected_index) {
-  // g_catalog_selected_asset_type = ASSET_TYPE_SWAPCHAIN;
-  // g_catalog_selected_swapchain_asset = selected_index;
-}
-static void ed_catalog_select_renderer(uint64_t selected_index) {
-  // g_catalog_selected_asset_type = ASSET_TYPE_RENDERER;
-  // g_catalog_selected_renderer_asset = selected_index;
-}
-static void ed_catalog_select_pipeline(uint64_t selected_index) {
-  // if (g_catalog_selected_pipeline_asset != -1) {
-  //   database_destroy_pipeline_vertex_input_bindings(&g_catalog_pipeline_vertex_input_bindings);
-  //   database_destroy_pipeline_descriptor_bindings(&g_catalog_pipeline_descriptor_bindings);
-  // }
-  //
-  // g_catalog_selected_asset_type = ASSET_TYPE_PIPELINE;
-  // g_catalog_selected_pipeline_asset = selected_index;
-  //
-  // pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&g_catalog_pipeline_assets, g_catalog_selected_pipeline_asset);
-  //
-  // g_catalog_pipeline_vertex_input_bindings = database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset->id);
-  // g_catalog_pipeline_descriptor_bindings = database_load_pipeline_descriptor_bindings_by_id(pipeline_asset->id);
-}
-static void ed_catalog_select_model(uint64_t selected_index) {
-  // if (g_catalog_selected_model_asset != -1) {
-  //   database_destroy_model_meshes(&g_catalog_model_meshes);
-  // }
-  //
-  // g_catalog_selected_asset_type = ASSET_TYPE_MODEL;
-  // g_catalog_selected_model_asset = selected_index;
-  //
-  // model_asset_t *model_asset = (model_asset_t *)vector_at(&g_catalog_model_assets, g_catalog_selected_model_asset);
-  //
-  // g_catalog_model_meshes = database_load_model_meshes_by_id(model_asset->id);
 }

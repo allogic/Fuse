@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-void rigidbody_update(ecs_iter_t *iter);
+void eg_rigidbody_update(ecs_iter_t *iter);
 
 #ifdef __cplusplus
 }

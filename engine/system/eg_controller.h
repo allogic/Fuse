@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-void editor_controller_update(ecs_iter_t *iter);
+void eg_editor_controller_update(ecs_iter_t *iter);
 
 #ifdef __cplusplus
 }

@@ -8,7 +8,7 @@ static void ed_hierarchy_draw_tree(ed_hierarchy_t *hierarchy, ecs_world_t *world
 static void ed_hierarchy_draw_context_menu(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 static void ed_hierarchy_draw_entity_buttons(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 
-ed_hierarchy_t ed_hierarchy_create(context_t *context) {
+ed_hierarchy_t ed_hierarchy_create(eg_context_t *context) {
   ed_hierarchy_t hierarchy = {0};
 
   hierarchy.context = context;
@@ -105,9 +105,9 @@ static void ed_hierarchy_draw_context_menu(ed_hierarchy_t *hierarchy, ecs_world_
 static void ed_hierarchy_draw_entity_buttons(ed_hierarchy_t *hierarchy, ecs_world_t *world, ecs_entity_t entity) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
-  ImGui::PushStyleColor(ImGuiCol_Button, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, EDITOR_HIGHLIGHT_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, EDITOR_ACTIVE_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Button, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ED_LIGHT_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ED_ACTIVE_GREY_COLOR);
 
   ImGui::PushFont(g_editor_material_symbols);
 

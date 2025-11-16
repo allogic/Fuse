@@ -6,26 +6,26 @@
 
 // TODO: eliminate usage of vector!
 
-static void graphic_pipeline_create_vertex_input_binding_descriptions(graphic_pipeline_t *pipeline);
-static void graphic_pipeline_create_vertex_input_attribute_descriptions(graphic_pipeline_t *pipeline);
-static void graphic_pipeline_create_descriptor_pool_sizes(graphic_pipeline_t *pipeline);
-static void graphic_pipeline_create_descriptor_set_layout_bindings(graphic_pipeline_t *pipeline);
-static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_create_vertex_input_binding_descriptions(eg_graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_create_vertex_input_attribute_descriptions(eg_graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_create_descriptor_pool_sizes(eg_graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_create_descriptor_set_layout_bindings(eg_graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_create_frame_dependant_buffers(eg_graphic_pipeline_t *pipeline);
 
-static void graphic_pipeline_build(graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_build(eg_graphic_pipeline_t *pipeline);
 
-static void graphic_pipeline_destroy_frame_dependant_buffers(graphic_pipeline_t *pipeline);
+static void eg_graphic_pipeline_destroy_frame_dependant_buffers(eg_graphic_pipeline_t *pipeline);
 
-static void compute_pipeline_create_descriptor_pool_sizes(compute_pipeline_t *pipeline);
-static void compute_pipeline_create_descriptor_set_layout_bindings(compute_pipeline_t *pipeline);
-static void compute_pipeline_create_frame_dependant_buffers(compute_pipeline_t *pipeline);
+static void eg_compute_pipeline_create_descriptor_pool_sizes(eg_compute_pipeline_t *pipeline);
+static void eg_compute_pipeline_create_descriptor_set_layout_bindings(eg_compute_pipeline_t *pipeline);
+static void eg_compute_pipeline_create_frame_dependant_buffers(eg_compute_pipeline_t *pipeline);
 
-static void compute_pipeline_build(compute_pipeline_t *pipeline);
+static void eg_compute_pipeline_build(eg_compute_pipeline_t *pipeline);
 
-static void compute_pipeline_destroy_frame_dependant_buffers(compute_pipeline_t *pipeline);
+static void eg_compute_pipeline_destroy_frame_dependant_buffers(eg_compute_pipeline_t *pipeline);
 
-graphic_pipeline_t *graphic_pipeline_create(context_t *context, pipeline_asset_t *pipeline_asset) {
-  graphic_pipeline_t *pipeline = (graphic_pipeline_t *)heap_alloc(sizeof(graphic_pipeline_t), 1, 0);
+eg_graphic_pipeline_t *eg_graphic_pipeline_create(eg_context_t *context, pipeline_asset_t *pipeline_asset) {
+  eg_graphic_pipeline_t *pipeline = (eg_graphic_pipeline_t *)heap_alloc(sizeof(eg_graphic_pipeline_t), 1, 0);
 
   pipeline->context = context;
   pipeline->resource = database_load_pipeline_resource_by_id(pipeline_asset->id);
@@ -38,30 +38,30 @@ graphic_pipeline_t *graphic_pipeline_create(context_t *context, pipeline_asset_t
   pipeline->descriptor_sets = vector_create(sizeof(VkDescriptorSet));
   pipeline->write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
 
-  graphic_pipeline_create_vertex_input_binding_descriptions(pipeline);
-  graphic_pipeline_create_vertex_input_attribute_descriptions(pipeline);
-  graphic_pipeline_create_descriptor_pool_sizes(pipeline);
-  graphic_pipeline_create_descriptor_set_layout_bindings(pipeline);
-  graphic_pipeline_create_frame_dependant_buffers(pipeline);
+  eg_graphic_pipeline_create_vertex_input_binding_descriptions(pipeline);
+  eg_graphic_pipeline_create_vertex_input_attribute_descriptions(pipeline);
+  eg_graphic_pipeline_create_descriptor_pool_sizes(pipeline);
+  eg_graphic_pipeline_create_descriptor_set_layout_bindings(pipeline);
+  eg_graphic_pipeline_create_frame_dependant_buffers(pipeline);
 
-  graphic_pipeline_build(pipeline);
+  eg_graphic_pipeline_build(pipeline);
 
   return pipeline;
 }
-void graphic_pipeline_set_auto_link_descriptor_bindings(graphic_pipeline_t *pipeline, map_t *auto_link_descriptor_binding_buffers_per_frame) {
+void eg_graphic_pipeline_set_auto_link_descriptor_bindings(eg_graphic_pipeline_t *pipeline, map_t *auto_link_descriptor_binding_buffers_per_frame) {
   pipeline->auto_link_descriptor_binding_buffers_per_frame = auto_link_descriptor_binding_buffers_per_frame;
 }
-void graphic_pipeline_link_vertex_input_binding_buffer(graphic_pipeline_t *pipeline, uint64_t frame_index, uint64_t binding_index, VkBuffer buffer, uint64_t offset) {
+void eg_graphic_pipeline_link_vertex_input_binding_buffer(eg_graphic_pipeline_t *pipeline, uint64_t frame_index, uint64_t binding_index, VkBuffer buffer, uint64_t offset) {
   pipeline->vertex_input_binding_buffers_per_frame[frame_index][binding_index] = buffer;
   pipeline->vertex_input_binding_offsets_per_frame[frame_index][binding_index] = offset;
 }
-void graphic_pipeline_link_index_buffer(graphic_pipeline_t *pipeline, uint64_t frame_index, VkBuffer buffer) {
+void eg_graphic_pipeline_link_index_buffer(eg_graphic_pipeline_t *pipeline, uint64_t frame_index, VkBuffer buffer) {
   pipeline->index_buffer_per_frame[frame_index] = buffer;
 }
-void graphic_pipeline_link_descriptor_binding_buffer(graphic_pipeline_t *pipeline, uint64_t frame_index, uint64_t binding_index, VkBuffer buffer) {
+void eg_graphic_pipeline_link_descriptor_binding_buffer(eg_graphic_pipeline_t *pipeline, uint64_t frame_index, uint64_t binding_index, VkBuffer buffer) {
   pipeline->descriptor_binding_buffers_per_frame[frame_index][binding_index] = buffer;
 }
-void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uint64_t descriptor_count) {
+void eg_graphic_pipeline_allocate_descriptor_sets(eg_graphic_pipeline_t *pipeline, uint64_t descriptor_count) {
   pipeline->descriptor_set_count = descriptor_count;
 
   // TODO: double check these counts..
@@ -79,7 +79,7 @@ void graphic_pipeline_allocate_descriptor_sets(graphic_pipeline_t *pipeline, uin
 
   VULKAN_CHECK(vkAllocateDescriptorSets(pipeline->context->device, &descriptor_set_allocate_info, vector_buffer(&pipeline->descriptor_sets)));
 }
-void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
+void eg_graphic_pipeline_update_descriptor_sets(eg_graphic_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
   uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
@@ -104,7 +104,7 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
 
         switch (pipeline->descriptor_set_layout_bindings[descriptor_binding_index].descriptorType) {
           case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-            buffer_t *auto_link_buffer = *(buffer_t **)map_at(&pipeline->auto_link_descriptor_binding_buffers_per_frame[frame_index], descriptor_binding->binding_name, descriptor_binding->binding_name_size);
+            eg_buffer_t *auto_link_buffer = *(eg_buffer_t **)map_at(&pipeline->auto_link_descriptor_binding_buffers_per_frame[frame_index], descriptor_binding->binding_name, descriptor_binding->binding_name_size);
 
             VkDescriptorBufferInfo descriptor_buffer_info = {0};
 
@@ -138,7 +138,7 @@ void graphic_pipeline_update_descriptor_sets(graphic_pipeline_t *pipeline) {
 
   vkUpdateDescriptorSets(pipeline->context->device, (int32_t)vector_count(&pipeline->write_descriptor_sets), vector_buffer(&pipeline->write_descriptor_sets), 0, 0);
 }
-void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer command_buffer, uint32_t index_count) {
+void eg_graphic_pipeline_execute(eg_graphic_pipeline_t *pipeline, VkCommandBuffer command_buffer, uint32_t index_count) {
   VkBuffer *vertex_buffers = pipeline->vertex_input_binding_buffers_per_frame[pipeline->context->renderer->frame_index];
   uint64_t *vertex_offsets = pipeline->vertex_input_binding_offsets_per_frame[pipeline->context->renderer->frame_index];
 
@@ -155,8 +155,8 @@ void graphic_pipeline_execute(graphic_pipeline_t *pipeline, VkCommandBuffer comm
 
   vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
-void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
-  graphic_pipeline_destroy_frame_dependant_buffers(pipeline);
+void eg_graphic_pipeline_destroy(eg_graphic_pipeline_t *pipeline) {
+  eg_graphic_pipeline_destroy_frame_dependant_buffers(pipeline);
 
   heap_free(pipeline->vertex_input_binding_descriptions);
   heap_free(pipeline->vertex_input_attribute_descriptions);
@@ -179,8 +179,8 @@ void graphic_pipeline_destroy(graphic_pipeline_t *pipeline) {
   heap_free(pipeline);
 }
 
-compute_pipeline_t *compute_pipeline_create(context_t *context, pipeline_asset_t *pipeline_asset) {
-  compute_pipeline_t *pipeline = (compute_pipeline_t *)heap_alloc(sizeof(compute_pipeline_t), 1, 0);
+eg_compute_pipeline_t *eg_compute_pipeline_create(eg_context_t *context, pipeline_asset_t *pipeline_asset) {
+  eg_compute_pipeline_t *pipeline = (eg_compute_pipeline_t *)heap_alloc(sizeof(eg_compute_pipeline_t), 1, 0);
 
   pipeline->context = context;
   pipeline->resource = database_load_pipeline_resource_by_id(pipeline_asset->id);
@@ -190,24 +190,24 @@ compute_pipeline_t *compute_pipeline_create(context_t *context, pipeline_asset_t
   pipeline->descriptor_sets = vector_create(sizeof(VkDescriptorSet));
   pipeline->write_descriptor_sets = vector_create(sizeof(VkWriteDescriptorSet));
 
-  compute_pipeline_create_descriptor_pool_sizes(pipeline);
-  compute_pipeline_create_descriptor_set_layout_bindings(pipeline);
-  compute_pipeline_create_frame_dependant_buffers(pipeline);
+  eg_compute_pipeline_create_descriptor_pool_sizes(pipeline);
+  eg_compute_pipeline_create_descriptor_set_layout_bindings(pipeline);
+  eg_compute_pipeline_create_frame_dependant_buffers(pipeline);
 
-  compute_pipeline_build(pipeline);
+  eg_compute_pipeline_build(pipeline);
 
   return pipeline;
 }
-void compute_pipeline_set_auto_link_descriptor_bindings(compute_pipeline_t *pipeline, map_t *auto_link_descriptor_binding_buffers_per_frame) {
+void eg_compute_pipeline_set_auto_link_descriptor_bindings(eg_compute_pipeline_t *pipeline, map_t *auto_link_descriptor_binding_buffers_per_frame) {
   pipeline->auto_link_descriptor_binding_buffers_per_frame = auto_link_descriptor_binding_buffers_per_frame;
 }
-void compute_pipeline_allocate_descriptor_sets(compute_pipeline_t *pipeline, uint64_t descriptor_count) {
+void eg_compute_pipeline_allocate_descriptor_sets(eg_compute_pipeline_t *pipeline, uint64_t descriptor_count) {
   // TODO
 }
-void compute_pipeline_update_descriptor_sets(compute_pipeline_t *pipeline) {
+void eg_compute_pipeline_update_descriptor_sets(eg_compute_pipeline_t *pipeline) {
   // TODO
 }
-void compute_pipeline_execute(compute_pipeline_t *pipeline, VkCommandBuffer command_buffer) {
+void eg_compute_pipeline_execute(eg_compute_pipeline_t *pipeline, VkCommandBuffer command_buffer) {
   // TODO
   // vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);
   // vkCmdBindVertexBuffers(command_buffer, 0, (uint32_t)vertex_buffer_count, vertex_buffers, vertex_offsets);
@@ -216,8 +216,8 @@ void compute_pipeline_execute(compute_pipeline_t *pipeline, VkCommandBuffer comm
   //
   // vkCmdDrawIndexed(command_buffer, (uint32_t)index_buffer_offset, 1, 0, 0, 0);
 }
-void compute_pipeline_destroy(compute_pipeline_t *pipeline) {
-  compute_pipeline_destroy_frame_dependant_buffers(pipeline);
+void eg_compute_pipeline_destroy(eg_compute_pipeline_t *pipeline) {
+  eg_compute_pipeline_destroy_frame_dependant_buffers(pipeline);
 
   heap_free(pipeline->descriptor_pool_sizes);
   heap_free(pipeline->descriptor_set_layout_bindings);
@@ -237,7 +237,7 @@ void compute_pipeline_destroy(compute_pipeline_t *pipeline) {
   heap_free(pipeline);
 }
 
-static void graphic_pipeline_create_vertex_input_binding_descriptions(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_create_vertex_input_binding_descriptions(eg_graphic_pipeline_t *pipeline) {
   // TODO: Support input_rate groups..
 
   if (pipeline->interleaved_vertex_input_buffer) {
@@ -281,7 +281,7 @@ static void graphic_pipeline_create_vertex_input_binding_descriptions(graphic_pi
     }
   }
 }
-static void graphic_pipeline_create_vertex_input_attribute_descriptions(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_create_vertex_input_attribute_descriptions(eg_graphic_pipeline_t *pipeline) {
 
   pipeline->vertex_input_attribute_descriptions = (VkVertexInputAttributeDescription *)heap_alloc(sizeof(VkVertexInputAttributeDescription) * pipeline->vertex_input_binding_count, 0, 0);
 
@@ -302,7 +302,7 @@ static void graphic_pipeline_create_vertex_input_attribute_descriptions(graphic_
     vertex_input_binding_index++;
   }
 }
-static void graphic_pipeline_create_descriptor_pool_sizes(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_create_descriptor_pool_sizes(eg_graphic_pipeline_t *pipeline) {
   uint32_t descriptor_types[VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT] = {0};
 
   uint64_t descriptor_binding_index = 0;
@@ -338,7 +338,7 @@ static void graphic_pipeline_create_descriptor_pool_sizes(graphic_pipeline_t *pi
     }
   }
 }
-static void graphic_pipeline_create_descriptor_set_layout_bindings(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_create_descriptor_set_layout_bindings(eg_graphic_pipeline_t *pipeline) {
   uint64_t descriptor_binding_index = 0;
   uint64_t descriptor_binding_count = pipeline->descriptor_binding_count;
 
@@ -357,7 +357,7 @@ static void graphic_pipeline_create_descriptor_set_layout_bindings(graphic_pipel
     descriptor_binding_index++;
   }
 }
-static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_create_frame_dependant_buffers(eg_graphic_pipeline_t *pipeline) {
   pipeline->vertex_input_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * pipeline->context->renderer->frames_in_flight, 0, 0);
   pipeline->vertex_input_binding_offsets_per_frame = (uint64_t **)heap_alloc(sizeof(uint64_t *) * pipeline->context->renderer->frames_in_flight, 0, 0);
   pipeline->descriptor_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * pipeline->context->renderer->frames_in_flight, 0, 0);
@@ -377,7 +377,7 @@ static void graphic_pipeline_create_frame_dependant_buffers(graphic_pipeline_t *
   }
 }
 
-static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_build(eg_graphic_pipeline_t *pipeline) {
   uint8_t *vertex_shader_bytes = 0;
   uint8_t *fragment_shader_bytes = 0;
 
@@ -560,7 +560,7 @@ static void graphic_pipeline_build(graphic_pipeline_t *pipeline) {
   heap_free(fragment_shader_bytes);
 }
 
-static void graphic_pipeline_destroy_frame_dependant_buffers(graphic_pipeline_t *pipeline) {
+static void eg_graphic_pipeline_destroy_frame_dependant_buffers(eg_graphic_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
   uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 
@@ -580,7 +580,7 @@ static void graphic_pipeline_destroy_frame_dependant_buffers(graphic_pipeline_t 
   heap_free(pipeline->index_buffer_per_frame);
 }
 
-static void compute_pipeline_create_descriptor_pool_sizes(compute_pipeline_t *pipeline) {
+static void eg_compute_pipeline_create_descriptor_pool_sizes(eg_compute_pipeline_t *pipeline) {
   uint32_t descriptor_types[VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT] = {0};
 
   uint64_t descriptor_binding_index = 0;
@@ -616,7 +616,7 @@ static void compute_pipeline_create_descriptor_pool_sizes(compute_pipeline_t *pi
     }
   }
 }
-static void compute_pipeline_create_descriptor_set_layout_bindings(compute_pipeline_t *pipeline) {
+static void eg_compute_pipeline_create_descriptor_set_layout_bindings(eg_compute_pipeline_t *pipeline) {
   uint64_t descriptor_binding_index = 0;
   uint64_t descriptor_binding_count = pipeline->descriptor_binding_count;
 
@@ -635,7 +635,7 @@ static void compute_pipeline_create_descriptor_set_layout_bindings(compute_pipel
     descriptor_binding_index++;
   }
 }
-static void compute_pipeline_create_frame_dependant_buffers(compute_pipeline_t *pipeline) {
+static void eg_compute_pipeline_create_frame_dependant_buffers(eg_compute_pipeline_t *pipeline) {
   pipeline->descriptor_binding_buffers_per_frame = (VkBuffer **)heap_alloc(sizeof(VkBuffer *) * pipeline->context->renderer->frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
@@ -649,7 +649,7 @@ static void compute_pipeline_create_frame_dependant_buffers(compute_pipeline_t *
   }
 }
 
-static void compute_pipeline_build(compute_pipeline_t *pipeline) {
+static void eg_compute_pipeline_build(eg_compute_pipeline_t *pipeline) {
   uint8_t *compute_shader_bytes = 0;
 
   uint64_t compute_shader_size = 0;
@@ -708,7 +708,7 @@ static void compute_pipeline_build(compute_pipeline_t *pipeline) {
   heap_free(compute_shader_bytes);
 }
 
-static void compute_pipeline_destroy_frame_dependant_buffers(compute_pipeline_t *pipeline) {
+static void eg_compute_pipeline_destroy_frame_dependant_buffers(eg_compute_pipeline_t *pipeline) {
   uint64_t frame_index = 0;
   uint64_t frame_count = pipeline->context->renderer->frames_in_flight;
 

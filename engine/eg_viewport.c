@@ -1,16 +1,16 @@
 #include <engine/eg_pch.h>
 #include <engine/eg_viewport.h>
 
-static void viewport_create_color_images(viewport_t *viewport);
-static void viewport_create_depth_images(viewport_t *viewport);
-static void viewport_create_frame_buffer(viewport_t *viewport);
+static void eg_viewport_create_color_images(eg_viewport_t *viewport);
+static void eg_viewport_create_depth_images(eg_viewport_t *viewport);
+static void eg_viewport_create_frame_buffer(eg_viewport_t *viewport);
 
-static void viewport_destroy_color_images(viewport_t *viewport);
-static void viewport_destroy_depth_images(viewport_t *viewport);
-static void viewport_destroy_frame_buffer(viewport_t *viewport);
+static void eg_viewport_destroy_color_images(eg_viewport_t *viewport);
+static void eg_viewport_destroy_depth_images(eg_viewport_t *viewport);
+static void eg_viewport_destroy_frame_buffer(eg_viewport_t *viewport);
 
-viewport_t *viewport_create(context_t *context, uint32_t width, uint32_t height) {
-  viewport_t *viewport = (viewport_t *)heap_alloc(sizeof(viewport_t), 1, 0);
+eg_viewport_t *eg_viewport_create(eg_context_t *context, uint32_t width, uint32_t height) {
+  eg_viewport_t *viewport = (eg_viewport_t *)heap_alloc(sizeof(eg_viewport_t), 1, 0);
 
   uint64_t image_count = context->swapchain->image_count;
 
@@ -27,9 +27,9 @@ viewport_t *viewport_create(context_t *context, uint32_t width, uint32_t height)
   viewport->depth_sampler = (VkSampler *)heap_alloc(sizeof(VkSampler) * image_count, 0, 0);
   viewport->frame_buffer = (VkFramebuffer *)heap_alloc(sizeof(VkFramebuffer) * image_count, 0, 0);
 
-  viewport_create_color_images(viewport);
-  viewport_create_depth_images(viewport);
-  viewport_create_frame_buffer(viewport);
+  eg_viewport_create_color_images(viewport);
+  eg_viewport_create_depth_images(viewport);
+  eg_viewport_create_frame_buffer(viewport);
 
   while (viewport->context->viewport[viewport->link_index]) {
 
@@ -42,26 +42,26 @@ viewport_t *viewport_create(context_t *context, uint32_t width, uint32_t height)
 
   return viewport;
 }
-void viewport_resize(viewport_t *viewport, uint32_t width, uint32_t height) {
-  viewport_destroy_frame_buffer(viewport);
-  viewport_destroy_depth_images(viewport);
-  viewport_destroy_color_images(viewport);
+void eg_viewport_resize(eg_viewport_t *viewport, uint32_t width, uint32_t height) {
+  eg_viewport_destroy_frame_buffer(viewport);
+  eg_viewport_destroy_depth_images(viewport);
+  eg_viewport_destroy_color_images(viewport);
 
   viewport->width = width;
   viewport->height = height;
 
-  viewport_create_color_images(viewport);
-  viewport_create_depth_images(viewport);
-  viewport_create_frame_buffer(viewport);
+  eg_viewport_create_color_images(viewport);
+  eg_viewport_create_depth_images(viewport);
+  eg_viewport_create_frame_buffer(viewport);
 }
-void viewport_destroy(viewport_t *viewport) {
+void eg_viewport_destroy(eg_viewport_t *viewport) {
   ASSERT(viewport->link_index < 0xFF, "Invalid link index");
 
   viewport->context->viewport[viewport->link_index] = 0;
 
-  viewport_destroy_frame_buffer(viewport);
-  viewport_destroy_depth_images(viewport);
-  viewport_destroy_color_images(viewport);
+  eg_viewport_destroy_frame_buffer(viewport);
+  eg_viewport_destroy_depth_images(viewport);
+  eg_viewport_destroy_color_images(viewport);
 
   heap_free(viewport->color_image);
   heap_free(viewport->color_device_memory);
@@ -78,7 +78,7 @@ void viewport_destroy(viewport_t *viewport) {
   heap_free(viewport);
 }
 
-static void viewport_create_color_images(viewport_t *viewport) {
+static void eg_viewport_create_color_images(eg_viewport_t *viewport) {
   uint64_t image_index = 0;
   uint64_t image_count = viewport->context->swapchain->image_count;
 
@@ -105,7 +105,7 @@ static void viewport_create_color_images(viewport_t *viewport) {
 
     vkGetImageMemoryRequirements(viewport->context->device, viewport->color_image[image_index], &memory_requirements);
 
-    uint32_t memory_type_index = context_find_memory_type(viewport->context, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    uint32_t memory_type_index = eg_context_find_memory_type(viewport->context, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkMemoryAllocateInfo memory_allocate_info = {0};
     memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -151,7 +151,7 @@ static void viewport_create_color_images(viewport_t *viewport) {
     image_index++;
   }
 }
-static void viewport_create_depth_images(viewport_t *viewport) {
+static void eg_viewport_create_depth_images(eg_viewport_t *viewport) {
   uint64_t image_index = 0;
   uint64_t image_count = viewport->context->swapchain->image_count;
 
@@ -178,7 +178,7 @@ static void viewport_create_depth_images(viewport_t *viewport) {
 
     vkGetImageMemoryRequirements(viewport->context->device, viewport->depth_image[image_index], &memory_requirements);
 
-    uint32_t memory_type_index = context_find_memory_type(viewport->context, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    uint32_t memory_type_index = eg_context_find_memory_type(viewport->context, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkMemoryAllocateInfo memory_allocate_info = {0};
     memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -224,7 +224,7 @@ static void viewport_create_depth_images(viewport_t *viewport) {
     image_index++;
   }
 }
-static void viewport_create_frame_buffer(viewport_t *viewport) {
+static void eg_viewport_create_frame_buffer(eg_viewport_t *viewport) {
   uint64_t image_index = 0;
   uint64_t image_count = viewport->context->swapchain->image_count;
 
@@ -247,7 +247,7 @@ static void viewport_create_frame_buffer(viewport_t *viewport) {
   }
 }
 
-static void viewport_destroy_color_images(viewport_t *viewport) {
+static void eg_viewport_destroy_color_images(eg_viewport_t *viewport) {
   uint64_t image_index = 0;
   uint64_t image_count = viewport->context->swapchain->image_count;
 
@@ -261,7 +261,7 @@ static void viewport_destroy_color_images(viewport_t *viewport) {
     image_index++;
   }
 }
-static void viewport_destroy_depth_images(viewport_t *viewport) {
+static void eg_viewport_destroy_depth_images(eg_viewport_t *viewport) {
   uint64_t image_index = 0;
   uint64_t image_count = viewport->context->swapchain->image_count;
 
@@ -275,7 +275,7 @@ static void viewport_destroy_depth_images(viewport_t *viewport) {
     image_index++;
   }
 }
-static void viewport_destroy_frame_buffer(viewport_t *viewport) {
+static void eg_viewport_destroy_frame_buffer(eg_viewport_t *viewport) {
   // VULKAN_CHECK(vkQueueWaitIdle(viewport->context->graphic_queue)); // TODO
 
   uint64_t image_index = 0;

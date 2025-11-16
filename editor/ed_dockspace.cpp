@@ -3,11 +3,12 @@
 #include <editor/ed_dockspace.h>
 #include <editor/ed_viewport.h>
 
+#include <editor/dockable/ed_catalog.h>
 #include <editor/dockable/ed_hierarchy.h>
 #include <editor/dockable/ed_inspector.h>
 #include <editor/dockable/ed_profiler.h>
 
-void ed_dockspace_draw(context_t *context) {
+void ed_dockspace_draw(eg_context_t *context) {
   ImGuiID dockspace_id = ImGui::GetID("Dockspace");
 
   ImGuiWindowFlags window_flags =
@@ -26,15 +27,15 @@ void ed_dockspace_draw(context_t *context) {
   ImGui::SetNextWindowPos(ImVec2(0.0F, (float)context->window_titlebar_height));
   ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_height - (float)context->window_titlebar_height - context->window_statusbar_height));
 
-  if (g_dockspace_selected_type != DOCKSPACE_TYPE_GAME) {
+  if (g_dockspace_selected_type != ED_DOCKSPACE_TYPE_GAME) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0F, 5.0F));
     ImGui::Begin("Dockspace", 0, window_flags);
     ImGui::PopStyleVar();
     ImGui::DockSpace(dockspace_id, ImVec2(0.0F, 0.0F), dock_node_flags);
 
-    if (g_dockspace_is_initialized == 0) {
+    if (g_dockspace_is_dirty) {
 
-      g_dockspace_is_initialized = 1;
+      g_dockspace_is_dirty = 0;
 
       ImVec2 dockspace_size = ImGui::GetWindowSize();
 
@@ -43,28 +44,30 @@ void ed_dockspace_draw(context_t *context) {
       ImGui::DockBuilderSetNodeSize(dockspace_id, dockspace_size);
 
       switch (g_dockspace_selected_type) {
-        case DOCKSPACE_TYPE_GAME: {
+        case ED_DOCKSPACE_TYPE_GAME: {
 
           // TODO
 
           break;
         }
-        case DOCKSPACE_TYPE_SCENE: {
+        case ED_DOCKSPACE_TYPE_SCENE: {
 
           ImGuiID dock_id_main = dockspace_id;
           ImGuiID dock_id_right_bottom = 0;
           ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Right, 0.25F, 0, &dock_id_main);
           ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Up, 0.25F, 0, &dock_id_right_bottom);
+          ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Left, 0.2F, 0, &dock_id_main);
           ImGuiID dock_id_bottom = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Down, 0.25F, 0, &dock_id_main);
 
           ImGui::DockBuilderDockWindow("Viewport", dock_id_main);
+          ImGui::DockBuilderDockWindow("Catalog", dock_id_left);
           ImGui::DockBuilderDockWindow("Hierarchy", dock_id_right_top);
           ImGui::DockBuilderDockWindow("Inspector", dock_id_right_bottom);
           ImGui::DockBuilderDockWindow("Profiler", dock_id_bottom);
 
           break;
         }
-        case DOCKSPACE_TYPE_MODEL: {
+        case ED_DOCKSPACE_TYPE_MODEL: {
 
           // TODO
 
@@ -79,7 +82,7 @@ void ed_dockspace_draw(context_t *context) {
   }
 
   switch (g_dockspace_selected_type) {
-    case DOCKSPACE_TYPE_GAME: {
+    case ED_DOCKSPACE_TYPE_GAME: {
 
       ImGuiWindowFlags window_flags =
         ImGuiWindowFlags_NoDecoration;
@@ -92,7 +95,14 @@ void ed_dockspace_draw(context_t *context) {
 
       break;
     }
-    case DOCKSPACE_TYPE_SCENE: {
+    case ED_DOCKSPACE_TYPE_SCENE: {
+
+      if (ed_dockspace_begin_child("Catalog", &g_catalog_scene.is_open, &g_catalog_scene.is_docked)) {
+
+        ed_catalog_draw(&g_catalog_scene);
+
+        ed_dockspace_end_child(g_catalog_scene.is_docked);
+      }
 
       if (ed_dockspace_begin_child("Hierarchy", &g_hierarchy_scene.is_open, &g_hierarchy_scene.is_docked)) {
 
@@ -124,7 +134,7 @@ void ed_dockspace_draw(context_t *context) {
 
       break;
     }
-    case DOCKSPACE_TYPE_MODEL: {
+    case ED_DOCKSPACE_TYPE_MODEL: {
 
       // TODO
 
@@ -144,7 +154,7 @@ uint8_t ed_dockspace_begin_child(char const *name, uint8_t *is_open, uint8_t *is
     *is_docked = ImGui::IsWindowDocked();
 
     if (*is_docked) {
-      ImGui::PushStyleColor(ImGuiCol_ChildBg, EDITOR_DOCKING_BACKGROUND_COLOR);
+      ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_SHALLOW_GRAY_COLOR);
       ImGui::BeginChild("FirstChild");
 
       ImVec2 second_window_size = ImGui::GetWindowSize();

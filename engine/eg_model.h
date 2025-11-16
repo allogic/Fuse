@@ -5,8 +5,8 @@
 extern "C" {
 #endif // __cplusplus
 
-void model_create(void);
-void model_destroy(void);
+void eg_model_create(void);
+void eg_model_destroy(void);
 
 #ifdef __cplusplus
 }

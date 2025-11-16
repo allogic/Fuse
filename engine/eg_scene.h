@@ -5,21 +5,21 @@
 extern "C" {
 #endif // __cplusplus
 
-scene_t *scene_create(context_t *context);
-void scene_update(scene_t *scene);
-void scene_destroy(scene_t *scene);
+eg_scene_t *eg_scene_create(eg_context_t *context);
+void eg_scene_update(eg_scene_t *scene);
+void eg_scene_destroy(eg_scene_t *scene);
 
-camera_t const *scene_camera(scene_t *scene, ecs_entity_t entity);
-camera_t *scene_camera_mut(scene_t *scene, ecs_entity_t entity);
+eg_camera_t const *eg_scene_camera(eg_scene_t *scene, ecs_entity_t entity);
+eg_camera_t *eg_scene_camera_mut(eg_scene_t *scene, ecs_entity_t entity);
 
-editor_controller_t const *scene_editor_controller(scene_t *scene, ecs_entity_t entity);
-editor_controller_t *scene_editor_controller_mut(scene_t *scene, ecs_entity_t entity);
+eg_editor_controller_t const *eg_scene_editor_controller(eg_scene_t *scene, ecs_entity_t entity);
+eg_editor_controller_t *eg_scene_editor_controller_mut(eg_scene_t *scene, ecs_entity_t entity);
 
-rigidbody_t const *scene_rigidbody(scene_t *scene, ecs_entity_t entity);
-rigidbody_t *scene_rigidbody_mut(scene_t *scene, ecs_entity_t entity);
+eg_rigidbody_t const *eg_scene_rigidbody(eg_scene_t *scene, ecs_entity_t entity);
+eg_rigidbody_t *eg_scene_rigidbody_mut(eg_scene_t *scene, ecs_entity_t entity);
 
-transform_t const *scene_transform(scene_t *scene, ecs_entity_t entity);
-transform_t *scene_transform_mut(scene_t *scene, ecs_entity_t entity);
+eg_transform_t const *eg_scene_transform(eg_scene_t *scene, ecs_entity_t entity);
+eg_transform_t *eg_scene_transform_mut(eg_scene_t *scene, ecs_entity_t entity);
 
 #ifdef __cplusplus
 }

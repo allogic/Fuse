@@ -6,49 +6,44 @@
 #include <engine/eg_swapchain.h>
 #include <engine/eg_profiler.h>
 
-#define RENDERER_DEBUG_LINE_VERTEX_COUNT (1048576LL)
-#define RENDERER_DEBUG_LINE_INDEX_COUNT (1048576LL)
+#define EG_RENDERER_DEBUG_LINE_VERTEX_COUNT (1048576LL)
+#define EG_RENDERER_DEBUG_LINE_INDEX_COUNT (1048576LL)
 
-#define RENDERER_MAKE_GROUP_COUNT(GLOBAL_SIZE, LOCAL_SIZE) ((int32_t)ceil((double)(GLOBAL_SIZE) / (LOCAL_SIZE)))
+#define EG_RENDERER_MAKE_GROUP_COUNT(GLOBAL_SIZE, LOCAL_SIZE) ((int32_t)ceil((double)(GLOBAL_SIZE) / (LOCAL_SIZE)))
 
 // TODO: implement sparse textures..
 // TODO: implement viewport defragmentation..
 
-typedef enum renderer_pipeline_link_type_t {
-  RENDERER_PIPELINE_LINK_TYPE_DEBUG,
-  RENDERER_PIPELINE_LINK_TYPE_PBR,
-} renderer_pipeline_link_type_t;
+static void eg_renderer_link_pipeline(eg_renderer_t *renderer, uint32_t link_index, uint32_t pipeline_type, void *pipeline);
 
-static void renderer_link_pipeline(renderer_t *renderer, uint32_t link_index, uint32_t pipeline_type, void *pipeline);
+static void eg_renderer_create_global_buffers(eg_renderer_t *renderer);
+static void eg_renderer_create_debug_buffers(eg_renderer_t *renderer);
+static void eg_renderer_create_gbuffer_render_pass(eg_renderer_t *renderer);
+static void eg_renderer_create_pipelines(eg_renderer_t *renderer);
+static void eg_renderer_create_sync_objects(eg_renderer_t *renderer);
+static void eg_renderer_create_command_buffer(eg_renderer_t *renderer);
 
-static void renderer_create_global_buffers(renderer_t *renderer);
-static void renderer_create_debug_buffers(renderer_t *renderer);
-static void renderer_create_gbuffer_render_pass(renderer_t *renderer);
-static void renderer_create_pipelines(renderer_t *renderer);
-static void renderer_create_sync_objects(renderer_t *renderer);
-static void renderer_create_command_buffer(renderer_t *renderer);
+static void eg_renderer_update_uniform_buffers(eg_renderer_t *renderer);
 
-static void renderer_update_uniform_buffers(renderer_t *renderer);
+static void eg_renderer_transition_viewport_images_to_render_target(eg_renderer_t *renderer);
+static void eg_renderer_transition_viewport_images_to_shader_read(eg_renderer_t *renderer);
 
-static void renderer_transition_viewport_images_to_render_target(renderer_t *renderer);
-static void renderer_transition_viewport_images_to_shader_read(renderer_t *renderer);
+static void eg_renderer_record_editor_commands(eg_renderer_t *renderer);
+static void eg_renderer_record_compute_commands(eg_renderer_t *renderer);
+static void eg_renderer_record_graphic_commands(eg_renderer_t *renderer);
 
-static void renderer_record_editor_commands(renderer_t *renderer);
-static void renderer_record_compute_commands(renderer_t *renderer);
-static void renderer_record_graphic_commands(renderer_t *renderer);
+static void eg_renderer_gbuffer_pass(eg_renderer_t *renderer);
+static void eg_renderer_editor_pass(eg_renderer_t *renderer);
 
-static void renderer_gbuffer_pass(renderer_t *renderer);
-static void renderer_editor_pass(renderer_t *renderer);
+static void eg_renderer_destroy_global_buffers(eg_renderer_t *renderer);
+static void eg_renderer_destroy_debug_buffers(eg_renderer_t *renderer);
+static void eg_renderer_destroy_pipelines(eg_renderer_t *renderer);
+static void eg_renderer_destroy_sync_objects(eg_renderer_t *renderer);
+static void eg_renderer_destroy_command_buffer(eg_renderer_t *renderer);
+static void eg_renderer_destroy_gbuffer_render_pass(eg_renderer_t *renderer);
 
-static void renderer_destroy_global_buffers(renderer_t *renderer);
-static void renderer_destroy_debug_buffers(renderer_t *renderer);
-static void renderer_destroy_pipelines(renderer_t *renderer);
-static void renderer_destroy_sync_objects(renderer_t *renderer);
-static void renderer_destroy_command_buffer(renderer_t *renderer);
-static void renderer_destroy_gbuffer_render_pass(renderer_t *renderer);
-
-void renderer_create(context_t *context) {
-  renderer_t *renderer = (renderer_t *)heap_alloc(sizeof(renderer_t), 1, 0);
+void eg_renderer_create(eg_context_t *context) {
+  eg_renderer_t *renderer = (eg_renderer_t *)heap_alloc(sizeof(eg_renderer_t), 1, 0);
 
   renderer->context = context;
   renderer->context->renderer = renderer;
@@ -71,12 +66,12 @@ void renderer_create(context_t *context) {
   memset(renderer->pipeline_type, 0, sizeof(renderer->pipeline_type));
   memset(renderer->pipeline_link, 0, sizeof(renderer->pipeline_link));
 
-  renderer_create_global_buffers(renderer);
-  renderer_create_debug_buffers(renderer);
-  renderer_create_gbuffer_render_pass(renderer);
-  renderer_create_pipelines(renderer);
-  renderer_create_sync_objects(renderer);
-  renderer_create_command_buffer(renderer);
+  eg_renderer_create_global_buffers(renderer);
+  eg_renderer_create_debug_buffers(renderer);
+  eg_renderer_create_gbuffer_render_pass(renderer);
+  eg_renderer_create_pipelines(renderer);
+  eg_renderer_create_sync_objects(renderer);
+  eg_renderer_create_command_buffer(renderer);
 
   if (renderer->context->is_editor_mode) {
     g_context_editor_create_proc(renderer->context);
@@ -84,27 +79,27 @@ void renderer_create(context_t *context) {
 
   database_destroy_renderer_asset(&renderer_asset);
 }
-void renderer_update(renderer_t *renderer) {
+void eg_renderer_update(eg_renderer_t *renderer) {
   vector3_t right_position = {0.0F, 0.0F, 0.0F};
   vector3_t right_direction = {1.0F, 0.0F, 0.0F};
   vector4_t right_color = {1.0F, 0.0F, 0.0F, 1.0F};
 
-  renderer_draw_debug_line(renderer, right_position, right_direction, right_color);
+  eg_renderer_draw_debug_line(renderer, right_position, right_direction, right_color);
 
   vector3_t up_position = {0.0F, 0.0F, 0.0F};
   vector3_t up_direction = {0.0F, 1.0F, 0.0F};
   vector4_t up_color = {0.0F, 1.0F, 0.0F, 1.0F};
 
-  renderer_draw_debug_line(renderer, up_position, up_direction, up_color);
+  eg_renderer_draw_debug_line(renderer, up_position, up_direction, up_color);
 
   vector3_t front_position = {0.0F, 0.0F, 0.0F};
   vector3_t front_direction = {0.0F, 0.0F, 1.0F};
   vector4_t front_color = {0.0F, 0.0F, 1.0F, 1.0F};
 
-  renderer_draw_debug_line(renderer, front_position, front_direction, front_color);
+  eg_renderer_draw_debug_line(renderer, front_position, front_direction, front_color);
 }
-void renderer_draw(renderer_t *renderer) {
-  PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_RENDERER);
+void eg_renderer_draw(eg_renderer_t *renderer) {
+  EG_PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_RENDERER);
 
   VkResult result = VK_SUCCESS;
 
@@ -172,7 +167,7 @@ void renderer_draw(renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  renderer_update_uniform_buffers(renderer);
+  eg_renderer_update_uniform_buffers(renderer);
 
   VkCommandBufferBeginInfo command_buffer_begin_info = {0};
   command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -181,9 +176,9 @@ void renderer_draw(renderer_t *renderer) {
 
   VULKAN_CHECK(vkBeginCommandBuffer(renderer->command_buffer[renderer->frame_index], &command_buffer_begin_info));
 
-  renderer_record_editor_commands(renderer);
-  renderer_record_compute_commands(renderer);
-  renderer_record_graphic_commands(renderer);
+  eg_renderer_record_editor_commands(renderer);
+  eg_renderer_record_compute_commands(renderer);
+  eg_renderer_record_graphic_commands(renderer);
 
   VULKAN_CHECK(vkEndCommandBuffer(renderer->command_buffer[renderer->frame_index]));
 
@@ -245,9 +240,9 @@ void renderer_draw(renderer_t *renderer) {
 
   renderer->frame_index = (renderer->frame_index + 1) % renderer->frames_in_flight;
 
-  PROFILER_SCOPE_END(PROFILER_SAMPLE_LANE_RENDERER);
+  EG_PROFILER_SCOPE_END(EG_PROFILER_SAMPLE_LANE_RENDERER);
 }
-void renderer_destroy(renderer_t *renderer) {
+void eg_renderer_destroy(eg_renderer_t *renderer) {
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->graphic_queue));
   VULKAN_CHECK(vkQueueWaitIdle(renderer->context->present_queue));
 
@@ -255,27 +250,27 @@ void renderer_destroy(renderer_t *renderer) {
     g_context_editor_destroy_proc(renderer->context);
   }
 
-  renderer_destroy_command_buffer(renderer);
-  renderer_destroy_sync_objects(renderer);
-  renderer_destroy_pipelines(renderer);
-  renderer_destroy_gbuffer_render_pass(renderer);
-  renderer_destroy_debug_buffers(renderer);
-  renderer_destroy_global_buffers(renderer);
+  eg_renderer_destroy_command_buffer(renderer);
+  eg_renderer_destroy_sync_objects(renderer);
+  eg_renderer_destroy_pipelines(renderer);
+  eg_renderer_destroy_gbuffer_render_pass(renderer);
+  eg_renderer_destroy_debug_buffers(renderer);
+  eg_renderer_destroy_global_buffers(renderer);
 
   renderer->context->renderer = 0;
 
   heap_free(renderer);
 }
 
-void renderer_draw_debug_line(renderer_t *renderer, vector3_t from, vector3_t to, vector4_t color) {
+void eg_renderer_draw_debug_line(eg_renderer_t *renderer, vector3_t from, vector3_t to, vector4_t color) {
   if (renderer->is_debug_enabled) {
-    graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_link[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+    eg_graphic_pipeline_t *debug_pipeline = (eg_graphic_pipeline_t *)renderer->pipeline_link[EG_RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
       uint32_t vertex_offset = renderer->debug_line_vertex_offset[renderer->frame_index];
       uint32_t index_offset = renderer->debug_line_index_offset[renderer->frame_index];
 
-      debug_vertex_t *vertices = renderer->debug_line_vertices[renderer->frame_index];
+      eg_debug_vertex_t *vertices = renderer->debug_line_vertices[renderer->frame_index];
       uint32_t *indices = renderer->debug_line_indices[renderer->frame_index];
 
       vertices[vertex_offset + 0].position = from;
@@ -292,15 +287,15 @@ void renderer_draw_debug_line(renderer_t *renderer, vector3_t from, vector3_t to
     }
   }
 }
-void renderer_draw_debug_box(renderer_t *renderer, vector3_t position, vector3_t size, vector4_t color) {
+void eg_renderer_draw_debug_box(eg_renderer_t *renderer, vector3_t position, vector3_t size, vector4_t color) {
   if (renderer->is_debug_enabled) {
-    graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_link[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+    eg_graphic_pipeline_t *debug_pipeline = (eg_graphic_pipeline_t *)renderer->pipeline_link[EG_RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
     if (debug_pipeline) {
       uint32_t vertex_offset = renderer->debug_line_vertex_offset[renderer->frame_index];
       uint32_t index_offset = renderer->debug_line_index_offset[renderer->frame_index];
 
-      debug_vertex_t *vertices = renderer->debug_line_vertices[renderer->frame_index];
+      eg_debug_vertex_t *vertices = renderer->debug_line_vertices[renderer->frame_index];
       uint32_t *indices = renderer->debug_line_indices[renderer->frame_index];
 
       vertices[vertex_offset + 0].position = (vector3_t){position.x, position.y, position.z};
@@ -352,17 +347,19 @@ void renderer_draw_debug_box(renderer_t *renderer, vector3_t position, vector3_t
   }
 }
 
-static void renderer_link_pipeline(renderer_t *renderer, uint32_t link_index, uint32_t pipeline_type, void *pipeline) {
+static void eg_renderer_link_pipeline(eg_renderer_t *renderer, uint32_t link_index, uint32_t pipeline_type, void *pipeline) {
   if (renderer->pipeline_link[link_index]) {
 
     switch (renderer->pipeline_type[link_index]) {
       case 0: {
-        graphic_pipeline_destroy(renderer->pipeline_link[link_index]);
+
+        eg_graphic_pipeline_destroy(renderer->pipeline_link[link_index]);
 
         break;
       }
       case 1: {
-        compute_pipeline_destroy(renderer->pipeline_link[link_index]);
+
+        eg_compute_pipeline_destroy(renderer->pipeline_link[link_index]);
 
         break;
       }
@@ -373,10 +370,10 @@ static void renderer_link_pipeline(renderer_t *renderer, uint32_t link_index, ui
   renderer->pipeline_link[link_index] = pipeline;
 }
 
-static void renderer_create_global_buffers(renderer_t *renderer) {
-  renderer->time_infos = (time_info_t **)heap_alloc(sizeof(time_info_t *) * renderer->frames_in_flight, 0, 0);
-  renderer->screen_infos = (screen_info_t **)heap_alloc(sizeof(screen_info_t *) * renderer->frames_in_flight, 0, 0);
-  renderer->camera_infos = (camera_info_t **)heap_alloc(sizeof(camera_info_t *) * renderer->frames_in_flight, 0, 0);
+static void eg_renderer_create_global_buffers(eg_renderer_t *renderer) {
+  renderer->time_infos = (eg_time_info_t **)heap_alloc(sizeof(eg_time_info_t *) * renderer->frames_in_flight, 0, 0);
+  renderer->screen_infos = (eg_screen_info_t **)heap_alloc(sizeof(eg_screen_info_t *) * renderer->frames_in_flight, 0, 0);
+  renderer->camera_infos = (eg_camera_info_t **)heap_alloc(sizeof(eg_camera_info_t *) * renderer->frames_in_flight, 0, 0);
 
   renderer->descriptor_binding_buffers_per_frame = (map_t *)heap_alloc(sizeof(map_t) * renderer->frames_in_flight, 0, 0);
 
@@ -387,38 +384,38 @@ static void renderer_create_global_buffers(renderer_t *renderer) {
 
     renderer->descriptor_binding_buffers_per_frame[frame_index] = map_create();
 
-    buffer_t *time_info_descriptor_binding_buffer = buffer_create_uniform_coherent(renderer->context, sizeof(time_info_t));
-    buffer_t *screen_info_descriptor_binding_buffer = buffer_create_uniform_coherent(renderer->context, sizeof(screen_info_t));
-    buffer_t *camera_info_descriptor_binding_buffer = buffer_create_uniform_coherent(renderer->context, sizeof(camera_info_t));
+    eg_buffer_t *time_info_descriptor_binding_buffer = eg_buffer_create_uniform_coherent(renderer->context, sizeof(eg_time_info_t));
+    eg_buffer_t *screen_info_descriptor_binding_buffer = eg_buffer_create_uniform_coherent(renderer->context, sizeof(eg_screen_info_t));
+    eg_buffer_t *camera_info_descriptor_binding_buffer = eg_buffer_create_uniform_coherent(renderer->context, sizeof(eg_camera_info_t));
 
     renderer->time_infos[frame_index] = time_info_descriptor_binding_buffer->mapped_memory;
     renderer->screen_infos[frame_index] = screen_info_descriptor_binding_buffer->mapped_memory;
     renderer->camera_infos[frame_index] = camera_info_descriptor_binding_buffer->mapped_memory;
 
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name) + 1, &time_info_descriptor_binding_buffer, sizeof(buffer_t *));
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name) + 1, &screen_info_descriptor_binding_buffer, sizeof(buffer_t *));
-    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name) + 1, &camera_info_descriptor_binding_buffer, sizeof(buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name) + 1, &time_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name) + 1, &screen_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
+    map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name) + 1, &camera_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
 
     frame_index++;
   }
 }
-static void renderer_create_debug_buffers(renderer_t *renderer) {
+static void eg_renderer_create_debug_buffers(eg_renderer_t *renderer) {
   renderer->debug_line_vertex_offset = (uint32_t *)heap_alloc(sizeof(uint32_t) * renderer->frames_in_flight, 1, 0);
   renderer->debug_line_index_offset = (uint32_t *)heap_alloc(sizeof(uint32_t) * renderer->frames_in_flight, 1, 0);
 
-  renderer->debug_line_vertices = (debug_vertex_t **)heap_alloc(sizeof(debug_vertex_t *) * renderer->frames_in_flight, 0, 0);
+  renderer->debug_line_vertices = (eg_debug_vertex_t **)heap_alloc(sizeof(eg_debug_vertex_t *) * renderer->frames_in_flight, 0, 0);
   renderer->debug_line_indices = (uint32_t **)heap_alloc(sizeof(uint32_t *) * renderer->frames_in_flight, 0, 0);
 
-  renderer->debug_line_vertex_buffers = (buffer_t **)heap_alloc(sizeof(buffer_t *) * renderer->frames_in_flight, 0, 0);
-  renderer->debug_line_index_buffers = (buffer_t **)heap_alloc(sizeof(buffer_t *) * renderer->frames_in_flight, 0, 0);
+  renderer->debug_line_vertex_buffers = (eg_buffer_t **)heap_alloc(sizeof(eg_buffer_t *) * renderer->frames_in_flight, 0, 0);
+  renderer->debug_line_index_buffers = (eg_buffer_t **)heap_alloc(sizeof(eg_buffer_t *) * renderer->frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
   uint64_t frame_count = renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
-    renderer->debug_line_vertex_buffers[frame_index] = buffer_create_vertex_coherent(renderer->context, sizeof(debug_vertex_t) * RENDERER_DEBUG_LINE_VERTEX_COUNT);
-    renderer->debug_line_index_buffers[frame_index] = buffer_create_index_coherent(renderer->context, sizeof(uint32_t) * RENDERER_DEBUG_LINE_INDEX_COUNT);
+    renderer->debug_line_vertex_buffers[frame_index] = eg_buffer_create_vertex_coherent(renderer->context, sizeof(eg_debug_vertex_t) * EG_RENDERER_DEBUG_LINE_VERTEX_COUNT);
+    renderer->debug_line_index_buffers[frame_index] = eg_buffer_create_index_coherent(renderer->context, sizeof(uint32_t) * EG_RENDERER_DEBUG_LINE_INDEX_COUNT);
 
     renderer->debug_line_vertices[frame_index] = renderer->debug_line_vertex_buffers[frame_index]->mapped_memory;
     renderer->debug_line_indices[frame_index] = renderer->debug_line_index_buffers[frame_index]->mapped_memory;
@@ -426,7 +423,7 @@ static void renderer_create_debug_buffers(renderer_t *renderer) {
     frame_index++;
   }
 }
-static void renderer_create_gbuffer_render_pass(renderer_t *renderer) {
+static void eg_renderer_create_gbuffer_render_pass(eg_renderer_t *renderer) {
   VkAttachmentDescription color_attachment_description = {0};
   color_attachment_description.format = renderer->context->prefered_surface_format.format;
   color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -482,7 +479,7 @@ static void renderer_create_gbuffer_render_pass(renderer_t *renderer) {
 
   VULKAN_CHECK(vkCreateRenderPass(renderer->context->device, &render_pass_create_info, 0, &renderer->gbuffer_render_pass));
 }
-static void renderer_create_pipelines(renderer_t *renderer) {
+static void eg_renderer_create_pipelines(eg_renderer_t *renderer) {
   vector_t graphic_pipeline_assets = database_load_pipeline_assets_by_type(0);
 
   uint64_t graphic_pipeline_asset_index = 0;
@@ -494,7 +491,7 @@ static void renderer_create_pipelines(renderer_t *renderer) {
 
     if (pipeline_asset->auto_create_pipeline) {
 
-      graphic_pipeline_t *pipeline = graphic_pipeline_create(renderer->context, pipeline_asset);
+      eg_graphic_pipeline_t *pipeline = eg_graphic_pipeline_create(renderer->context, pipeline_asset);
 
       uint64_t frame_index = 0;
       uint64_t frame_count = renderer->frames_in_flight;
@@ -502,20 +499,20 @@ static void renderer_create_pipelines(renderer_t *renderer) {
       while (frame_index < frame_count) {
 
         // TODO: remove this!
-        graphic_pipeline_link_vertex_input_binding_buffer(pipeline, frame_index, 0, renderer->debug_line_vertex_buffers[frame_index]->handle, 0);
-        graphic_pipeline_link_index_buffer(pipeline, frame_index, renderer->debug_line_index_buffers[frame_index]->handle);
+        eg_graphic_pipeline_link_vertex_input_binding_buffer(pipeline, frame_index, 0, renderer->debug_line_vertex_buffers[frame_index]->handle, 0);
+        eg_graphic_pipeline_link_index_buffer(pipeline, frame_index, renderer->debug_line_index_buffers[frame_index]->handle);
 
         if (pipeline_asset->auto_link_descriptor_bindings) {
-          graphic_pipeline_set_auto_link_descriptor_bindings(pipeline, renderer->descriptor_binding_buffers_per_frame);
+          eg_graphic_pipeline_set_auto_link_descriptor_bindings(pipeline, renderer->descriptor_binding_buffers_per_frame);
         }
 
         frame_index++;
       }
 
-      graphic_pipeline_allocate_descriptor_sets(pipeline, 1);
-      graphic_pipeline_update_descriptor_sets(pipeline);
+      eg_graphic_pipeline_allocate_descriptor_sets(pipeline, 1);
+      eg_graphic_pipeline_update_descriptor_sets(pipeline);
 
-      renderer_link_pipeline(renderer, pipeline_asset->link_index, pipeline_asset->type, pipeline);
+      eg_renderer_link_pipeline(renderer, pipeline_asset->link_index, pipeline_asset->type, pipeline);
     }
 
     graphic_pipeline_asset_index++;
@@ -534,7 +531,7 @@ static void renderer_create_pipelines(renderer_t *renderer) {
 
     if (pipeline_asset->auto_create_pipeline) {
 
-      compute_pipeline_t *pipeline = compute_pipeline_create(renderer->context, pipeline_asset);
+      eg_compute_pipeline_t *pipeline = eg_compute_pipeline_create(renderer->context, pipeline_asset);
 
       uint64_t frame_index = 0;
       uint64_t frame_count = renderer->frames_in_flight;
@@ -542,16 +539,16 @@ static void renderer_create_pipelines(renderer_t *renderer) {
       while (frame_index < frame_count) {
 
         if (pipeline_asset->auto_link_descriptor_bindings) {
-          compute_pipeline_set_auto_link_descriptor_bindings(pipeline, renderer->descriptor_binding_buffers_per_frame);
+          eg_compute_pipeline_set_auto_link_descriptor_bindings(pipeline, renderer->descriptor_binding_buffers_per_frame);
         }
 
         frame_index++;
       }
 
-      compute_pipeline_allocate_descriptor_sets(pipeline, 1);
-      compute_pipeline_update_descriptor_sets(pipeline);
+      eg_compute_pipeline_allocate_descriptor_sets(pipeline, 1);
+      eg_compute_pipeline_update_descriptor_sets(pipeline);
 
-      renderer_link_pipeline(renderer, pipeline_asset->link_index, pipeline_asset->type, pipeline);
+      eg_renderer_link_pipeline(renderer, pipeline_asset->link_index, pipeline_asset->type, pipeline);
     }
 
     compute_pipeline_asset_index++;
@@ -559,7 +556,7 @@ static void renderer_create_pipelines(renderer_t *renderer) {
 
   database_destroy_pipeline_assets(&compute_pipeline_assets);
 }
-static void renderer_create_sync_objects(renderer_t *renderer) {
+static void eg_renderer_create_sync_objects(eg_renderer_t *renderer) {
   renderer->render_finished_semaphore = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * renderer->context->swapchain->image_count, 0, 0);
   renderer->image_available_semaphore = (VkSemaphore *)heap_alloc(sizeof(VkSemaphore) * renderer->frames_in_flight, 0, 0);
   renderer->frame_fence = (VkFence *)heap_alloc(sizeof(VkFence) * renderer->frames_in_flight, 0, 0);
@@ -593,7 +590,7 @@ static void renderer_create_sync_objects(renderer_t *renderer) {
     frame_index++;
   }
 }
-static void renderer_create_command_buffer(renderer_t *renderer) {
+static void eg_renderer_create_command_buffer(eg_renderer_t *renderer) {
   renderer->command_buffer = (VkCommandBuffer *)heap_alloc(sizeof(VkCommandBuffer) * renderer->frames_in_flight, 0, 0);
 
   VkCommandBufferAllocateInfo command_buffer_alloc_create_info = {0};
@@ -605,18 +602,18 @@ static void renderer_create_command_buffer(renderer_t *renderer) {
   VULKAN_CHECK(vkAllocateCommandBuffers(renderer->context->device, &command_buffer_alloc_create_info, renderer->command_buffer));
 }
 
-static void renderer_update_uniform_buffers(renderer_t *renderer) {
-  scene_t *scene = renderer->context->scene;
+static void eg_renderer_update_uniform_buffers(eg_renderer_t *renderer) {
+  eg_scene_t *scene = renderer->context->scene;
 
   if (scene) {
 
     // TODO: find an easier way to compute world position's automatically..
-    transform_compute_world_position(scene->world, scene->player);
-    transform_compute_world_rotation(scene->world, scene->player);
-    transform_compute_world_scale(scene->world, scene->player);
+    eg_transform_compute_world_position(scene->world, scene->player);
+    eg_transform_compute_world_rotation(scene->world, scene->player);
+    eg_transform_compute_world_scale(scene->world, scene->player);
 
-    transform_t *transform = ecs_get_mut(scene->world, scene->player, transform_t);
-    camera_t *camera = ecs_get_mut(scene->world, scene->player, camera_t);
+    eg_transform_t *transform = ecs_get_mut(scene->world, scene->player, eg_transform_t);
+    eg_camera_t *camera = ecs_get_mut(scene->world, scene->player, eg_camera_t);
 
     renderer->time_infos[renderer->frame_index]->time = (float)renderer->context->time;
     renderer->time_infos[renderer->frame_index]->delta_time = (float)renderer->context->delta_time;
@@ -626,7 +623,7 @@ static void renderer_update_uniform_buffers(renderer_t *renderer) {
     renderer->screen_infos[renderer->frame_index]->resolution = resolution;
 
     vector3_t eye = transform->world_position;
-    vector3_t center = vector3_add(transform->world_position, transform_local_front(transform));
+    vector3_t center = vector3_add(transform->world_position, eg_transform_local_front(transform));
     vector3_t up = vector3_down();
 
     float fov = deg_to_rad(camera->fov);
@@ -647,12 +644,12 @@ static void renderer_update_uniform_buffers(renderer_t *renderer) {
   }
 }
 
-static void renderer_transition_viewport_images_to_render_target(renderer_t *renderer) {
+static void eg_renderer_transition_viewport_images_to_render_target(eg_renderer_t *renderer) {
   uint64_t link_index = 0;
 
   while (renderer->context->viewport[link_index]) {
 
-    viewport_t *viewport = renderer->context->viewport[link_index];
+    eg_viewport_t *viewport = renderer->context->viewport[link_index];
 
     VkImageMemoryBarrier color_image_memory_barrier = {0};
     color_image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -699,12 +696,12 @@ static void renderer_transition_viewport_images_to_render_target(renderer_t *ren
     link_index++;
   }
 }
-static void renderer_transition_viewport_images_to_shader_read(renderer_t *renderer) {
+static void eg_renderer_transition_viewport_images_to_shader_read(eg_renderer_t *renderer) {
   uint64_t link_index = 0;
 
   while (renderer->context->viewport[link_index]) {
 
-    viewport_t *viewport = renderer->context->viewport[link_index];
+    eg_viewport_t *viewport = renderer->context->viewport[link_index];
 
     VkImageMemoryBarrier color_image_memory_barrier = {0};
     color_image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -752,32 +749,32 @@ static void renderer_transition_viewport_images_to_shader_read(renderer_t *rende
   }
 }
 
-static void renderer_record_editor_commands(renderer_t *renderer) {
+static void eg_renderer_record_editor_commands(eg_renderer_t *renderer) {
   if (renderer->context->is_editor_mode) {
 
     g_context_editor_refresh_proc(renderer->context);
   }
 }
-static void renderer_record_compute_commands(renderer_t *renderer) {
+static void eg_renderer_record_compute_commands(eg_renderer_t *renderer) {
   // TODO
   // vkCmdBindPipeline(g_renderer_graphic_command_buffers[g_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline);
   // vkCmdBindDescriptorSets(g_renderer_graphic_command_buffers[g_renderer_frame_index], VK_PIPELINE_BIND_POINT_COMPUTE, s_renderer_chunk_editor_pipeline_layout, 0, 1, &s_renderer_chunk_editor_descriptor_sets[s_renderer_frame_index], 0, 0);
   // vkCmdDispatch(g_renderer_graphic_command_buffers[g_renderer_frame_index], group_count_x, group_count_y, group_count_z);
 }
-static void renderer_record_graphic_commands(renderer_t *renderer) {
-  renderer_gbuffer_pass(renderer);
+static void eg_renderer_record_graphic_commands(eg_renderer_t *renderer) {
+  eg_renderer_gbuffer_pass(renderer);
 
   if (renderer->context->is_editor_mode) {
 
-    renderer_transition_viewport_images_to_shader_read(renderer);
+    eg_renderer_transition_viewport_images_to_shader_read(renderer);
 
-    renderer_editor_pass(renderer);
+    eg_renderer_editor_pass(renderer);
 
-    renderer_transition_viewport_images_to_render_target(renderer);
+    eg_renderer_transition_viewport_images_to_render_target(renderer);
   }
 }
 
-static void renderer_gbuffer_pass(renderer_t *renderer) {
+static void eg_renderer_gbuffer_pass(eg_renderer_t *renderer) {
   VkCommandBuffer command_buffer = renderer->command_buffer[renderer->frame_index];
 
   uint64_t link_index = 0;
@@ -832,13 +829,13 @@ static void renderer_gbuffer_pass(renderer_t *renderer) {
 
     if (renderer->is_debug_enabled) {
 
-      graphic_pipeline_t *debug_pipeline = (graphic_pipeline_t *)renderer->pipeline_link[RENDERER_PIPELINE_LINK_TYPE_DEBUG];
+      eg_graphic_pipeline_t *debug_pipeline = (eg_graphic_pipeline_t *)renderer->pipeline_link[EG_RENDERER_PIPELINE_LINK_TYPE_DEBUG];
 
       if (debug_pipeline) {
 
         uint32_t index_count = renderer->debug_line_index_offset[renderer->frame_index];
 
-        graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
+        eg_graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
       }
     }
 
@@ -852,7 +849,7 @@ static void renderer_gbuffer_pass(renderer_t *renderer) {
     renderer->debug_line_index_offset[renderer->frame_index] = 0;
   }
 }
-static void renderer_editor_pass(renderer_t *renderer) {
+static void eg_renderer_editor_pass(eg_renderer_t *renderer) {
   VkCommandBuffer command_buffer = renderer->command_buffer[renderer->frame_index];
 
   VkClearValue color_clear_value = {0};
@@ -906,7 +903,7 @@ static void renderer_editor_pass(renderer_t *renderer) {
   vkCmdEndRenderPass(command_buffer);
 }
 
-static void renderer_destroy_global_buffers(renderer_t *renderer) {
+static void eg_renderer_destroy_global_buffers(eg_renderer_t *renderer) {
   uint64_t frame_index = 0;
   uint64_t frame_count = renderer->frames_in_flight;
 
@@ -916,9 +913,9 @@ static void renderer_destroy_global_buffers(renderer_t *renderer) {
 
     while (map_iter_step(&iter)) {
 
-      buffer_t *buffer = *(buffer_t **)map_iter_value(&iter);
+      eg_buffer_t *buffer = *(eg_buffer_t **)map_iter_value(&iter);
 
-      buffer_destroy(buffer);
+      eg_buffer_destroy(buffer);
     }
 
     map_destroy(&renderer->descriptor_binding_buffers_per_frame[frame_index]);
@@ -932,14 +929,14 @@ static void renderer_destroy_global_buffers(renderer_t *renderer) {
   heap_free(renderer->screen_infos);
   heap_free(renderer->camera_infos);
 }
-static void renderer_destroy_debug_buffers(renderer_t *renderer) {
+static void eg_renderer_destroy_debug_buffers(eg_renderer_t *renderer) {
   uint64_t frame_index = 0;
   uint64_t frame_count = renderer->frames_in_flight;
 
   while (frame_index < frame_count) {
 
-    buffer_destroy(renderer->debug_line_vertex_buffers[frame_index]);
-    buffer_destroy(renderer->debug_line_index_buffers[frame_index]);
+    eg_buffer_destroy(renderer->debug_line_vertex_buffers[frame_index]);
+    eg_buffer_destroy(renderer->debug_line_index_buffers[frame_index]);
 
     frame_index++;
   }
@@ -953,7 +950,7 @@ static void renderer_destroy_debug_buffers(renderer_t *renderer) {
   heap_free(renderer->debug_line_vertex_offset);
   heap_free(renderer->debug_line_index_offset);
 }
-static void renderer_destroy_pipelines(renderer_t *renderer) {
+static void eg_renderer_destroy_pipelines(eg_renderer_t *renderer) {
   uint64_t pipeline_link_index = 0;
   uint64_t pipeline_link_count = ARRAY_COUNT(renderer->pipeline_link);
 
@@ -963,11 +960,15 @@ static void renderer_destroy_pipelines(renderer_t *renderer) {
 
       switch (renderer->pipeline_type[pipeline_link_index]) {
         case 0: {
-          graphic_pipeline_destroy(renderer->pipeline_link[pipeline_link_index]);
+
+          eg_graphic_pipeline_destroy(renderer->pipeline_link[pipeline_link_index]);
+
           break;
         }
         case 1: {
-          compute_pipeline_destroy(renderer->pipeline_link[pipeline_link_index]);
+
+          eg_compute_pipeline_destroy(renderer->pipeline_link[pipeline_link_index]);
+
           break;
         }
       }
@@ -979,7 +980,7 @@ static void renderer_destroy_pipelines(renderer_t *renderer) {
     pipeline_link_index++;
   }
 }
-static void renderer_destroy_sync_objects(renderer_t *renderer) {
+static void eg_renderer_destroy_sync_objects(eg_renderer_t *renderer) {
   uint64_t image_index = 0;
   uint64_t image_count = renderer->context->swapchain->image_count;
 
@@ -1006,11 +1007,11 @@ static void renderer_destroy_sync_objects(renderer_t *renderer) {
   heap_free(renderer->image_available_semaphore);
   heap_free(renderer->frame_fence);
 }
-static void renderer_destroy_command_buffer(renderer_t *renderer) {
+static void eg_renderer_destroy_command_buffer(eg_renderer_t *renderer) {
   vkFreeCommandBuffers(renderer->context->device, renderer->context->command_pool, (uint32_t)renderer->frames_in_flight, renderer->command_buffer);
 
   heap_free(renderer->command_buffer);
 }
-static void renderer_destroy_gbuffer_render_pass(renderer_t *renderer) {
+static void eg_renderer_destroy_gbuffer_render_pass(eg_renderer_t *renderer) {
   vkDestroyRenderPass(renderer->context->device, renderer->gbuffer_render_pass, 0);
 }

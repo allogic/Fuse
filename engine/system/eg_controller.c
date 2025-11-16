@@ -3,65 +3,65 @@
 
 #include <engine/system/eg_controller.h>
 
-static void editor_controller_handle_position(context_t *context, editor_controller_t *editor_controller, transform_t *transform, rigidbody_t *rigidbody);
-static void editor_controller_handle_rotation(context_t *context, editor_controller_t *editor_controller, transform_t *transform, rigidbody_t *rigidbody);
+static void eg_editor_controller_handle_position(eg_context_t *context, eg_editor_controller_t *editor_controller, eg_transform_t *transform, eg_rigidbody_t *rigidbody);
+static void eg_editor_controller_handle_rotation(eg_context_t *context, eg_editor_controller_t *editor_controller, eg_transform_t *transform, eg_rigidbody_t *rigidbody);
 
-void editor_controller_update(ecs_iter_t *iter) {
+void eg_editor_controller_update(ecs_iter_t *iter) {
   while (ecs_query_next(iter)) {
 
-    transform_t *transforms = ecs_field(iter, transform_t, 0);
-    rigidbody_t *rigidbodies = ecs_field(iter, rigidbody_t, 1);
-    editor_controller_t *editor_controllers = ecs_field(iter, editor_controller_t, 2);
+    eg_transform_t *transforms = ecs_field(iter, eg_transform_t, 0);
+    eg_rigidbody_t *rigidbodies = ecs_field(iter, eg_rigidbody_t, 1);
+    eg_editor_controller_t *editor_controllers = ecs_field(iter, eg_editor_controller_t, 2);
 
     uint64_t entity_index = 0;
     uint64_t entity_count = iter->count;
 
     while (entity_index < entity_count) {
 
-      editor_controller_handle_position(iter->ctx, &editor_controllers[entity_index], &transforms[entity_index], &rigidbodies[entity_index]);
-      editor_controller_handle_rotation(iter->ctx, &editor_controllers[entity_index], &transforms[entity_index], &rigidbodies[entity_index]);
+      eg_editor_controller_handle_position(iter->ctx, &editor_controllers[entity_index], &transforms[entity_index], &rigidbodies[entity_index]);
+      eg_editor_controller_handle_rotation(iter->ctx, &editor_controllers[entity_index], &transforms[entity_index], &rigidbodies[entity_index]);
 
       entity_index++;
     }
   }
 }
 
-static void editor_controller_handle_position(context_t *context, editor_controller_t *editor_controller, transform_t *transform, rigidbody_t *rigidbody) {
-  float keyboard_move_speed = context_is_keyboard_key_held(context, KEYBOARD_KEY_LEFT_SHIFT)
+static void eg_editor_controller_handle_position(eg_context_t *context, eg_editor_controller_t *editor_controller, eg_transform_t *transform, eg_rigidbody_t *rigidbody) {
+  float keyboard_move_speed = eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_LEFT_SHIFT)
                                 ? editor_controller->keyboard_move_speed_fast
                                 : editor_controller->keyboard_move_speed_normal;
 
   vector3_t velocity = rigidbody->linear_velocity;
 
-  if (context_is_keyboard_key_held(context, KEYBOARD_KEY_D)) {
-    velocity = vector3_add(velocity, vector3_muls(transform_local_right(transform), keyboard_move_speed));
+  if (eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_D)) {
+    velocity = vector3_add(velocity, vector3_muls(eg_transform_local_right(transform), keyboard_move_speed));
   }
-  if (context_is_keyboard_key_held(context, KEYBOARD_KEY_A)) {
-    velocity = vector3_add(velocity, vector3_muls(transform_local_left(transform), keyboard_move_speed));
+  if (eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_A)) {
+    velocity = vector3_add(velocity, vector3_muls(eg_transform_local_left(transform), keyboard_move_speed));
   }
-  if (context_is_keyboard_key_held(context, KEYBOARD_KEY_E)) {
-    velocity = vector3_add(velocity, vector3_muls(transform_local_up(transform), keyboard_move_speed));
+  if (eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_E)) {
+    velocity = vector3_add(velocity, vector3_muls(eg_transform_local_up(transform), keyboard_move_speed));
   }
-  if (context_is_keyboard_key_held(context, KEYBOARD_KEY_Q)) {
-    velocity = vector3_add(velocity, vector3_muls(transform_local_down(transform), keyboard_move_speed));
+  if (eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_Q)) {
+    velocity = vector3_add(velocity, vector3_muls(eg_transform_local_down(transform), keyboard_move_speed));
   }
-  if (context_is_keyboard_key_held(context, KEYBOARD_KEY_W)) {
-    velocity = vector3_add(velocity, vector3_muls(transform_local_front(transform), keyboard_move_speed));
+  if (eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_W)) {
+    velocity = vector3_add(velocity, vector3_muls(eg_transform_local_front(transform), keyboard_move_speed));
   }
-  if (context_is_keyboard_key_held(context, KEYBOARD_KEY_S)) {
-    velocity = vector3_add(velocity, vector3_muls(transform_local_back(transform), keyboard_move_speed));
+  if (eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_S)) {
+    velocity = vector3_add(velocity, vector3_muls(eg_transform_local_back(transform), keyboard_move_speed));
   }
 
   rigidbody->linear_velocity = velocity;
 }
-static void editor_controller_handle_rotation(context_t *context, editor_controller_t *editor_controller, transform_t *transform, rigidbody_t *rigidbody) {
-  if (context_is_mouse_key_pressed(context, MOUSE_KEY_RIGHT)) {
+static void eg_editor_controller_handle_rotation(eg_context_t *context, eg_editor_controller_t *editor_controller, eg_transform_t *transform, eg_rigidbody_t *rigidbody) {
+  if (eg_context_is_mouse_key_pressed(context, EG_MOUSE_KEY_RIGHT)) {
 
     editor_controller->mouse_begin = vector3_xyz((float)context->mouse_position_x, (float)context->mouse_position_y, 0.0F);
 
-  } else if (context_is_mouse_key_held(context, MOUSE_KEY_RIGHT) && context_is_mouse_key_held(context, MOUSE_KEY_LEFT)) {
+  } else if (eg_context_is_mouse_key_held(context, EG_MOUSE_KEY_RIGHT) && eg_context_is_mouse_key_held(context, EG_MOUSE_KEY_LEFT)) {
 
-    float mouse_move_speed = context_is_keyboard_key_held(context, KEYBOARD_KEY_LEFT_SHIFT)
+    float mouse_move_speed = eg_context_is_keyboard_key_held(context, EG_KEYBOARD_KEY_LEFT_SHIFT)
                                ? editor_controller->mouse_move_speed_fast
                                : editor_controller->mouse_move_speed_normal;
 
@@ -73,14 +73,14 @@ static void editor_controller_handle_rotation(context_t *context, editor_control
     float x_delta = editor_controller->mouse_delta.x * mouse_move_speed * (float)context->delta_time;
     float y_delta = -editor_controller->mouse_delta.y * mouse_move_speed * (float)context->delta_time;
 
-    vector3_t change_in_x = vector3_muls(transform_local_right(transform), x_delta);
-    vector3_t change_in_y = vector3_muls(transform_local_up(transform), y_delta);
+    vector3_t change_in_x = vector3_muls(eg_transform_local_right(transform), x_delta);
+    vector3_t change_in_y = vector3_muls(eg_transform_local_up(transform), y_delta);
 
     velocity = vector3_add(vector3_add(velocity, change_in_y), change_in_x);
 
     rigidbody->linear_velocity = velocity;
 
-  } else if (context_is_mouse_key_held(context, MOUSE_KEY_RIGHT)) {
+  } else if (eg_context_is_mouse_key_held(context, EG_MOUSE_KEY_RIGHT)) {
 
     vector3_t velocity = rigidbody->angular_velocity;
 

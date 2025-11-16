@@ -12,10 +12,10 @@
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
-static void editor_create(context_t *context);
-static void editor_refresh(context_t *context);
-static void editor_draw(context_t *context);
-static void editor_destroy(context_t *context);
+static void editor_create(eg_context_t *context);
+static void editor_refresh(eg_context_t *context);
+static void editor_draw(eg_context_t *context);
+static void editor_destroy(eg_context_t *context);
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface);
 
@@ -40,14 +40,6 @@ ImFont *g_editor_material_symbols_h4 = 0;
 ImFont *g_editor_material_symbols_h5 = 0;
 ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
-
-//////////////////////////////////////////////////////////////////////////////
-// Scene Stuff
-//////////////////////////////////////////////////////////////////////////////
-
-vector_t g_scene_assets = {0};
-
-int64_t g_scene_selected_asset = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Catalog Stuff
@@ -79,11 +71,11 @@ ed_profiler_t g_profiler_scene = {0};
 // Dockspace Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-uint8_t g_dockspace_is_initialized = 0;
+uint8_t g_dockspace_is_dirty = 1;
 
-ed_dockspace_type_t g_dockspace_selected_type = DOCKSPACE_TYPE_GAME;
+ed_dockspace_type_t g_dockspace_selected_type = ED_DOCKSPACE_TYPE_GAME;
 
-char const *g_dockspace_type_names[DOCKSPACE_TYPE_COUNT] = {
+char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT] = {
   "Game",
   "Scene",
   "Model",
@@ -96,7 +88,7 @@ char const *g_dockspace_type_names[DOCKSPACE_TYPE_COUNT] = {
 ed_viewport_t g_viewport_game = {0};
 ed_viewport_t g_viewport_scene = {0};
 
-char const *g_viewport_gbuffer_attachment_names[GBUFFER_ATTACHMENT_TYPE_COUNT] = {
+char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
   "Color",
   "Depth",
 };
@@ -108,23 +100,23 @@ int32_t main(int32_t argc, char **argv) {
   g_context_editor_destroy_proc = editor_destroy;
   g_context_editor_message_proc = ImGui_ImplWin32_WndProcHandler;
 
-  context_t *context = context_create(1920, 1080, 1);
+  eg_context_t *context = eg_context_create(1920, 1080, 1);
 
   // TODO: move scene stuff somewhere else
-  context->scene = scene_create(context);
+  context->scene = eg_scene_create(context);
 
-  context_run(context);
+  eg_context_run(context);
 
-  scene_destroy(context->scene);
+  eg_scene_destroy(context->scene);
 
-  context_destroy(context);
+  eg_context_destroy(context);
 
   heap_reset();
 
   return 0;
 }
 
-static void editor_create(context_t *context) {
+static void editor_create(eg_context_t *context) {
   // TODO: double check descriptor pool's..
 
   VkDescriptorPoolSize s_editor_descriptor_pool_sizes[] = {
@@ -203,30 +195,30 @@ static void editor_create(context_t *context) {
   style.TabBarOverlineSize = 0.0F;
   style.DockingSeparatorSize = 5.0F;
 
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_Border, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ChildBg, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_FrameBg, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TitleBg, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TitleBgActive, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_DockingPreview, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_Tab, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TabHovered, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TabActive, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TabUnfocused, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_Separator, EDITOR_HIGHLIGHT_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_SeparatorActive, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, EDITOR_BACKGROUND_COLOR);
-  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, EDITOR_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_Border, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_FrameBg, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_TitleBg, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_DockingEmptyBg, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_DockingPreview, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_Tab, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabHovered, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabActive, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_Separator, ED_LIGHT_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_SeparatorActive, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_SeparatorHovered, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ED_SHALLOW_GRAY_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ED_DARK_GREY);
+  ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ED_DARK_GREY);
 
   ImGui_ImplWin32_Init(context->window_handle);
 
@@ -247,8 +239,6 @@ static void editor_create(context_t *context) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  g_scene_assets = database_load_scene_assets();
-
   g_viewport_game = ed_viewport_create(context);
   g_viewport_scene = ed_viewport_create(context);
 
@@ -262,11 +252,11 @@ static void editor_create(context_t *context) {
 
   g_profiler_scene = ed_profiler_create(context);
 }
-static void editor_refresh(context_t *context) {
+static void editor_refresh(eg_context_t *context) {
   ed_viewport_refresh(&g_viewport_game);
   ed_viewport_refresh(&g_viewport_scene);
 }
-static void editor_draw(context_t *context) {
+static void editor_draw(eg_context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
 
   ImGui_ImplVulkan_NewFrame();
@@ -287,7 +277,7 @@ static void editor_draw(context_t *context) {
 
   ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
-static void editor_destroy(context_t *context) {
+static void editor_destroy(eg_context_t *context) {
   ed_profiler_destroy(&g_profiler_scene);
 
   ed_inspector_destroy(&g_inspector_scene);
@@ -300,8 +290,6 @@ static void editor_destroy(context_t *context) {
 
   ed_viewport_destroy(&g_viewport_game);
   ed_viewport_destroy(&g_viewport_scene);
-
-  database_destroy_scene_assets(&g_scene_assets);
 
   ImGui::PopStyleColor(24);
 

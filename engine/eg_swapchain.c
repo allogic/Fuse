@@ -2,18 +2,18 @@
 #include <engine/eg_context.h>
 #include <engine/eg_swapchain.h>
 
-static void swapchain_create_main_render_pass(swapchain_t *swapchain);
-static void swapchain_create_color_images(swapchain_t *swapchain);
-static void swapchain_create_depth_images(swapchain_t *swapchain);
-static void swapchain_create_frame_buffer(swapchain_t *swapchain);
+static void eg_swapchain_create_main_render_pass(eg_swapchain_t *swapchain);
+static void eg_swapchain_create_color_images(eg_swapchain_t *swapchain);
+static void eg_swapchain_create_depth_images(eg_swapchain_t *swapchain);
+static void eg_swapchain_create_frame_buffer(eg_swapchain_t *swapchain);
 
-static void swapchain_destroy_main_render_pass(swapchain_t *swapchain);
-static void swapchain_destroy_color_images(swapchain_t *swapchain);
-static void swapchain_destroy_depth_images(swapchain_t *swapchain);
-static void swapchain_destroy_frame_buffer(swapchain_t *swapchain);
+static void eg_swapchain_destroy_main_render_pass(eg_swapchain_t *swapchain);
+static void eg_swapchain_destroy_color_images(eg_swapchain_t *swapchain);
+static void eg_swapchain_destroy_depth_images(eg_swapchain_t *swapchain);
+static void eg_swapchain_destroy_frame_buffer(eg_swapchain_t *swapchain);
 
-void swapchain_create(context_t *context) {
-  swapchain_t *swapchain = (swapchain_t *)heap_alloc(sizeof(swapchain_t), 1, 0);
+void eg_swapchain_create(eg_context_t *context) {
+  eg_swapchain_t *swapchain = (eg_swapchain_t *)heap_alloc(sizeof(eg_swapchain_t), 1, 0);
 
   swapchain->context = context;
   swapchain->context->swapchain = swapchain;
@@ -67,18 +67,18 @@ void swapchain_create(context_t *context) {
 
   swapchain->frame_buffer = (VkFramebuffer *)heap_alloc(sizeof(VkFramebuffer) * swapchain->image_count, 0, 0);
 
-  swapchain_create_main_render_pass(swapchain);
-  swapchain_create_color_images(swapchain);
-  swapchain_create_depth_images(swapchain);
-  swapchain_create_frame_buffer(swapchain);
+  eg_swapchain_create_main_render_pass(swapchain);
+  eg_swapchain_create_color_images(swapchain);
+  eg_swapchain_create_depth_images(swapchain);
+  eg_swapchain_create_frame_buffer(swapchain);
 
   database_destroy_swapchain_asset(&swapchain_asset);
 }
-void swapchain_destroy(swapchain_t *swapchain) {
-  swapchain_destroy_frame_buffer(swapchain);
-  swapchain_destroy_depth_images(swapchain);
-  swapchain_destroy_color_images(swapchain);
-  swapchain_destroy_main_render_pass(swapchain);
+void eg_swapchain_destroy(eg_swapchain_t *swapchain) {
+  eg_swapchain_destroy_frame_buffer(swapchain);
+  eg_swapchain_destroy_depth_images(swapchain);
+  eg_swapchain_destroy_color_images(swapchain);
+  eg_swapchain_destroy_main_render_pass(swapchain);
 
   heap_free(swapchain->color_image);
   heap_free(swapchain->color_image_view);
@@ -96,7 +96,7 @@ void swapchain_destroy(swapchain_t *swapchain) {
   heap_free(swapchain);
 }
 
-static void swapchain_create_main_render_pass(swapchain_t *swapchain) {
+static void eg_swapchain_create_main_render_pass(eg_swapchain_t *swapchain) {
   VkAttachmentDescription color_attachment_description = {0};
   color_attachment_description.format = swapchain->context->prefered_surface_format.format;
   color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -152,7 +152,7 @@ static void swapchain_create_main_render_pass(swapchain_t *swapchain) {
 
   VULKAN_CHECK(vkCreateRenderPass(swapchain->context->device, &render_pass_create_info, 0, &swapchain->main_render_pass));
 }
-static void swapchain_create_color_images(swapchain_t *swapchain) {
+static void eg_swapchain_create_color_images(eg_swapchain_t *swapchain) {
   VULKAN_CHECK(vkGetSwapchainImagesKHR(swapchain->context->device, swapchain->handle, (uint32_t *)&swapchain->image_count, swapchain->color_image));
 
   uint64_t image_index = 0;
@@ -176,7 +176,7 @@ static void swapchain_create_color_images(swapchain_t *swapchain) {
     image_index++;
   }
 }
-static void swapchain_create_depth_images(swapchain_t *swapchain) {
+static void eg_swapchain_create_depth_images(eg_swapchain_t *swapchain) {
   uint64_t image_index = 0;
   uint64_t image_count = swapchain->image_count;
 
@@ -203,7 +203,7 @@ static void swapchain_create_depth_images(swapchain_t *swapchain) {
 
     vkGetImageMemoryRequirements(swapchain->context->device, swapchain->depth_image[image_index], &memory_requirements);
 
-    uint32_t memory_type_index = context_find_memory_type(swapchain->context, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    uint32_t memory_type_index = eg_context_find_memory_type(swapchain->context, memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkMemoryAllocateInfo memory_allocate_info = {0};
     memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -229,7 +229,7 @@ static void swapchain_create_depth_images(swapchain_t *swapchain) {
     image_index++;
   }
 }
-static void swapchain_create_frame_buffer(swapchain_t *swapchain) {
+static void eg_swapchain_create_frame_buffer(eg_swapchain_t *swapchain) {
   uint64_t image_index = 0;
   uint64_t image_count = swapchain->image_count;
 
@@ -252,10 +252,10 @@ static void swapchain_create_frame_buffer(swapchain_t *swapchain) {
   }
 }
 
-static void swapchain_destroy_main_render_pass(swapchain_t *swapchain) {
+static void eg_swapchain_destroy_main_render_pass(eg_swapchain_t *swapchain) {
   vkDestroyRenderPass(swapchain->context->device, swapchain->main_render_pass, 0);
 }
-static void swapchain_destroy_color_images(swapchain_t *swapchain) {
+static void eg_swapchain_destroy_color_images(eg_swapchain_t *swapchain) {
   uint64_t image_index = 0;
   uint64_t image_count = swapchain->image_count;
 
@@ -266,7 +266,7 @@ static void swapchain_destroy_color_images(swapchain_t *swapchain) {
     image_index++;
   }
 }
-static void swapchain_destroy_depth_images(swapchain_t *swapchain) {
+static void eg_swapchain_destroy_depth_images(eg_swapchain_t *swapchain) {
   uint64_t image_index = 0;
   uint64_t image_count = swapchain->image_count;
 
@@ -279,7 +279,7 @@ static void swapchain_destroy_depth_images(swapchain_t *swapchain) {
     image_index++;
   }
 }
-static void swapchain_destroy_frame_buffer(swapchain_t *swapchain) {
+static void eg_swapchain_destroy_frame_buffer(eg_swapchain_t *swapchain) {
   uint64_t image_index = 0;
   uint64_t image_count = swapchain->image_count;
 

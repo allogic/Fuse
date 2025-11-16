@@ -4,12 +4,12 @@
 #include <editor/dockable/ed_inspector.h>
 #include <editor/dockable/ed_hierarchy.h>
 
-static void ed_inspector_draw_camera(camera_t *camera);
-static void ed_inspector_draw_editor_controller(editor_controller_t *editor_controller);
-static void ed_inspector_draw_rigidbody(rigidbody_t *rigidbody);
-static void ed_inspector_draw_transform(transform_t *transform);
+static void ed_inspector_draw_camera(eg_camera_t *camera);
+static void ed_inspector_draw_editor_controller(eg_editor_controller_t *editor_controller);
+static void ed_inspector_draw_rigidbody(eg_rigidbody_t *rigidbody);
+static void ed_inspector_draw_transform(eg_transform_t *transform);
 
-ed_inspector_t ed_inspector_create(context_t *context) {
+ed_inspector_t ed_inspector_create(eg_context_t *context) {
   ed_inspector_t inspector = {0};
 
   inspector.context = context;
@@ -55,7 +55,7 @@ void ed_inspector_draw(ed_inspector_t *inspector) {
 void ed_inspector_destroy(ed_inspector_t *inspector) {
 }
 
-static void ed_inspector_draw_camera(camera_t *camera) {
+static void ed_inspector_draw_camera(eg_camera_t *camera) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 100);
 
   if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -77,7 +77,7 @@ static void ed_inspector_draw_camera(camera_t *camera) {
 
   ImGui::PopItemWidth();
 }
-static void ed_inspector_draw_editor_controller(editor_controller_t *editor_controller) {
+static void ed_inspector_draw_editor_controller(eg_editor_controller_t *editor_controller) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 240);
 
   if (ImGui::TreeNodeEx("Editor Controller", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -111,7 +111,7 @@ static void ed_inspector_draw_editor_controller(editor_controller_t *editor_cont
 
   ImGui::PopItemWidth();
 }
-static void ed_inspector_draw_rigidbody(rigidbody_t *rigidbody) {
+static void ed_inspector_draw_rigidbody(eg_rigidbody_t *rigidbody) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 70);
 
   if (ImGui::TreeNodeEx("Rigidbody", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -123,7 +123,7 @@ static void ed_inspector_draw_rigidbody(rigidbody_t *rigidbody) {
 
   ImGui::PopItemWidth();
 }
-static void ed_inspector_draw_transform(transform_t *transform) {
+static void ed_inspector_draw_transform(eg_transform_t *transform) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 80);
 
   if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -131,7 +131,7 @@ static void ed_inspector_draw_transform(transform_t *transform) {
     vector3_t local_position = transform->local_position;
 
     if (ImGui::DragFloat3("Position", (float *)&local_position, 0.1F, 0.0F, 0.0F, "%.3F")) {
-      transform_set_position(transform, local_position);
+      eg_transform_set_position(transform, local_position);
     }
 
     quaternion_t local_rotation = transform->local_rotation;
@@ -147,13 +147,13 @@ static void ed_inspector_draw_transform(transform_t *transform) {
       euler_angles_rad.y = deg_to_rad(euler_angles_deg.y);
       euler_angles_rad.z = deg_to_rad(euler_angles_deg.z);
 
-      transform_set_euler_angles(transform, euler_angles_rad);
+      eg_transform_set_euler_angles(transform, euler_angles_rad);
     }
 
     vector3_t local_scale = transform->local_scale;
 
     if (ImGui::DragFloat3("Scale", (float *)&local_scale, 0.1F, 0.0F, 0.0F, "%.3F", 0)) {
-      transform_set_scale(transform, local_scale);
+      eg_transform_set_scale(transform, local_scale);
     }
 
     ImGui::TreePop();

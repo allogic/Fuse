@@ -4,7 +4,7 @@
 
 #include <editor/dockable/ed_profiler.h>
 
-ed_profiler_t ed_profiler_create(context_t *context) {
+ed_profiler_t ed_profiler_create(eg_context_t *context) {
   ed_profiler_t profiler = {0};
 
   profiler.context = context;
@@ -43,8 +43,8 @@ void ed_profiler_draw(ed_profiler_t *profiler) {
     ImPlotAxisFlags_NoMenus;
 
   ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(15, 15, 15, 255));
-  ImPlot::PushStyleColor(ImPlotCol_FrameBg, EDITOR_DOCKING_BACKGROUND_COLOR);
-  ImPlot::PushStyleColor(ImPlotCol_LegendBg, EDITOR_DOCKING_BACKGROUND_COLOR);
+  ImPlot::PushStyleColor(ImPlotCol_FrameBg, ED_SHALLOW_GRAY_COLOR);
+  ImPlot::PushStyleColor(ImPlotCol_LegendBg, ED_SHALLOW_GRAY_COLOR);
 
   ImVec2 window_size = ImGui::GetWindowSize();
 
@@ -69,7 +69,7 @@ void ed_profiler_draw(ed_profiler_t *profiler) {
     //  ImPlot::SetNextFillStyle(IMPLOT_AUTO_COL, 0.5F);
 
     uint64_t sample_index = 0;
-    uint64_t sample_count = PROFILER_SAMPLE_LANE_COUNT;
+    uint64_t sample_count = EG_PROFILER_SAMPLE_LANE_COUNT;
 
     while (sample_index < sample_count) {
 
@@ -77,7 +77,7 @@ void ed_profiler_draw(ed_profiler_t *profiler) {
 
         // TODO
         // ImPlot::PlotShaded(g_profiler_cpu_sample_names[sample_index], &g_profiler_cpu_samples[sample_index][0].time, &g_profiler_cpu_samples[sample_index][0].value, PROFILER_SAMPLE_COUNT, -INFINITY, 0, (int32_t)g_profiler_frame_index, sizeof(cpu_frame_sample_t));
-        ImPlot::PlotLine(g_profiler_cpu_sample_names[sample_index], &g_profiler_cpu_samples[sample_index][0].time, &g_profiler_cpu_samples[sample_index][0].delta, PROFILER_SAMPLE_COUNT, 0, (int32_t)g_profiler_frame_index, sizeof(cpu_frame_sample_t));
+        ImPlot::PlotLine(g_profiler_cpu_sample_names[sample_index], &g_profiler_cpu_samples[sample_index][0].time, &g_profiler_cpu_samples[sample_index][0].delta, EG_PROFILER_SAMPLE_COUNT, 0, (int32_t)g_profiler_frame_index, sizeof(eg_cpu_frame_sample_t));
       }
 
       sample_index++;

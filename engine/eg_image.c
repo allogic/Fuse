@@ -1,8 +1,8 @@
 #include <engine/eg_pch.h>
 #include <engine/eg_image.h>
 
-image_t *image_create(context_t *context, uint32_t width, uint32_t height, uint32_t depth, uint32_t channels, VkImageType type, VkImageViewType view_type, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_properties, VkImageAspectFlags aspect_flags, VkFormat format, VkImageTiling tiling, VkFilter filter) {
-  image_t *image = (image_t *)heap_alloc(sizeof(image_t), 1, 0);
+eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t height, uint32_t depth, uint32_t channels, VkImageType type, VkImageViewType view_type, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_properties, VkImageAspectFlags aspect_flags, VkFormat format, VkImageTiling tiling, VkFilter filter) {
+  eg_image_t *image = (eg_image_t *)heap_alloc(sizeof(eg_image_t), 1, 0);
 
   image->context = context;
   image->size = width * height * depth * channels;
@@ -42,22 +42,22 @@ image_t *image_create(context_t *context, uint32_t width, uint32_t height, uint3
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   memory_allocate_info.allocationSize = memory_requirements.size;
-  memory_allocate_info.memoryTypeIndex = context_find_memory_type(image->context, memory_requirements.memoryTypeBits, memory_properties);
+  memory_allocate_info.memoryTypeIndex = eg_context_find_memory_type(image->context, memory_requirements.memoryTypeBits, memory_properties);
 
   VULKAN_CHECK(vkAllocateMemory(image->context->device, &memory_allocate_info, 0, &image->device_memory));
   VULKAN_CHECK(vkBindImageMemory(image->context->device, image->handle, image->device_memory, 0));
 
   return image;
 }
-void image_map(image_t *image) {
+void eg_image_map(eg_image_t *image) {
   VULKAN_CHECK(vkMapMemory(image->context->device, image->device_memory, 0, image->size, 0, &image->mapped_memory));
 }
-void image_unmap(image_t *image) {
+void eg_image_unmap(eg_image_t *image) {
   vkUnmapMemory(image->context->device, image->device_memory);
 
   image->mapped_memory = 0;
 }
-void image_copy_to_image(image_t *image, image_t *target, VkCommandBuffer command_buffer) {
+void eg_image_copy_to_image(eg_image_t *image, eg_image_t *target, VkCommandBuffer command_buffer) {
   VkImageCopy image_copy = {0};
   image_copy.extent.width = image->width;
   image_copy.extent.height = image->height;
@@ -67,7 +67,7 @@ void image_copy_to_image(image_t *image, image_t *target, VkCommandBuffer comman
 
   vkCmdCopyImage(command_buffer, image->handle, VK_IMAGE_LAYOUT_UNDEFINED, target->handle, VK_IMAGE_LAYOUT_UNDEFINED, 1, &image_copy);
 }
-void image_copy_to_buffer(image_t *image, buffer_t *target, VkCommandBuffer command_buffer) {
+void eg_image_copy_to_buffer(eg_image_t *image, eg_buffer_t *target, VkCommandBuffer command_buffer) {
   VkBufferImageCopy buffer_image_copy = {0};
   buffer_image_copy.bufferOffset = 0;
   buffer_image_copy.bufferRowLength = 0;
@@ -87,7 +87,7 @@ void image_copy_to_buffer(image_t *image, buffer_t *target, VkCommandBuffer comm
 
   vkCmdCopyImageToBuffer(command_buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target->handle, 1, &buffer_image_copy);
 }
-void image_destroy(image_t *image) {
+void eg_image_destroy(eg_image_t *image) {
   if (image->mapped_memory) {
     vkUnmapMemory(image->context->device, image->device_memory);
   }
@@ -99,7 +99,7 @@ void image_destroy(image_t *image) {
   heap_free(image);
 }
 
-VkImageView image_create_view(context_t *context, VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format) {
+VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format) {
   VkImageView image_view = 0;
 
   VkImageViewCreateInfo image_view_create_info = {0};
@@ -117,7 +117,7 @@ VkImageView image_create_view(context_t *context, VkImage image, VkImageViewType
 
   return image_view;
 }
-VkSampler image_create_sampler(context_t *context, VkImage image, VkFilter filter) {
+VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter filter) {
   VkSampler sampler = 0;
 
   VkSamplerCreateInfo sampler_create_info = {0};
@@ -142,7 +142,7 @@ VkSampler image_create_sampler(context_t *context, VkImage image, VkFilter filte
 
   return sampler;
 }
-void image_layout_transition(context_t *context, VkImage image, VkCommandBuffer command_buffer, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags aspect_mask) {
+void eg_image_layout_transition(eg_context_t *context, VkImage image, VkCommandBuffer command_buffer, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags aspect_mask) {
   VkImageMemoryBarrier image_memory_barrier = {0};
   image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   image_memory_barrier.oldLayout = old_layout;
@@ -165,25 +165,25 @@ void image_layout_transition(context_t *context, VkImage image, VkCommandBuffer 
     0, 0, 0, 0, 0, 1, &image_memory_barrier);
 }
 
-image_t *image_create_2d(context_t *context, void *buffer, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
+eg_image_t *eg_image_create_2d(eg_context_t *context, void *buffer, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
   uint64_t buffer_size = width * height;
 
-  buffer_t *staging_buffer = buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  image_t *target_image = image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, format, tiling, filter);
+  eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  eg_image_t *target_image = eg_image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, format, tiling, filter);
 
-  buffer_map(staging_buffer);
+  eg_buffer_map(staging_buffer);
   memcpy(staging_buffer->mapped_memory, buffer, buffer_size);
-  buffer_unmap(staging_buffer);
+  eg_buffer_unmap(staging_buffer);
 
   // TODO
-  VkCommandBuffer command_buffer = context_begin_command_buffer(context);
+  VkCommandBuffer command_buffer = eg_context_begin_command_buffer(context);
   // targetImage->LayoutTransition(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  buffer_copy_to_image(staging_buffer, target_image, command_buffer);
+  eg_buffer_copy_to_image(staging_buffer, target_image, command_buffer);
   // targetImage->LayoutTransition(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
-  context_end_command_buffer(context, command_buffer);
+  eg_context_end_command_buffer(context, command_buffer);
 
   return target_image;
 }
-image_t *image_create_2d_depth_stencil(context_t *context, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
-  return image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, format, tiling, filter);
+eg_image_t *eg_image_create_2d_depth_stencil(eg_context_t *context, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
+  return eg_image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, format, tiling, filter);
 }

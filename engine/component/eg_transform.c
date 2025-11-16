@@ -2,7 +2,7 @@
 
 #include <engine/component/eg_transform.h>
 
-void transform_init(transform_t *transform) {
+void eg_transform_init(eg_transform_t *transform) {
   transform->local_position = vector3_zero();
   transform->local_rotation = quaternion_identity();
   transform->local_scale = vector3_one();
@@ -10,7 +10,7 @@ void transform_init(transform_t *transform) {
   transform->world_rotation = quaternion_identity();
   transform->world_scale = vector3_one();
 }
-matrix4_t transform_matrix(transform_t *transform) {
+matrix4_t eg_transform_matrix(eg_transform_t *transform) {
   float xx = transform->world_rotation.x * transform->world_rotation.x;
   float yy = transform->world_rotation.y * transform->world_rotation.y;
   float zz = transform->world_rotation.z * transform->world_rotation.z;
@@ -45,11 +45,11 @@ matrix4_t transform_matrix(transform_t *transform) {
   return r;
 }
 
-void transform_compute_world_position(ecs_world_t *world, ecs_entity_t entity) {
+void eg_transform_compute_world_position(ecs_world_t *world, ecs_entity_t entity) {
   ecs_entity_t parent = ecs_get_parent(world, entity);
 
-  transform_t *transform = ecs_get_mut(world, entity, transform_t);
-  transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
+  eg_transform_t *transform = ecs_get_mut(world, entity, eg_transform_t);
+  eg_transform_t *parent_transform = ecs_get_mut(world, parent, eg_transform_t);
 
   if (parent_transform) {
     transform->world_position = vector3_add(parent_transform->world_position, vector3_rotate(transform->local_position, parent_transform->world_rotation));
@@ -68,17 +68,17 @@ void transform_compute_world_position(ecs_world_t *world, ecs_entity_t entity) {
 
       ecs_entity_t child = iter.entities[child_index];
 
-      transform_compute_world_position(world, child);
+      eg_transform_compute_world_position(world, child);
 
       child_index++;
     }
   }
 }
-void transform_compute_world_rotation(ecs_world_t *world, ecs_entity_t entity) {
+void eg_transform_compute_world_rotation(ecs_world_t *world, ecs_entity_t entity) {
   ecs_entity_t parent = ecs_get_parent(world, entity);
 
-  transform_t *transform = ecs_get_mut(world, entity, transform_t);
-  transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
+  eg_transform_t *transform = ecs_get_mut(world, entity, eg_transform_t);
+  eg_transform_t *parent_transform = ecs_get_mut(world, parent, eg_transform_t);
 
   if (parent_transform) {
     transform->world_rotation = quaternion_mul(transform->local_rotation, parent_transform->world_rotation);
@@ -97,17 +97,17 @@ void transform_compute_world_rotation(ecs_world_t *world, ecs_entity_t entity) {
 
       ecs_entity_t child = iter.entities[child_index];
 
-      transform_compute_world_rotation(world, child);
+      eg_transform_compute_world_rotation(world, child);
 
       child_index++;
     }
   }
 }
-void transform_compute_world_scale(ecs_world_t *world, ecs_entity_t entity) {
+void eg_transform_compute_world_scale(ecs_world_t *world, ecs_entity_t entity) {
   ecs_entity_t parent = ecs_get_parent(world, entity);
 
-  transform_t *transform = ecs_get_mut(world, entity, transform_t);
-  transform_t *parent_transform = ecs_get_mut(world, parent, transform_t);
+  eg_transform_t *transform = ecs_get_mut(world, entity, eg_transform_t);
+  eg_transform_t *parent_transform = ecs_get_mut(world, parent, eg_transform_t);
 
   if (parent_transform) {
     transform->world_scale = vector3_mul(transform->local_scale, parent_transform->world_scale);
@@ -126,7 +126,7 @@ void transform_compute_world_scale(ecs_world_t *world, ecs_entity_t entity) {
 
       ecs_entity_t child = iter.entities[child_index];
 
-      transform_compute_world_scale(world, child);
+      eg_transform_compute_world_scale(world, child);
 
       child_index++;
     }
