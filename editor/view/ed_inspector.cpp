@@ -2,56 +2,57 @@
 #include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
 
-#include <editor/dockable/ed_inspector.h>
-#include <editor/dockable/ed_hierarchy.h>
+#include <editor/view/ed_inspector.h>
+#include <editor/view/ed_hierarchy.h>
 
-static void ed_inspector_draw_camera(eg_camera_t *camera);
-static void ed_inspector_draw_editor_controller(eg_editor_controller_t *editor_controller);
-static void ed_inspector_draw_rigidbody(eg_rigidbody_t *rigidbody);
-static void ed_inspector_draw_transform(eg_transform_t *transform);
+static void ed_inspector_view_draw_camera(eg_camera_t *camera);
+static void ed_inspector_view_draw_editor_controller(eg_editor_controller_t *editor_controller);
+static void ed_inspector_view_draw_rigidbody(eg_rigidbody_t *rigidbody);
+static void ed_inspector_view_draw_transform(eg_transform_t *transform);
 
-ed_inspector_t ed_inspector_create(eg_context_t *context) {
-  ed_inspector_t inspector = {0};
+ed_inspector_view_t *ed_inspector_view_create(eg_context_t *context) {
+  ed_inspector_view_t *inspector = (ed_inspector_view_t *)heap_alloc(sizeof(ed_inspector_view_t), 1, 0);
 
-  inspector.context = context;
-  inspector.is_dirty = 0;
-  inspector.is_open = 1;
-  inspector.is_docked = 0;
+  inspector->base.context = context;
+  inspector->base.is_dirty = 0;
+  inspector->base.is_open = 1;
+  inspector->base.is_docked = 0;
 
   return inspector;
 }
-void ed_inspector_refresh(ed_inspector_t *inspector) {
+void ed_inspector_view_refresh(ed_inspector_view_t *inspector) {
+  // TODO
 }
-void ed_inspector_draw(ed_inspector_t *inspector) {
+void ed_inspector_view_draw(ed_inspector_view_t *inspector) {
   switch (g_dockspace_selected_type) {
     case ED_DOCKSPACE_TYPE_SCENE: {
 
-      ecs_world_t *world = inspector->context->scene->world;
+      ecs_world_t *world = inspector->base.context->scene->world;
 
-      if (ecs_is_valid(world, g_hierarchy_scene.selected_entity)) {
+      if (ecs_is_valid(world, g_hierarchy_scene->selected_entity)) {
 
-        eg_camera_t *camera = eg_scene_camera_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+        eg_camera_t *camera = eg_scene_camera_mut(inspector->base.context->scene, g_hierarchy_scene->selected_entity);
 
         if (camera) {
-          ed_inspector_draw_camera(camera);
+          ed_inspector_view_draw_camera(camera);
         }
 
-        eg_editor_controller_t *editor_controller = eg_scene_editor_controller_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+        eg_editor_controller_t *editor_controller = eg_scene_editor_controller_mut(inspector->base.context->scene, g_hierarchy_scene->selected_entity);
 
         if (editor_controller) {
-          ed_inspector_draw_editor_controller(editor_controller);
+          ed_inspector_view_draw_editor_controller(editor_controller);
         }
 
-        eg_rigidbody_t *rigidbody = eg_scene_rigidbody_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+        eg_rigidbody_t *rigidbody = eg_scene_rigidbody_mut(inspector->base.context->scene, g_hierarchy_scene->selected_entity);
 
         if (rigidbody) {
-          ed_inspector_draw_rigidbody(rigidbody);
+          ed_inspector_view_draw_rigidbody(rigidbody);
         }
 
-        eg_transform_t *transform = eg_scene_transform_mut(inspector->context->scene, g_hierarchy_scene.selected_entity);
+        eg_transform_t *transform = eg_scene_transform_mut(inspector->base.context->scene, g_hierarchy_scene->selected_entity);
 
         if (transform) {
-          ed_inspector_draw_transform(transform);
+          ed_inspector_view_draw_transform(transform);
         }
       }
 
@@ -59,10 +60,11 @@ void ed_inspector_draw(ed_inspector_t *inspector) {
     }
   }
 }
-void ed_inspector_destroy(ed_inspector_t *inspector) {
+void ed_inspector_view_destroy(ed_inspector_view_t *inspector) {
+  heap_free(inspector);
 }
 
-static void ed_inspector_draw_camera(eg_camera_t *camera) {
+static void ed_inspector_view_draw_camera(eg_camera_t *camera) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 100);
 
   if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -84,7 +86,7 @@ static void ed_inspector_draw_camera(eg_camera_t *camera) {
 
   ImGui::PopItemWidth();
 }
-static void ed_inspector_draw_editor_controller(eg_editor_controller_t *editor_controller) {
+static void ed_inspector_view_draw_editor_controller(eg_editor_controller_t *editor_controller) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 240);
 
   if (ImGui::TreeNodeEx("Editor Controller", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -118,7 +120,7 @@ static void ed_inspector_draw_editor_controller(eg_editor_controller_t *editor_c
 
   ImGui::PopItemWidth();
 }
-static void ed_inspector_draw_rigidbody(eg_rigidbody_t *rigidbody) {
+static void ed_inspector_view_draw_rigidbody(eg_rigidbody_t *rigidbody) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 70);
 
   if (ImGui::TreeNodeEx("Rigidbody", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
@@ -130,7 +132,7 @@ static void ed_inspector_draw_rigidbody(eg_rigidbody_t *rigidbody) {
 
   ImGui::PopItemWidth();
 }
-static void ed_inspector_draw_transform(eg_transform_t *transform) {
+static void ed_inspector_view_draw_transform(eg_transform_t *transform) {
   ImGui::PushItemWidth(ImGui::GetWindowWidth() - ImGui::GetTreeNodeToLabelSpacing() - 80);
 
   if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {

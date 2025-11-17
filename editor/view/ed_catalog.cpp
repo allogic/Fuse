@@ -3,54 +3,55 @@
 #include <editor/ed_titlebar.h>
 #include <editor/ed_dockspace.h>
 
-#include <editor/dockable/ed_catalog.h>
+#include <editor/view/ed_catalog.h>
 
-static void ed_catalog_draw_swapchain(ed_catalog_t *catalog, uint64_t asset_index);
-static void ed_catalog_draw_renderer(ed_catalog_t *catalog, uint64_t asset_index);
-static void ed_catalog_draw_pipeline(ed_catalog_t *catalog, uint64_t asset_index);
-static void ed_catalog_draw_model(ed_catalog_t *catalog, uint64_t asset_index);
-static void ed_catalog_draw_scene(ed_catalog_t *catalog, uint64_t asset_index);
+static void ed_catalog_view_draw_swapchain(ed_catalog_view_t *catalog, uint64_t asset_index);
+static void ed_catalog_view_draw_renderer(ed_catalog_view_t *catalog, uint64_t asset_index);
+static void ed_catalog_view_draw_pipeline(ed_catalog_view_t *catalog, uint64_t asset_index);
+static void ed_catalog_view_draw_model(ed_catalog_view_t *catalog, uint64_t asset_index);
+static void ed_catalog_view_draw_scene(ed_catalog_view_t *catalog, uint64_t asset_index);
 
-static void ed_catalog_draw_asset_buttons(ed_catalog_t *catalog);
+static void ed_catalog_view_draw_asset_buttons(ed_catalog_view_t *catalog);
 
-ed_catalog_t ed_catalog_create(eg_context_t *context, asset_type_t asset_type) {
-  ed_catalog_t catalog = {0};
+ed_catalog_view_t *ed_catalog_view_create(eg_context_t *context, asset_type_t asset_type) {
+  ed_catalog_view_t *catalog = (ed_catalog_view_t *)heap_alloc(sizeof(ed_catalog_view_t), 1, 0);
 
-  catalog.context = context;
-  catalog.is_dirty = 0;
-  catalog.is_open = 1;
-  catalog.is_docked = 0;
-  catalog.selected_asset = -1;
-  catalog.asset_type = asset_type;
+  catalog->base.context = context;
+  catalog->base.is_dirty = 0;
+  catalog->base.is_open = 1;
+  catalog->base.is_docked = 0;
 
-  switch (catalog.asset_type) {
+  catalog->selected_asset = -1;
+  catalog->asset_type = asset_type;
+
+  switch (catalog->asset_type) {
     case ASSET_TYPE_SWAPCHAIN: {
 
-      catalog.assets = database_load_swapchain_assets();
+      catalog->assets = database_load_swapchain_assets();
 
       break;
     }
     case ASSET_TYPE_RENDERER: {
 
-      catalog.assets = database_load_renderer_assets();
+      catalog->assets = database_load_renderer_assets();
 
       break;
     }
     case ASSET_TYPE_PIPELINE: {
 
-      catalog.assets = database_load_pipeline_assets();
+      catalog->assets = database_load_pipeline_assets();
 
       break;
     }
     case ASSET_TYPE_MODEL: {
 
-      catalog.assets = database_load_model_assets();
+      catalog->assets = database_load_model_assets();
 
       break;
     }
     case ASSET_TYPE_SCENE: {
 
-      catalog.assets = database_load_scene_assets();
+      catalog->assets = database_load_scene_assets();
 
       break;
     }
@@ -58,7 +59,7 @@ ed_catalog_t ed_catalog_create(eg_context_t *context, asset_type_t asset_type) {
 
   return catalog;
 }
-void ed_catalog_refresh(ed_catalog_t *catalog) {
+void ed_catalog_view_refresh(ed_catalog_view_t *catalog) {
   switch (catalog->asset_type) {
     case ASSET_TYPE_SWAPCHAIN: {
 
@@ -125,8 +126,14 @@ void ed_catalog_refresh(ed_catalog_t *catalog) {
     }
   }
 }
-void ed_catalog_draw(ed_catalog_t *catalog) {
-  if (ImGui::BeginTable("##AssetTable", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp)) {
+void ed_catalog_view_draw(ed_catalog_view_t *catalog) {
+  static ImGuiTableFlags table_flags =
+    ImGuiTableFlags_BordersInner |
+    ImGuiTableFlags_RowBg |
+    ImGuiTableFlags_Resizable |
+    ImGuiTableFlags_SizingStretchProp;
+
+  if (ImGui::BeginTable("##AssetTable", 2, table_flags)) {
 
     ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn("NAME", ImGuiTableColumnFlags_WidthStretch);
@@ -141,31 +148,31 @@ void ed_catalog_draw(ed_catalog_t *catalog) {
       switch (catalog->asset_type) {
         case ASSET_TYPE_SWAPCHAIN: {
 
-          ed_catalog_draw_swapchain(catalog, asset_index);
+          ed_catalog_view_draw_swapchain(catalog, asset_index);
 
           break;
         }
         case ASSET_TYPE_RENDERER: {
 
-          ed_catalog_draw_renderer(catalog, asset_index);
+          ed_catalog_view_draw_renderer(catalog, asset_index);
 
           break;
         }
         case ASSET_TYPE_PIPELINE: {
 
-          ed_catalog_draw_pipeline(catalog, asset_index);
+          ed_catalog_view_draw_pipeline(catalog, asset_index);
 
           break;
         }
         case ASSET_TYPE_MODEL: {
 
-          ed_catalog_draw_model(catalog, asset_index);
+          ed_catalog_view_draw_model(catalog, asset_index);
 
           break;
         }
         case ASSET_TYPE_SCENE: {
 
-          ed_catalog_draw_scene(catalog, asset_index);
+          ed_catalog_view_draw_scene(catalog, asset_index);
 
           break;
         }
@@ -177,7 +184,7 @@ void ed_catalog_draw(ed_catalog_t *catalog) {
     ImGui::EndTable();
   }
 }
-void ed_catalog_destroy(ed_catalog_t *catalog) {
+void ed_catalog_view_destroy(ed_catalog_view_t *catalog) {
   switch (catalog->asset_type) {
     case ASSET_TYPE_SWAPCHAIN: {
 
@@ -210,9 +217,11 @@ void ed_catalog_destroy(ed_catalog_t *catalog) {
       break;
     }
   }
+
+  heap_free(catalog);
 }
 
-static void ed_catalog_draw_swapchain(ed_catalog_t *catalog, uint64_t asset_index) {
+static void ed_catalog_view_draw_swapchain(ed_catalog_view_t *catalog, uint64_t asset_index) {
   swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&catalog->assets, asset_index);
 
   ImGui::TableNextRow();
@@ -225,7 +234,7 @@ static void ed_catalog_draw_swapchain(ed_catalog_t *catalog, uint64_t asset_inde
     catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_renderer(ed_catalog_t *catalog, uint64_t asset_index) {
+static void ed_catalog_view_draw_renderer(ed_catalog_view_t *catalog, uint64_t asset_index) {
   renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&catalog->assets, asset_index);
 
   ImGui::TableNextRow();
@@ -238,7 +247,7 @@ static void ed_catalog_draw_renderer(ed_catalog_t *catalog, uint64_t asset_index
     catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_pipeline(ed_catalog_t *catalog, uint64_t asset_index) {
+static void ed_catalog_view_draw_pipeline(ed_catalog_view_t *catalog, uint64_t asset_index) {
   pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&catalog->assets, asset_index);
 
   ImGui::TableNextRow();
@@ -251,7 +260,7 @@ static void ed_catalog_draw_pipeline(ed_catalog_t *catalog, uint64_t asset_index
     catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_model(ed_catalog_t *catalog, uint64_t asset_index) {
+static void ed_catalog_view_draw_model(ed_catalog_view_t *catalog, uint64_t asset_index) {
   model_asset_t *model_asset = (model_asset_t *)vector_at(&catalog->assets, asset_index);
 
   ImGui::TableNextRow();
@@ -264,7 +273,7 @@ static void ed_catalog_draw_model(ed_catalog_t *catalog, uint64_t asset_index) {
     catalog->selected_asset = asset_index;
   }
 }
-static void ed_catalog_draw_scene(ed_catalog_t *catalog, uint64_t asset_index) {
+static void ed_catalog_view_draw_scene(ed_catalog_view_t *catalog, uint64_t asset_index) {
   scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&catalog->assets, asset_index);
 
   ImGui::TableNextRow();
@@ -278,7 +287,7 @@ static void ed_catalog_draw_scene(ed_catalog_t *catalog, uint64_t asset_index) {
   }
 }
 
-static void ed_catalog_draw_asset_buttons(ed_catalog_t *catalog) {
+static void ed_catalog_view_draw_asset_buttons(ed_catalog_view_t *catalog) {
   ImGui::SameLine(ImGui::GetWindowSize().x - 20.0F);
 
   ImGui::PushStyleColor(ImGuiCol_Button, ED_SHALLOW_GRAY_COLOR);

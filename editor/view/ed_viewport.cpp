@@ -1,42 +1,44 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
-#include <editor/ed_viewport.h>
 
-static void ed_viewport_create_attachments(ed_viewport_t *viewport);
-static void ed_viewport_destroy_attachments(ed_viewport_t *viewport);
+#include <editor/view/ed_viewport.h>
 
-ed_viewport_t ed_viewport_create(eg_context_t *context) {
-  ed_viewport_t viewport = {0};
+static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport);
+static void ed_viewport_view_destroy_attachments(ed_viewport_view_t *viewport);
 
-  viewport.context = context;
-  viewport.width = 1;
-  viewport.height = 1;
-  viewport.prev_width = 1;
-  viewport.prev_height = 1;
-  viewport.is_dirty = 0;
-  viewport.is_open = 1;
-  viewport.is_docked = 0;
-  viewport.handle = eg_viewport_create(context, 1, 1);
-  viewport.gbuffer_color_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
-  viewport.gbuffer_depth_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
+ed_viewport_view_t *ed_viewport_view_create(eg_context_t *context) {
+  ed_viewport_view_t *viewport = (ed_viewport_view_t *)heap_alloc(sizeof(ed_viewport_view_t), 1, 0);
 
-  ed_viewport_create_attachments(&viewport);
+  viewport->base.context = context;
+  viewport->base.is_dirty = 0;
+  viewport->base.is_open = 1;
+  viewport->base.is_docked = 0;
+
+  viewport->width = 1;
+  viewport->height = 1;
+  viewport->prev_width = 1;
+  viewport->prev_height = 1;
+  viewport->handle = eg_viewport_create(context, 1, 1);
+  viewport->gbuffer_color_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
+  viewport->gbuffer_depth_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
+
+  ed_viewport_view_create_attachments(viewport);
 
   return viewport;
 }
-void ed_viewport_refresh(ed_viewport_t *viewport) {
-  if (viewport->is_dirty) {
+void ed_viewport_view_refresh(ed_viewport_view_t *viewport) {
+  if (viewport->base.is_dirty) {
 
-    viewport->is_dirty = 0;
+    viewport->base.is_dirty = 0;
 
-    ed_viewport_destroy_attachments(viewport);
+    ed_viewport_view_destroy_attachments(viewport);
 
     eg_viewport_resize(viewport->handle, viewport->width, viewport->height);
 
-    ed_viewport_create_attachments(viewport);
+    ed_viewport_view_create_attachments(viewport);
   }
 }
-void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
+void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls) {
   if (enable_controls) {
     ImGui::SetNextItemWidth(200.0F);
 
@@ -72,12 +74,12 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
 
   viewport->width = window_size.x < 0 ? 1 : (uint32_t)window_size.x;
   viewport->height = window_size.y < 0 ? 1 : (uint32_t)window_size.y;
-  viewport->is_dirty = ((viewport->width != viewport->prev_width) || (viewport->height != viewport->prev_height));
+  viewport->base.is_dirty = ((viewport->width != viewport->prev_width) || (viewport->height != viewport->prev_height));
 
-  if (viewport->is_dirty) {
+  if (viewport->base.is_dirty) {
     viewport->prev_width = viewport->width;
     viewport->prev_height = viewport->height;
-    viewport->is_dirty = 1;
+    viewport->base.is_dirty = 1;
   }
 
   ImVec2 image_position_min = ImGui::GetCursorScreenPos();
@@ -88,14 +90,14 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
   switch (viewport->gbuffer_attachment_type) {
     case ED_GBUFFER_ATTACHMENT_TYPE_COLOR: {
 
-      gbuffer_image = viewport->gbuffer_color_attachment[viewport->context->renderer->image_index];
+      gbuffer_image = viewport->gbuffer_color_attachment[viewport->base.context->renderer->image_index];
 
       break;
     }
 
     case ED_GBUFFER_ATTACHMENT_TYPE_DEPTH: {
 
-      gbuffer_image = viewport->gbuffer_depth_attachment[viewport->context->renderer->image_index];
+      gbuffer_image = viewport->gbuffer_depth_attachment[viewport->base.context->renderer->image_index];
 
       break;
     }
@@ -105,18 +107,20 @@ void ed_viewport_draw(ed_viewport_t *viewport, uint8_t enable_controls) {
 
   draw_list->AddImageRounded(gbuffer_image, image_position_min, image_position_max, ImVec2(0.0F, 0.0F), ImVec2(1.0F, 1.0F), IM_COL32_WHITE, 1.0F);
 }
-void ed_viewport_destroy(ed_viewport_t *viewport) {
-  ed_viewport_destroy_attachments(viewport);
+void ed_viewport_view_destroy(ed_viewport_view_t *viewport) {
+  ed_viewport_view_destroy_attachments(viewport);
 
   eg_viewport_destroy(viewport->handle);
 
   heap_free(viewport->gbuffer_color_attachment);
   heap_free(viewport->gbuffer_depth_attachment);
+
+  heap_free(viewport);
 }
 
-static void ed_viewport_create_attachments(ed_viewport_t *viewport) {
+static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport) {
   uint64_t image_index = 0;
-  uint64_t image_count = viewport->context->swapchain->image_count;
+  uint64_t image_count = viewport->base.context->swapchain->image_count;
 
   while (image_index < image_count) {
 
@@ -135,9 +139,9 @@ static void ed_viewport_create_attachments(ed_viewport_t *viewport) {
     image_index++;
   }
 }
-static void ed_viewport_destroy_attachments(ed_viewport_t *viewport) {
+static void ed_viewport_view_destroy_attachments(ed_viewport_view_t *viewport) {
   uint64_t image_index = 0;
-  uint64_t image_count = viewport->context->swapchain->image_count;
+  uint64_t image_count = viewport->base.context->swapchain->image_count;
 
   while (image_index < image_count) {
 

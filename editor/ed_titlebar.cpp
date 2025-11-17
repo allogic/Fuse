@@ -2,9 +2,9 @@
 #include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
 
-#include <editor/dockable/ed_hierarchy.h>
-#include <editor/dockable/ed_inspector.h>
-#include <editor/dockable/ed_profiler.h>
+#include <editor/view/ed_hierarchy.h>
+#include <editor/view/ed_inspector.h>
+#include <editor/view/ed_profiler.h>
 
 static void ed_titlebar_reset_drag_state(eg_context_t *context);
 
@@ -72,17 +72,17 @@ static void ed_titlebar_draw_main_menu(eg_context_t *context) {
 
   ImGui::SameLine();
   if (ImGui::Button("Hierarchy")) {
-    g_hierarchy_scene.is_open = !g_hierarchy_scene.is_open;
+    g_hierarchy_scene->base.is_open = !g_hierarchy_scene->base.is_open;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Inspector")) {
-    g_inspector_scene.is_open = !g_inspector_scene.is_open;
+    g_inspector_scene->base.is_open = !g_inspector_scene->base.is_open;
   }
 
   ImGui::SameLine();
   if (ImGui::Button("Profiler")) {
-    g_profiler_scene.is_open = !g_profiler_scene.is_open;
+    g_profiler_scene->base.is_open = !g_profiler_scene->base.is_open;
   }
 
   ImGui::SameLine();

@@ -3,13 +3,13 @@
 #include <editor/ed_titlebar.h>
 #include <editor/ed_statusbar.h>
 #include <editor/ed_dockspace.h>
-#include <editor/ed_viewport.h>
 
-#include <editor/dockable/ed_canvas.h>
-#include <editor/dockable/ed_catalog.h>
-#include <editor/dockable/ed_hierarchy.h>
-#include <editor/dockable/ed_inspector.h>
-#include <editor/dockable/ed_profiler.h>
+#include <editor/view/ed_canvas.h>
+#include <editor/view/ed_catalog.h>
+#include <editor/view/ed_hierarchy.h>
+#include <editor/view/ed_inspector.h>
+#include <editor/view/ed_profiler.h>
+#include <editor/view/ed_viewport.h>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
@@ -46,34 +46,34 @@ ImFont *g_editor_material_symbols = 0;
 // Canvas Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_canvas_t g_canvas_model = {0};
+ed_canvas_view_t *g_canvas_model = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Catalog Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_catalog_t g_catalog_scene = {0};
-ed_catalog_t g_catalog_model = {0};
+ed_catalog_view_t *g_catalog_scene = 0;
+ed_catalog_view_t *g_catalog_model = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Hierarchy Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_hierarchy_t g_hierarchy_scene = {0};
-ed_hierarchy_t g_hierarchy_model = {0};
+ed_hierarchy_view_t *g_hierarchy_scene = 0;
+ed_hierarchy_view_t *g_hierarchy_model = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Inspector Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_inspector_t g_inspector_scene = {0};
-ed_inspector_t g_inspector_model = {0};
+ed_inspector_view_t *g_inspector_scene = 0;
+ed_inspector_view_t *g_inspector_model = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Profiler Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_profiler_t g_profiler_scene = {0};
+ed_profiler_view_t *g_profiler_scene = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Dockspace Stuff
@@ -81,7 +81,7 @@ ed_profiler_t g_profiler_scene = {0};
 
 uint8_t g_dockspace_is_dirty = 1;
 
-ed_dockspace_type_t g_dockspace_selected_type = ED_DOCKSPACE_TYPE_GAME;
+ed_dockspace_type_t g_dockspace_selected_type = ED_DOCKSPACE_TYPE_MODEL;
 
 char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT] = {
   "Game",
@@ -93,9 +93,9 @@ char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT] = {
 // Viewport Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_viewport_t g_viewport_game = {0};
-ed_viewport_t g_viewport_scene = {0};
-ed_viewport_t g_viewport_model = {0};
+ed_viewport_view_t *g_viewport_game = 0;
+ed_viewport_view_t *g_viewport_scene = 0;
+ed_viewport_view_t *g_viewport_model = 0;
 
 char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
   "Color",
@@ -248,8 +248,8 @@ static void editor_create(eg_context_t *context) {
   ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ED_DARK_GREY);
   ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ED_DARK_GREY);
 
-  // ImNodes::PushColorStyle(ImNodesCol_NodeBackground);
-  // ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered);
+  ImNodes::PushColorStyle(ImNodesCol_NodeBackground, ED_SHALLOW_GRAY_COLOR);
+  ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundHovered, ED_SHALLOW_GRAY_COLOR);
   // ImNodes::PushColorStyle(ImNodesCol_NodeBackgroundSelected);
   // ImNodes::PushColorStyle(ImNodesCol_NodeOutline);
   // ImNodes::PushColorStyle(ImNodesCol_TitleBar);
@@ -263,8 +263,8 @@ static void editor_create(eg_context_t *context) {
   // ImNodes::PushColorStyle(ImNodesCol_BoxSelector);
   // ImNodes::PushColorStyle(ImNodesCol_BoxSelectorOutline);
   ImNodes::PushColorStyle(ImNodesCol_GridBackground, ED_SPARSE_GRAY_COLOR);
-  // ImNodes::PushColorStyle(ImNodesCol_GridLine, ED_DARK_GREY);
-  // ImNodes::PushColorStyle(ImNodesCol_GridLinePrimary, ED_SHALLOW_GRAY_COLOR);
+  ImNodes::PushColorStyle(ImNodesCol_GridLine, ED_SPARSE_GRAY_COLOR);
+  ImNodes::PushColorStyle(ImNodesCol_GridLinePrimary, ED_SPARSE_GRAY_COLOR);
 
   ImGui_ImplWin32_Init(context->window_handle);
 
@@ -285,27 +285,27 @@ static void editor_create(eg_context_t *context) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  g_viewport_game = ed_viewport_create(context);
-  g_viewport_scene = ed_viewport_create(context);
-  g_viewport_model = ed_viewport_create(context);
+  g_viewport_game = ed_viewport_view_create(context);
+  g_viewport_scene = ed_viewport_view_create(context);
+  g_viewport_model = ed_viewport_view_create(context);
 
-  g_canvas_model = ed_canvas_create(context);
+  g_canvas_model = ed_canvas_view_create(context);
 
-  g_catalog_scene = ed_catalog_create(context, ASSET_TYPE_SCENE);
-  g_catalog_model = ed_catalog_create(context, ASSET_TYPE_MODEL);
+  g_catalog_scene = ed_catalog_view_create(context, ASSET_TYPE_SCENE);
+  g_catalog_model = ed_catalog_view_create(context, ASSET_TYPE_MODEL);
 
-  g_hierarchy_scene = ed_hierarchy_create(context);
-  g_hierarchy_model = ed_hierarchy_create(context);
+  g_hierarchy_scene = ed_hierarchy_view_create(context);
+  g_hierarchy_model = ed_hierarchy_view_create(context);
 
-  g_inspector_scene = ed_inspector_create(context);
-  g_inspector_model = ed_inspector_create(context);
+  g_inspector_scene = ed_inspector_view_create(context);
+  g_inspector_model = ed_inspector_view_create(context);
 
-  g_profiler_scene = ed_profiler_create(context);
+  g_profiler_scene = ed_profiler_view_create(context);
 }
 static void editor_refresh(eg_context_t *context) {
-  ed_viewport_refresh(&g_viewport_game);
-  ed_viewport_refresh(&g_viewport_scene);
-  ed_viewport_refresh(&g_viewport_model);
+  ed_viewport_view_refresh(g_viewport_game);
+  ed_viewport_view_refresh(g_viewport_scene);
+  ed_viewport_view_refresh(g_viewport_model);
 }
 static void editor_draw(eg_context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
@@ -329,25 +329,27 @@ static void editor_draw(eg_context_t *context) {
   ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
 }
 static void editor_destroy(eg_context_t *context) {
-  ed_profiler_destroy(&g_profiler_scene);
+  ed_profiler_view_destroy(g_profiler_scene);
 
-  ed_inspector_destroy(&g_inspector_scene);
-  ed_inspector_destroy(&g_inspector_model);
+  ed_inspector_view_destroy(g_inspector_scene);
+  ed_inspector_view_destroy(g_inspector_model);
 
-  ed_hierarchy_destroy(&g_hierarchy_scene);
-  ed_hierarchy_destroy(&g_hierarchy_model);
+  ed_hierarchy_view_destroy(g_hierarchy_scene);
+  ed_hierarchy_view_destroy(g_hierarchy_model);
 
-  ed_catalog_destroy(&g_catalog_model);
-  ed_catalog_destroy(&g_catalog_scene);
+  ed_catalog_view_destroy(g_catalog_model);
+  ed_catalog_view_destroy(g_catalog_scene);
 
-  ed_canvas_destroy(&g_canvas_model);
+  ed_canvas_view_destroy(g_canvas_model);
 
-  ed_viewport_destroy(&g_viewport_game);
-  ed_viewport_destroy(&g_viewport_scene);
-  ed_viewport_destroy(&g_viewport_model);
+  ed_viewport_view_destroy(g_viewport_game);
+  ed_viewport_view_destroy(g_viewport_scene);
+  ed_viewport_view_destroy(g_viewport_model);
 
-  // ImNodes::PopColorStyle();
-  // ImNodes::PopColorStyle();
+  ImNodes::PopColorStyle();
+  ImNodes::PopColorStyle();
+  ImNodes::PopColorStyle();
+  ImNodes::PopColorStyle();
   ImNodes::PopColorStyle();
 
   ImGui::PopStyleColor(24);

@@ -1,13 +1,13 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
 #include <editor/ed_dockspace.h>
-#include <editor/ed_viewport.h>
 
-#include <editor/dockable/ed_canvas.h>
-#include <editor/dockable/ed_catalog.h>
-#include <editor/dockable/ed_hierarchy.h>
-#include <editor/dockable/ed_inspector.h>
-#include <editor/dockable/ed_profiler.h>
+#include <editor/view/ed_canvas.h>
+#include <editor/view/ed_catalog.h>
+#include <editor/view/ed_hierarchy.h>
+#include <editor/view/ed_inspector.h>
+#include <editor/view/ed_profiler.h>
+#include <editor/view/ed_viewport.h>
 
 void ed_dockspace_draw(eg_context_t *context) {
   ImGuiID dockspace_id = ImGui::GetID("Dockspace");
@@ -100,7 +100,7 @@ void ed_dockspace_draw(eg_context_t *context) {
 
       ImGui::Begin("Game", 0, window_flags);
 
-      ed_viewport_draw(&g_viewport_game, 0);
+      ed_viewport_view_draw(g_viewport_game, 0);
 
       ImGui::End();
 
@@ -108,71 +108,71 @@ void ed_dockspace_draw(eg_context_t *context) {
     }
     case ED_DOCKSPACE_TYPE_SCENE: {
 
-      if (ed_dockspace_begin_child("Catalog", &g_catalog_scene.is_open, &g_catalog_scene.is_docked)) {
+      if (ed_dockspace_begin_child("Catalog", &g_catalog_scene->base.is_open, &g_catalog_scene->base.is_docked)) {
 
-        ed_catalog_draw(&g_catalog_scene);
+        ed_catalog_view_draw(g_catalog_scene);
 
-        ed_dockspace_end_child(g_catalog_scene.is_docked);
+        ed_dockspace_end_child(g_catalog_scene->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Hierarchy", &g_hierarchy_scene.is_open, &g_hierarchy_scene.is_docked)) {
+      if (ed_dockspace_begin_child("Hierarchy", &g_hierarchy_scene->base.is_open, &g_hierarchy_scene->base.is_docked)) {
 
-        ed_hierarchy_draw(&g_hierarchy_scene);
+        ed_hierarchy_view_draw(g_hierarchy_scene);
 
-        ed_dockspace_end_child(g_hierarchy_scene.is_docked);
+        ed_dockspace_end_child(g_hierarchy_scene->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Inspector", &g_inspector_scene.is_open, &g_inspector_scene.is_docked)) {
+      if (ed_dockspace_begin_child("Inspector", &g_inspector_scene->base.is_open, &g_inspector_scene->base.is_docked)) {
 
-        ed_inspector_draw(&g_inspector_scene);
+        ed_inspector_view_draw(g_inspector_scene);
 
-        ed_dockspace_end_child(g_inspector_scene.is_docked);
+        ed_dockspace_end_child(g_inspector_scene->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Viewport", &g_viewport_scene.is_open, &g_viewport_scene.is_docked)) {
+      if (ed_dockspace_begin_child("Viewport", &g_viewport_scene->base.is_open, &g_viewport_scene->base.is_docked)) {
 
-        ed_viewport_draw(&g_viewport_scene, 1);
+        ed_viewport_view_draw(g_viewport_scene, 1);
 
-        ed_dockspace_end_child(g_viewport_scene.is_docked);
+        ed_dockspace_end_child(g_viewport_scene->base.is_docked);
       }
 
       break;
     }
     case ED_DOCKSPACE_TYPE_MODEL: {
 
-      if (ed_dockspace_begin_child("Catalog", &g_catalog_model.is_open, &g_catalog_model.is_docked)) {
+      if (ed_dockspace_begin_child("Catalog", &g_catalog_model->base.is_open, &g_catalog_model->base.is_docked)) {
 
-        ed_catalog_draw(&g_catalog_model);
+        ed_catalog_view_draw(g_catalog_model);
 
-        ed_dockspace_end_child(g_catalog_model.is_docked);
+        ed_dockspace_end_child(g_catalog_model->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Hierarchy", &g_hierarchy_model.is_open, &g_hierarchy_model.is_docked)) {
+      if (ed_dockspace_begin_child("Hierarchy", &g_hierarchy_model->base.is_open, &g_hierarchy_model->base.is_docked)) {
 
-        ed_hierarchy_draw(&g_hierarchy_model);
+        ed_hierarchy_view_draw(g_hierarchy_model);
 
-        ed_dockspace_end_child(g_hierarchy_model.is_docked);
+        ed_dockspace_end_child(g_hierarchy_model->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Inspector", &g_inspector_model.is_open, &g_inspector_model.is_docked)) {
+      if (ed_dockspace_begin_child("Inspector", &g_inspector_model->base.is_open, &g_inspector_model->base.is_docked)) {
 
-        ed_inspector_draw(&g_inspector_model);
+        ed_inspector_view_draw(g_inspector_model);
 
-        ed_dockspace_end_child(g_inspector_model.is_docked);
+        ed_dockspace_end_child(g_inspector_model->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Viewport", &g_viewport_model.is_open, &g_viewport_model.is_docked)) {
+      if (ed_dockspace_begin_child("Viewport", &g_viewport_model->base.is_open, &g_viewport_model->base.is_docked)) {
 
-        ed_viewport_draw(&g_viewport_model, 1);
+        ed_viewport_view_draw(g_viewport_model, 1);
 
-        ed_dockspace_end_child(g_viewport_model.is_docked);
+        ed_dockspace_end_child(g_viewport_model->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Canvas", &g_canvas_model.is_open, &g_canvas_model.is_docked)) {
+      if (ed_dockspace_begin_child("Canvas", &g_canvas_model->base.is_open, &g_canvas_model->base.is_docked)) {
 
-        ed_canvas_draw(&g_canvas_model);
+        ed_canvas_view_draw(g_canvas_model);
 
-        ed_dockspace_end_child(g_canvas_model.is_docked);
+        ed_dockspace_end_child(g_canvas_model->base.is_docked);
       }
 
       break;
@@ -191,16 +191,18 @@ uint8_t ed_dockspace_begin_child(char const *name, uint8_t *is_open, uint8_t *is
     *is_docked = ImGui::IsWindowDocked();
 
     if (*is_docked) {
-      ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_SHALLOW_GRAY_COLOR);
+      ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_LIGHT_GRAY_COLOR);
       ImGui::BeginChild("FirstChild");
 
       ImVec2 second_window_size = ImGui::GetWindowSize();
-      ImVec2 second_cursor_position = ImVec2(3.0F, 3.0F);
+      ImVec2 second_cursor_position = ImVec2(1.0F, 1.0F);
 
-      second_window_size.x -= 6.0F;
-      second_window_size.y -= 6.0F;
+      second_window_size.x -= 2.0F;
+      second_window_size.y -= 2.0F;
 
       ImGui::SetCursorPos(second_cursor_position);
+
+      ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_DARK_GREY);
       ImGui::BeginChild("SecondChild", second_window_size);
     }
 
@@ -212,6 +214,7 @@ uint8_t ed_dockspace_begin_child(char const *name, uint8_t *is_open, uint8_t *is
 void ed_dockspace_end_child(uint8_t is_docked) {
   if (is_docked) {
     ImGui::EndChild();
+    ImGui::PopStyleColor(1);
     ImGui::EndChild();
     ImGui::PopStyleColor(1);
   }
