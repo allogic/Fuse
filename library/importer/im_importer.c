@@ -1,16 +1,5 @@
-#include <library/lb_pch.h>
-
-#include <library/database/lb_api.h>
-
-#include <library/importer/lb_importer.h>
-
-#include <spirv_reflect/spirv_reflect.h>
-
-#define CGLTF_IMPLEMENTATION
-#include <cgltf/cgltf.h>
-
-#define STB_JSON_IMPLEMENTATION
-#include <stb_json/stb_json.h>
+#include <library/importer/im_pch.h>
+#include <library/importer/im_importer.h>
 
 static void importer_process_pipeline_vertex_input_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module);
 static void importer_process_pipeline_descriptor_bindings(pipeline_asset_t *pipeline_asset, SpvReflectShaderModule *shader_module, VkShaderStageFlags stage_flag);

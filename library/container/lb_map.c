@@ -1,42 +1,39 @@
-#include <library/lb_pch.h>
-
-#include <library/core/lb_api.h>
-
+#include <library/container/lb_pch.h>
 #include <library/container/lb_config.h>
 #include <library/container/lb_macros.h>
 #include <library/container/lb_map.h>
 
-map_t map_create(void) {
-  map_t map = {0};
+lb_map_t lb_map_create(void) {
+  lb_map_t map = {0};
 
-  map.table = (map_record_t **)heap_alloc(MAP_TABLE_COUNT * sizeof(map_record_t *), 1, 0);
-  map.table_size = MAP_TABLE_COUNT * sizeof(map_record_t *);
-  map.table_count = MAP_TABLE_COUNT;
+  map.table = (lb_map_record_t **)lb_heap_alloc(LB_MAP_TABLE_COUNT * sizeof(lb_map_record_t *), 1, 0);
+  map.table_size = LB_MAP_TABLE_COUNT * sizeof(lb_map_record_t *);
+  map.table_count = LB_MAP_TABLE_COUNT;
   map.record_count = 0;
 
   return map;
 }
-map_t map_copy(map_t *reference) {
-  map_t map = {0};
+lb_map_t lb_map_copy(lb_map_t *reference) {
+  lb_map_t map = {0};
 
-  map.table = (map_record_t **)heap_alloc(reference->table_size, 1, 0);
+  map.table = (lb_map_record_t **)lb_heap_alloc(reference->table_size, 1, 0);
   map.table_size = reference->table_size;
   map.table_count = reference->table_count;
   map.record_count = reference->record_count;
 
   uint64_t table_index = 0;
   while (table_index < map.table_count) {
-    map_record_t *curr_reference = reference->table[table_index];
-    map_record_t *curr = map.table[table_index];
+    lb_map_record_t *curr_reference = reference->table[table_index];
+    lb_map_record_t *curr = map.table[table_index];
 
     if (curr_reference) {
-      uint64_t hash = map_hash(&map, curr_reference->key, curr_reference->key_size, map.table_count);
+      uint64_t hash = lb_map_hash(&map, curr_reference->key, curr_reference->key_size, map.table_count);
 
-      curr = (map_record_t *)heap_alloc(sizeof(map_record_t), 1, 0);
+      curr = (lb_map_record_t *)lb_heap_alloc(sizeof(lb_map_record_t), 1, 0);
 
       curr->next = map.table[hash];
-      curr->key = (uint8_t *)heap_alloc(curr_reference->key_size, 0, curr_reference->key);
-      curr->value = (uint8_t *)heap_alloc(curr_reference->value_size, 0, curr_reference->value);
+      curr->key = (uint8_t *)lb_heap_alloc(curr_reference->key_size, 0, curr_reference->key);
+      curr->value = (uint8_t *)lb_heap_alloc(curr_reference->value_size, 0, curr_reference->value);
       curr->key_size = curr_reference->key_size;
       curr->value_size = curr_reference->value_size;
 
@@ -48,7 +45,7 @@ map_t map_copy(map_t *reference) {
 
   return map;
 }
-uint8_t map_equal(map_t *map, map_t *reference) {
+uint8_t lb_map_equal(lb_map_t *map, lb_map_t *reference) {
   uint8_t not_equal = 0;
 
   not_equal |= map->record_count != reference->record_count;
@@ -56,8 +53,8 @@ uint8_t map_equal(map_t *map, map_t *reference) {
   if (map->record_count == reference->record_count) {
     uint64_t table_index = 0;
     while (table_index < map->table_count) {
-      map_record_t *curr_reference = reference->table[table_index];
-      map_record_t *curr = map->table[table_index];
+      lb_map_record_t *curr_reference = reference->table[table_index];
+      lb_map_record_t *curr = map->table[table_index];
 
       not_equal |= (curr_reference == 0) != (curr == 0);
 
@@ -66,8 +63,8 @@ uint8_t map_equal(map_t *map, map_t *reference) {
         not_equal |= curr->value_size != curr_reference->value_size;
 
         if (not_equal == 0) {
-          not_equal |= memcmp(curr->key, curr_reference->key, MIN(curr->key_size, curr_reference->key_size));
-          not_equal |= memcmp(curr->value, curr_reference->value, MIN(curr->value_size, curr_reference->value_size));
+          not_equal |= memcmp(curr->key, curr_reference->key, LB_MIN(curr->key_size, curr_reference->key_size));
+          not_equal |= memcmp(curr->value, curr_reference->value, LB_MIN(curr->value_size, curr_reference->value_size));
         }
 
         curr_reference = curr_reference->next;
@@ -80,21 +77,21 @@ uint8_t map_equal(map_t *map, map_t *reference) {
 
   return not_equal == 0;
 }
-uint8_t map_insert(map_t *map, void const *key, uint64_t key_size, void const *value, uint64_t value_size) {
+uint8_t lb_map_insert(lb_map_t *map, void const *key, uint64_t key_size, void const *value, uint64_t value_size) {
   uint8_t key_exists = 0;
-  uint8_t load_factor = map_load_factor(map);
+  uint8_t load_factor = lb_map_load_factor(map);
 
-  if (load_factor > MAP_LOAD_FACTOR) {
-    map_expand(map);
+  if (load_factor > LB_MAP_LOAD_FACTOR) {
+    lb_map_expand(map);
   }
 
-  uint64_t hash = map_hash(map, key, key_size, map->table_count);
+  uint64_t hash = lb_map_hash(map, key, key_size, map->table_count);
 
-  map_record_t *curr = map->table[hash];
+  lb_map_record_t *curr = map->table[hash];
 
   while (curr) {
 
-    if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
+    if (memcmp(curr->key, key, LB_MIN(curr->key_size, key_size)) == 0) {
       key_exists = 1;
 
       break;
@@ -104,12 +101,12 @@ uint8_t map_insert(map_t *map, void const *key, uint64_t key_size, void const *v
   }
 
   if (key_exists == 0) {
-    curr = (map_record_t *)heap_alloc(sizeof(map_record_t), 1, 0);
+    curr = (lb_map_record_t *)lb_heap_alloc(sizeof(lb_map_record_t), 1, 0);
 
     curr->next = map->table[hash];
-    curr->key = (uint8_t *)heap_alloc(key_size, 0, key);
+    curr->key = (uint8_t *)lb_heap_alloc(key_size, 0, key);
     curr->key_size = key_size;
-    curr->value = (uint8_t *)heap_alloc(value_size, 0, value);
+    curr->value = (uint8_t *)lb_heap_alloc(value_size, 0, value);
     curr->value_size = value_size;
 
     map->table[hash] = curr;
@@ -118,15 +115,15 @@ uint8_t map_insert(map_t *map, void const *key, uint64_t key_size, void const *v
 
   return key_exists;
 }
-uint8_t map_remove(map_t *map, void const *key, uint64_t key_size, void *value, uint64_t value_size) {
-  uint64_t hash = map_hash(map, key, key_size, map->table_count);
+uint8_t lb_map_remove(lb_map_t *map, void const *key, uint64_t key_size, void *value, uint64_t value_size) {
+  uint64_t hash = lb_map_hash(map, key, key_size, map->table_count);
 
-  map_record_t *curr = map->table[hash];
-  map_record_t *prev = 0;
+  lb_map_record_t *curr = map->table[hash];
+  lb_map_record_t *prev = 0;
 
   while (curr) {
 
-    if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
+    if (memcmp(curr->key, key, LB_MIN(curr->key_size, key_size)) == 0) {
 
       if (prev) {
         prev->next = curr->next;
@@ -135,12 +132,12 @@ uint8_t map_remove(map_t *map, void const *key, uint64_t key_size, void *value, 
       }
 
       if (value) {
-        memcpy(value, curr->value, MIN(value_size, curr->value_size));
+        memcpy(value, curr->value, LB_MIN(value_size, curr->value_size));
       }
 
-      heap_free(curr->key);
-      heap_free(curr->value);
-      heap_free(curr);
+      lb_heap_free(curr->key);
+      lb_heap_free(curr->value);
+      lb_heap_free(curr);
 
       map->record_count--;
 
@@ -153,14 +150,14 @@ uint8_t map_remove(map_t *map, void const *key, uint64_t key_size, void *value, 
 
   return 0;
 }
-uint8_t map_contains(map_t *map, void const *key, uint64_t key_size) {
-  uint64_t hash = map_hash(map, key, key_size, map->table_count);
+uint8_t lb_map_contains(lb_map_t *map, void const *key, uint64_t key_size) {
+  uint64_t hash = lb_map_hash(map, key, key_size, map->table_count);
 
-  map_record_t *curr = map->table[hash];
+  lb_map_record_t *curr = map->table[hash];
 
   while (curr) {
 
-    if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
+    if (memcmp(curr->key, key, LB_MIN(curr->key_size, key_size)) == 0) {
       return 1;
     }
 
@@ -169,17 +166,17 @@ uint8_t map_contains(map_t *map, void const *key, uint64_t key_size) {
 
   return 0;
 }
-uint64_t map_count(map_t *map) {
+uint64_t lb_map_count(lb_map_t *map) {
   return map->record_count;
 }
-void *map_at(map_t *map, void const *key, uint64_t key_size) {
-  uint64_t hash = map_hash(map, key, key_size, map->table_count);
+void *lb_map_at(lb_map_t *map, void const *key, uint64_t key_size) {
+  uint64_t hash = lb_map_hash(map, key, key_size, map->table_count);
 
-  map_record_t *curr = map->table[hash];
+  lb_map_record_t *curr = map->table[hash];
 
   while (curr) {
 
-    if (memcmp(curr->key, key, MIN(curr->key_size, key_size)) == 0) {
+    if (memcmp(curr->key, key, LB_MIN(curr->key_size, key_size)) == 0) {
       return curr->value;
     }
 
@@ -188,19 +185,19 @@ void *map_at(map_t *map, void const *key, uint64_t key_size) {
 
   return 0;
 }
-void map_expand(map_t *map) {
+void lb_map_expand(lb_map_t *map) {
   uint64_t table_index = 0;
   uint64_t table_size = map->table_size * 2;
   uint64_t table_count = map->table_count * 2;
 
-  map_record_t **table = (map_record_t **)heap_alloc(table_size, 1, 0);
+  lb_map_record_t **table = (lb_map_record_t **)lb_heap_alloc(table_size, 1, 0);
 
   while (table_index < map->table_count) {
 
-    map_record_t *curr = map->table[table_index];
+    lb_map_record_t *curr = map->table[table_index];
 
     while (curr) {
-      uint64_t hash = map_hash(map, curr->key, curr->key_size, table_count);
+      uint64_t hash = lb_map_hash(map, curr->key, curr->key_size, table_count);
 
       curr->next = table[hash];
       table[hash] = curr;
@@ -210,28 +207,28 @@ void map_expand(map_t *map) {
     table_index++;
   }
 
-  heap_free(map->table);
+  lb_heap_free(map->table);
 
   map->table = table;
   map->table_size = table_size;
   map->table_count = table_count;
 }
-void map_clear(map_t *map) {
+void lb_map_clear(lb_map_t *map) {
   uint64_t table_index = 0;
 
   while (table_index < map->table_count) {
 
-    map_record_t *curr = map->table[table_index];
+    lb_map_record_t *curr = map->table[table_index];
 
     while (curr) {
 
-      map_record_t *tmp = curr;
+      lb_map_record_t *tmp = curr;
 
       curr = curr->next;
 
-      heap_free(tmp->key);
-      heap_free(tmp->value);
-      heap_free(tmp);
+      lb_heap_free(tmp->key);
+      lb_heap_free(tmp->value);
+      lb_heap_free(tmp);
     }
 
     table_index++;
@@ -241,8 +238,8 @@ void map_clear(map_t *map) {
 
   map->record_count = 0;
 }
-map_iter_t map_iter(map_t *map) {
-  map_iter_t iter = {0};
+lb_map_iter_t lb_map_iter(lb_map_t *map) {
+  lb_map_iter_t iter = {0};
 
   iter.table = map->table;
   iter.table_count = map->table_count;
@@ -252,7 +249,7 @@ map_iter_t map_iter(map_t *map) {
 
   while (table_index < map->table_count) {
 
-    map_record_t *curr = map->table[table_index];
+    lb_map_record_t *curr = map->table[table_index];
 
     if (curr) {
 
@@ -267,8 +264,8 @@ map_iter_t map_iter(map_t *map) {
 
   return iter;
 }
-uint64_t map_hash(map_t *map, void const *key, uint64_t key_size, uint64_t modulus) {
-  uint64_t hash = MAP_HASH_VALUE;
+uint64_t lb_map_hash(lb_map_t *map, void const *key, uint64_t key_size, uint64_t modulus) {
+  uint64_t hash = LB_MAP_HASH_POLY;
   uint64_t key_index = 0;
 
   while (key_index < key_size) {
@@ -280,47 +277,47 @@ uint64_t map_hash(map_t *map, void const *key, uint64_t key_size, uint64_t modul
 
   return hash % modulus;
 }
-uint8_t map_load_factor(map_t *map) {
+uint8_t lb_map_load_factor(lb_map_t *map) {
   return (uint8_t)(((map->record_count + 1) / map->table_count) * 100);
 }
-void map_destroy(map_t *map) {
+void lb_map_destroy(lb_map_t *map) {
   uint64_t table_index = 0;
 
   while (table_index < map->table_count) {
 
-    map_record_t *curr = map->table[table_index];
+    lb_map_record_t *curr = map->table[table_index];
 
     while (curr) {
 
-      map_record_t *tmp = curr;
+      lb_map_record_t *tmp = curr;
 
       curr = curr->next;
 
-      heap_free(tmp->key);
-      heap_free(tmp->value);
-      heap_free(tmp);
+      lb_heap_free(tmp->key);
+      lb_heap_free(tmp->value);
+      lb_heap_free(tmp);
     }
 
     table_index++;
   }
 
-  heap_free(map->table);
+  lb_heap_free(map->table);
 }
 
-void *map_record_key(map_record_t *record) {
+void *lb_map_record_key(lb_map_record_t *record) {
   return record->key;
 }
-uint64_t map_record_key_size(map_record_t *record) {
+uint64_t lb_map_record_key_size(lb_map_record_t *record) {
   return record->key_size;
 }
-void *map_record_value(map_record_t *record) {
+void *lb_map_record_value(lb_map_record_t *record) {
   return record->value;
 }
-uint64_t map_record_value_size(map_record_t *record) {
+uint64_t lb_map_record_value_size(lb_map_record_t *record) {
   return record->value_size;
 }
 
-uint8_t map_iter_step(map_iter_t *iter) {
+uint8_t lb_map_iter_step(lb_map_iter_t *iter) {
   if (iter->first_step) {
 
     if (iter->table_record) {
@@ -347,17 +344,17 @@ uint8_t map_iter_step(map_iter_t *iter) {
 
   return (iter->table_index < iter->table_count) && iter->table_record;
 }
-void map_iter_advance(map_iter_t *iter) {
+void lb_map_iter_advance(lb_map_iter_t *iter) {
 }
-void *map_iter_key(map_iter_t *iter) {
+void *lb_map_iter_key(lb_map_iter_t *iter) {
   return iter->table_record->key;
 }
-uint64_t map_iter_key_size(map_iter_t *iter) {
+uint64_t lb_map_iter_key_size(lb_map_iter_t *iter) {
   return iter->table_record->key_size;
 }
-void *map_iter_value(map_iter_t *iter) {
+void *lb_map_iter_value(lb_map_iter_t *iter) {
   return iter->table_record->value;
 }
-uint64_t map_iter_value_size(map_iter_t *iter) {
+uint64_t lb_map_iter_value_size(lb_map_iter_t *iter) {
   return iter->table_record->value_size;
 }

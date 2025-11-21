@@ -1,40 +1,37 @@
-#include <library/lb_pch.h>
-
-#include <library/core/lb_api.h>
-
+#include <library/container/lb_pch.h>
 #include <library/container/lb_config.h>
 #include <library/container/lb_macros.h>
 #include <library/container/lb_vector.h>
 
-vector_t vector_create(uint64_t value_size) {
-  vector_t vector = {0};
+lb_vector_t lb_vector_create(uint64_t value_size) {
+  lb_vector_t vector = {0};
 
-  vector.buffer = (uint8_t *)heap_alloc(ALIGN_UP_BY(VECTOR_BUFFER_CAPACITY, VECTOR_BUFFER_ALIGNMENT) * value_size, 1, 0);
-  vector.swap_buffer = (uint8_t *)heap_alloc(value_size, 1, 0);
+  vector.buffer = (uint8_t *)lb_heap_alloc(LB_ALIGN_UP_BY(LB_VECTOR_BUFFER_CAPACITY, LB_VECTOR_BUFFER_ALIGNMENT) * value_size, 1, 0);
+  vector.swap_buffer = (uint8_t *)lb_heap_alloc(value_size, 1, 0);
   vector.value_size = value_size;
-  vector.buffer_capacity = ALIGN_UP_BY(VECTOR_BUFFER_CAPACITY, VECTOR_BUFFER_ALIGNMENT) * value_size;
+  vector.buffer_capacity = LB_ALIGN_UP_BY(LB_VECTOR_BUFFER_CAPACITY, LB_VECTOR_BUFFER_ALIGNMENT) * value_size;
   vector.buffer_size = 0;
   vector.buffer_count = 0;
 
   return vector;
 }
-vector_t vector_create_from(uint64_t value_size, void const *buffer, uint64_t count) {
-  vector_t vector = {0};
+lb_vector_t lb_vector_create_from(uint64_t value_size, void const *buffer, uint64_t count) {
+  lb_vector_t vector = {0};
 
-  vector.buffer = (uint8_t *)heap_alloc(value_size * count, 0, buffer);
-  vector.swap_buffer = (uint8_t *)heap_alloc(value_size, 1, 0);
+  vector.buffer = (uint8_t *)lb_heap_alloc(value_size * count, 0, buffer);
+  vector.swap_buffer = (uint8_t *)lb_heap_alloc(value_size, 1, 0);
   vector.value_size = value_size;
-  vector.buffer_capacity = ALIGN_UP_BY(count, VECTOR_BUFFER_ALIGNMENT) * value_size;
+  vector.buffer_capacity = LB_ALIGN_UP_BY(count, LB_VECTOR_BUFFER_ALIGNMENT) * value_size;
   vector.buffer_size = value_size * count;
   vector.buffer_count = count;
 
   return vector;
 }
-vector_t vector_copy(vector_t *reference) {
-  vector_t vector = {0};
+lb_vector_t lb_vector_copy(lb_vector_t *reference) {
+  lb_vector_t vector = {0};
 
-  vector.buffer = (uint8_t *)heap_alloc(reference->buffer_size, 0, reference->buffer);
-  vector.swap_buffer = (uint8_t *)heap_alloc(reference->value_size, 1, 0);
+  vector.buffer = (uint8_t *)lb_heap_alloc(reference->buffer_size, 0, reference->buffer);
+  vector.swap_buffer = (uint8_t *)lb_heap_alloc(reference->value_size, 1, 0);
   vector.value_size = reference->value_size;
   vector.buffer_capacity = reference->buffer_capacity;
   vector.buffer_size = reference->buffer_size;
@@ -42,7 +39,7 @@ vector_t vector_copy(vector_t *reference) {
 
   return vector;
 }
-uint8_t vector_equal(vector_t *vector, vector_t *reference) {
+uint8_t lb_vector_equal(lb_vector_t *vector, lb_vector_t *reference) {
   uint8_t not_equal = 0;
 
   not_equal |= vector->value_size != reference->value_size;
@@ -52,7 +49,7 @@ uint8_t vector_equal(vector_t *vector, vector_t *reference) {
 
   return not_equal == 0;
 }
-void vector_fill(vector_t *vector, void const *value) {
+void lb_vector_fill(lb_vector_t *vector, void const *value) {
   if (value) {
     uint64_t buffer_index = 0;
     uint64_t buffer_offset = 0;
@@ -65,7 +62,7 @@ void vector_fill(vector_t *vector, void const *value) {
     }
   }
 }
-void vector_push(vector_t *vector, void const *value) {
+void lb_vector_push(lb_vector_t *vector, void const *value) {
   if (value) {
     memcpy(vector->buffer + vector->buffer_size, value, vector->value_size);
   }
@@ -77,7 +74,7 @@ void vector_push(vector_t *vector, void const *value) {
     vector_expand(vector);
   }
 }
-void vector_push_range(vector_t *vector, vector_t *range) {
+void lb_vector_push_range(lb_vector_t *vector, lb_vector_t *range) {
   if (range) {
     vector->buffer_count += range->buffer_count;
     vector->buffer_size += range->buffer_size;
@@ -89,7 +86,7 @@ void vector_push_range(vector_t *vector, vector_t *range) {
     memcpy(vector->buffer + vector->buffer_size - range->buffer_size, range->buffer, range->buffer_size);
   }
 }
-void vector_pop(vector_t *vector, void *value) {
+void lb_vector_pop(lb_vector_t *vector, void *value) {
   vector->buffer_count--;
   vector->buffer_size -= vector->value_size;
 
@@ -97,29 +94,29 @@ void vector_pop(vector_t *vector, void *value) {
     memcpy(value, vector->buffer + vector->buffer_size, vector->value_size);
   }
 }
-void vector_resize(vector_t *vector, uint64_t count) {
+void lb_vector_resize(lb_vector_t *vector, uint64_t count) {
   uint64_t buffer_count = count;
   uint64_t buffer_size = count * vector->value_size;
   uint64_t buffer_capacity = 0;
 
   if (count) {
-    buffer_capacity = ALIGN_UP_BY(count, VECTOR_BUFFER_ALIGNMENT) * vector->value_size * 2;
+    buffer_capacity = LB_ALIGN_UP_BY(count, LB_VECTOR_BUFFER_ALIGNMENT) * vector->value_size * 2;
   } else {
-    buffer_capacity = VECTOR_BUFFER_ALIGNMENT * vector->value_size * 2;
+    buffer_capacity = LB_VECTOR_BUFFER_ALIGNMENT * vector->value_size * 2;
   }
 
-  vector->buffer = (uint8_t *)heap_realloc(vector->buffer, buffer_capacity);
+  vector->buffer = (uint8_t *)lb_heap_realloc(vector->buffer, buffer_capacity);
   vector->buffer_capacity = buffer_capacity;
   vector->buffer_size = buffer_size;
   vector->buffer_count = buffer_count;
 }
-void vector_expand(vector_t *vector) {
-  uint64_t buffer_capacity = ALIGN_UP_BY(vector->buffer_count, VECTOR_BUFFER_ALIGNMENT) * vector->value_size * 2;
+void lb_vector_expand(lb_vector_t *vector) {
+  uint64_t buffer_capacity = LB_ALIGN_UP_BY(vector->buffer_count, LB_VECTOR_BUFFER_ALIGNMENT) * vector->value_size * 2;
 
-  vector->buffer = (uint8_t *)heap_realloc(vector->buffer, buffer_capacity);
+  vector->buffer = (uint8_t *)lb_heap_realloc(vector->buffer, buffer_capacity);
   vector->buffer_capacity = buffer_capacity;
 }
-void vector_remove(vector_t *vector, void const *value) {
+void lb_vector_remove(lb_vector_t *vector, void const *value) {
   if (value) {
     uint64_t buffer_index = 0;
     uint64_t buffer_offset = 0;
@@ -139,7 +136,7 @@ void vector_remove(vector_t *vector, void const *value) {
     vector->buffer_size -= vector->value_size;
   }
 }
-void vector_swap(vector_t *vector, uint64_t left_index, uint64_t right_index) {
+void lb_vector_swap(lb_vector_t *vector, uint64_t left_index, uint64_t right_index) {
   uint8_t *left = vector->buffer + left_index * vector->value_size;
   uint8_t *right = vector->buffer + right_index * vector->value_size;
 
@@ -147,40 +144,40 @@ void vector_swap(vector_t *vector, uint64_t left_index, uint64_t right_index) {
   memcpy(left, right, vector->value_size);
   memcpy(right, vector->swap_buffer, vector->value_size);
 }
-void vector_clear(vector_t *vector) {
+void lb_vector_clear(lb_vector_t *vector) {
   vector->buffer_size = 0;
   vector->buffer_count = 0;
 }
-void *vector_back(vector_t *vector) {
+void *lb_vector_back(lb_vector_t *vector) {
   return vector->buffer + vector->buffer_size - vector->value_size;
 }
-void *vector_front(vector_t *vector) {
+void *lb_vector_front(lb_vector_t *vector) {
   return vector->buffer;
 }
-void *vector_at(vector_t *vector, uint64_t index) {
+void *lb_vector_at(lb_vector_t *vector, uint64_t index) {
   return vector->buffer + index * vector->value_size;
 }
-void *vector_buffer(vector_t *vector) {
+void *lb_vector_buffer(lb_vector_t *vector) {
   return vector->buffer;
 }
-void vector_set(vector_t *vector, uint64_t index, void const *value) {
+void lb_vector_set(lb_vector_t *vector, uint64_t index, void const *value) {
   if (value) {
     memcpy(vector->buffer + index * vector->value_size, value, vector->value_size);
   }
 }
-uint8_t vector_empty(vector_t *vector) {
+uint8_t lb_vector_empty(lb_vector_t *vector) {
   return vector->buffer_count == 0;
 }
-uint64_t vector_size(vector_t *vector) {
+uint64_t lb_vector_size(lb_vector_t *vector) {
   return vector->buffer_size;
 }
-uint64_t vector_count(vector_t *vector) {
+uint64_t lb_vector_count(lb_vector_t *vector) {
   return vector->buffer_count;
 }
-uint64_t vector_capacity(vector_t *vector) {
+uint64_t lb_vector_capacity(lb_vector_t *vector) {
   return vector->buffer_capacity;
 }
-void vector_destroy(vector_t *vector) {
-  heap_free(vector->buffer);
-  heap_free(vector->swap_buffer);
+void lb_vector_destroy(lb_vector_t *vector) {
+  lb_heap_free(vector->buffer);
+  lb_heap_free(vector->swap_buffer);
 }

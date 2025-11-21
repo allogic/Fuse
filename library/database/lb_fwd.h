@@ -1,69 +1,66 @@
 #ifndef LB_DATABASE_FWD_H
 #define LB_DATABASE_FWD_H
 
-typedef int64_t swapchain_asset_id_t;
+typedef int64_t lb_swapchain_id_t;
 
-typedef int64_t renderer_asset_id_t;
+typedef int64_t lb_renderer_id_t;
 
-typedef int64_t pipeline_asset_id_t;
-typedef int64_t pipeline_resource_id_t;
-typedef int64_t pipeline_vertex_input_binding_id_t;
-typedef int64_t pipeline_descriptor_binding_id_t;
+typedef int64_t lb_pipeline_id_t;
+typedef int64_t lb_pipeline_resource_id_t;
+typedef int64_t lb_pipeline_vertex_input_binding_id_t;
+typedef int64_t lb_pipeline_descriptor_binding_id_t;
 
-typedef int64_t model_asset_id_t;
-typedef int64_t model_resource_id_t;
-typedef int64_t model_mesh_id_t;
+typedef int64_t lb_model_id_t;
+typedef int64_t lb_model_resource_id_t;
+typedef int64_t lb_model_mesh_id_t;
 
-typedef int64_t mesh_primitive_id_t;
-typedef int64_t mesh_attribute_id_t;
+typedef int64_t lb_mesh_primitive_id_t;
+typedef int64_t lb_mesh_attribute_id_t;
 
-typedef int64_t attribute_data_id_t;
+typedef int64_t lb_attribute_data_id_t;
 
-typedef int64_t scene_asset_id_t;
+typedef int64_t lb_scene_id_t;
 
-typedef int64_t graph_asset_id_t;
+typedef int64_t lb_graph_id_t;
 
-typedef int64_t node_asset_id_t;
+typedef int64_t lb_node_id_t;
 
-typedef int64_t mesh_node_asset_id_t;
-typedef int64_t noise_node_asset_id_t;
-typedef int64_t output_node_asset_id_t;
+typedef int64_t lb_mesh_node_id_t;
+typedef int64_t lb_noise_node_id_t;
+typedef int64_t lb_output_node_id_t;
 
-typedef enum asset_type_t {
-  ASSET_TYPE_SWAPCHAIN,
-  ASSET_TYPE_RENDERER,
-  ASSET_TYPE_PIPELINE,
-  ASSET_TYPE_MODEL,
-  ASSET_TYPE_SCENE,
-  ASSET_TYPE_COUNT,
-} asset_type_t;
+typedef enum lb_pipeline_type_t {
+  LB_PIPELINE_TYPE_GRAPHIC,
+  LB_PIPELINE_TYPE_COMPUTE,
+  LB_PIPELINE_TYPE_COUNT,
+} lb_pipeline_type_t;
 
-typedef enum node_type_t {
-  NODE_TYPE_MESH,
-  NODE_TYPE_NOISE,
-  NODE_TYPE_OUTPUT,
-  NODE_TYPE_COUNT,
-} node_type_t;
+typedef enum lb_node_type_t {
+  LB_NODE_TYPE_MESH,
+  LB_NODE_TYPE_NOISE,
+  LB_NODE_TYPE_OUTPUT,
+  LB_NODE_TYPE_COUNT,
+} lb_node_type_t;
 
-typedef struct swapchain_asset_t {
-  swapchain_asset_id_t id;
+typedef struct lb_swapchain_t {
+  lb_swapchain_id_t id;
   char *name;
   uint64_t name_size;
   uint32_t image_count;
   uint32_t depth_format;
   uint8_t is_default;
-} swapchain_asset_t;
+} lb_swapchain_t;
 
-typedef struct renderer_asset_t {
-  renderer_asset_id_t id;
+typedef struct lb_renderer_t {
+  lb_renderer_id_t id;
   char *name;
   uint64_t name_size;
   uint32_t frames_in_flight;
   uint8_t is_default;
-} renderer_asset_t;
+} lb_renderer_t;
 
-typedef struct pipeline_asset_t {
-  pipeline_asset_id_t id;
+typedef struct lb_pipeline_t {
+  lb_pipeline_id_t id;
   char *name;
   uint64_t name_size;
   uint32_t type;
@@ -72,20 +69,20 @@ typedef struct pipeline_asset_t {
   uint8_t auto_create_vertex_input_buffer; // TODO: experimental..
   uint8_t auto_link_descriptor_bindings;
   uint8_t interleaved_vertex_input_buffer;
-} pipeline_asset_t;
-typedef struct pipeline_resource_t {
-  pipeline_resource_id_t id;
-  pipeline_asset_id_t pipeline_asset_id;
+} lb_pipeline_t;
+typedef struct lb_pipeline_resource_t {
+  lb_pipeline_resource_id_t id;
+  lb_pipeline_id_t pipeline_id;
   char *vertex_shader_file_path;
   char *fragment_shader_file_path;
   char *compute_shader_file_path;
   uint64_t vertex_shader_file_path_size;
   uint64_t fragment_shader_file_path_size;
   uint64_t compute_shader_file_path_size;
-} pipeline_resource_t;
-typedef struct pipeline_vertex_input_binding_t {
-  pipeline_vertex_input_binding_id_t id;
-  pipeline_asset_id_t pipeline_asset_id;
+} lb_pipeline_resource_t;
+typedef struct lb_pipeline_vertex_input_binding_t {
+  lb_pipeline_vertex_input_binding_id_t id;
+  lb_pipeline_id_t pipeline_id;
   char *binding_name;
   uint64_t binding_name_size;
   uint32_t location;
@@ -93,10 +90,10 @@ typedef struct pipeline_vertex_input_binding_t {
   uint32_t component_count;
   uint32_t format;
   uint32_t input_rate;
-} pipeline_vertex_input_binding_t;
-typedef struct pipeline_descriptor_binding_t {
-  pipeline_descriptor_binding_id_t id;
-  pipeline_asset_id_t pipeline_asset_id;
+} lb_pipeline_vertex_input_binding_t;
+typedef struct lb_pipeline_descriptor_binding_t {
+  lb_pipeline_descriptor_binding_id_t id;
+  lb_pipeline_id_t pipeline_id;
   char *binding_name;
   uint64_t binding_name_size;
   uint32_t binding;
@@ -104,86 +101,81 @@ typedef struct pipeline_descriptor_binding_t {
   uint32_t descriptor_count;
   uint32_t stage_flags;
   uint8_t auto_buffer;
-} pipeline_descriptor_binding_t;
+} lb_pipeline_descriptor_binding_t;
 
-typedef struct model_asset_t {
-  model_asset_id_t id;
+typedef struct lb_model_t {
+  lb_model_id_t id;
   char *name;
   uint64_t name_size;
-} model_asset_t;
-typedef struct model_resource_t {
-  model_resource_id_t id;
-  model_asset_id_t model_asset_id;
+} lb_model_t;
+typedef struct lb_model_resource_t {
+  lb_model_resource_id_t id;
+  lb_model_id_t model_id;
   char *model_file_path;
   uint64_t model_file_path_size;
-} model_resource_t;
-typedef struct model_mesh_t {
-  model_mesh_id_t id;
-  model_asset_id_t model_asset_id;
+} lb_model_resource_t;
+typedef struct lb_model_mesh_t {
+  lb_model_mesh_id_t id;
+  lb_model_id_t model_id;
   char *name;
   uint64_t name_size;
-} model_mesh_t;
+} lb_model_mesh_t;
 
-typedef struct mesh_primitive_t {
-  mesh_primitive_id_t id;
-  model_mesh_id_t model_mesh_id;
+typedef struct lb_mesh_primitive_t {
+  lb_mesh_primitive_id_t id;
+  lb_model_mesh_id_t model_mesh_id;
   char *name;
   uint64_t name_size;
-} mesh_primitive_t;
-typedef struct mesh_attribute_t {
-  mesh_attribute_id_t id;
-  mesh_primitive_id_t mesh_primitive_id;
+} lb_mesh_primitive_t;
+typedef struct lb_mesh_attribute_t {
+  lb_mesh_attribute_id_t id;
+  lb_mesh_primitive_id_t mesh_primitive_id;
   char *name;
   uint64_t name_size;
   uint32_t type;
   uint64_t count;
-} mesh_attribute_t;
+} lb_mesh_attribute_t;
 
-typedef struct attribute_buffer_t {
-  attribute_data_id_t id;
-  mesh_attribute_id_t mesh_attribute_id;
+typedef struct lb_attribute_buffer_t {
+  lb_attribute_data_id_t id;
+  lb_mesh_attribute_id_t mesh_attribute_id;
   uint8_t *data;
   uint64_t data_size;
-} attribute_buffer_t;
+} lb_attribute_buffer_t;
 
-typedef struct scene_asset_t {
-  scene_asset_id_t id;
+typedef struct lb_scene_t {
+  lb_scene_id_t id;
   char *name;
   uint64_t name_size;
-} scene_asset_t;
+} lb_scene_t;
 
-typedef struct graph_asset_t {
-  graph_asset_id_t id;
+typedef struct lb_graph_t {
+  lb_graph_id_t id;
   char *name;
   uint64_t name_size;
   uint32_t unique_node_id;
   uint32_t unique_pin_id;
   uint32_t unique_link_id;
-} graph_asset_t;
+} lb_graph_t;
 
-typedef struct node_asset_t {
-  node_asset_id_t id;
-  node_type_t type;
-} node_asset_t;
-
-typedef struct noise_node_asset_t {
-  noise_node_asset_id_t id;
+typedef struct lb_noise_node_t {
+  lb_noise_node_id_t id;
   uint32_t node_id;
   uint32_t factor_pin_id;
   float position_x;
   float position_y;
-} noise_node_asset_t;
-typedef struct mesh_node_asset_t {
-  mesh_node_asset_id_t id;
+} lb_noise_node_t;
+typedef struct lb_mesh_node_t {
+  lb_mesh_node_id_t id;
   uint32_t mesh_pin_id;
   float position_x;
   float position_y;
-} mesh_node_asset_t;
-typedef struct output_node_asset_t {
-  output_node_asset_id_t id;
+} lb_mesh_node_t;
+typedef struct lb_output_node_t {
+  lb_output_node_id_t id;
   uint32_t mesh_pin_id;
   float position_x;
   float position_y;
-} output_node_asset_t;
+} lb_output_node_t;
 
 #endif // LB_DATABASE_FWD_H

@@ -1,5 +1,4 @@
-#include <library/lb_pch.h>
-
+#include <library/core/lb_pch.h>
 #include <library/core/lb_heap.h>
 
 #ifdef BUILD_DEBUG
@@ -8,7 +7,7 @@ uint64_t g_heap_rellocation_count = 0;
 uint64_t g_heap_allocated_bytes = 0;
 #endif // BUILD_DEBUG
 
-void *heap_alloc(uint64_t size, uint8_t zero_block, void const *reference) {
+void *lb_heap_alloc(uint64_t size, uint8_t zero_block, void const *reference) {
 #ifdef BUILD_DEBUG
   uint64_t new_size = sizeof(uint64_t) + size;
 
@@ -46,7 +45,7 @@ void *heap_alloc(uint64_t size, uint8_t zero_block, void const *reference) {
   return new_block;
 #endif // BUILD_DEBUG
 }
-void *heap_realloc(void *block, uint64_t size) {
+void *lb_heap_realloc(void *block, uint64_t size) {
 #ifdef BUILD_DEBUG
   if (block) {
     uint64_t *old_block = (uint64_t *)block;
@@ -71,13 +70,13 @@ void *heap_realloc(void *block, uint64_t size) {
 
     return new_block;
   } else {
-    return heap_alloc(size, 0, 0);
+    return lb_heap_alloc(size, 0, 0);
   }
 #else
   return realloc(block, size);
 #endif // BUILD_DEBUG
 }
-void heap_free(void *block) {
+void lb_heap_free(void *block) {
 #ifdef BUILD_DEBUG
   uint64_t *old_block = (uint64_t *)block;
 
@@ -92,7 +91,7 @@ void heap_free(void *block) {
   free(block);
 #endif // BUILD_DEBUG
 }
-void heap_reset(void) {
+void lb_heap_reset(void) {
 #ifdef BUILD_DEBUG
   if (g_heap_allocated_bytes) {
     printf("%zu bytes leaked\n", g_heap_allocated_bytes);

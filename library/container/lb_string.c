@@ -1,23 +1,20 @@
-#include <library/lb_pch.h>
-
-#include <library/core/lb_api.h>
-
+#include <library/container/lb_pch.h>
 #include <library/container/lb_config.h>
 #include <library/container/lb_macros.h>
 #include <library/container/lb_string.h>
 
-string_t string_create(void) {
-  string_t string = {0};
+lb_string_t lb_string_create(void) {
+  lb_string_t string = {0};
 
-  string.buffer = (char *)heap_alloc(ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT), 1, 0);
-  string.buffer_capacity = ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT);
+  string.buffer = (char *)lb_heap_alloc(LB_ALIGN_UP_BY(LB_STRING_BUFFER_CAPACITY, LB_STRING_BUFFER_ALIGNMENT), 1, 0);
+  string.buffer_capacity = LB_ALIGN_UP_BY(LB_STRING_BUFFER_CAPACITY, LB_STRING_BUFFER_ALIGNMENT);
   string.buffer_size = 0;
   string.buffer[0] = 0;
 
   return string;
 }
-string_t string_format(char const *format, ...) {
-  string_t string = string_create();
+lb_string_t lb_string_format(char const *format, ...) {
+  lb_string_t string = lb_string_create();
 
   va_list args;
 
@@ -26,7 +23,7 @@ string_t string_format(char const *format, ...) {
   va_end(args);
 
   while ((string.buffer_size + value_length) >= string.buffer_capacity) {
-    string_expand(&string);
+    lb_string_expand(&string);
   }
 
   va_start(args, format);
@@ -38,13 +35,13 @@ string_t string_format(char const *format, ...) {
 
   return string;
 }
-string_t string_create_from(char const *value) {
-  string_t string = string_create();
+lb_string_t lb_string_create_from(char const *value) {
+  lb_string_t string = lb_string_create();
 
   if (value) {
     uint64_t value_size = strlen(value);
 
-    string_resize(&string, value_size);
+    lb_string_resize(&string, value_size);
 
     memcpy(string.buffer, value, value_size);
   }
@@ -53,55 +50,55 @@ string_t string_create_from(char const *value) {
 
   return string;
 }
-string_t string_create_from_file(char const *input_file) {
-  string_t string = string_create();
+lb_string_t lb_string_create_from_file(char const *input_file) {
+  lb_string_t string = lb_string_create();
 
   uint8_t *buffer = 0;
   uint64_t buffer_size = 0;
 
-  filesys_load_text(&buffer, &buffer_size, input_file);
+  lb_filesys_load_text(&buffer, &buffer_size, input_file);
 
   if (buffer_size) {
-    string_resize(&string, buffer_size);
+    lb_string_resize(&string, buffer_size);
 
     memcpy(string.buffer, buffer, buffer_size);
   }
 
   string.buffer[string.buffer_size] = 0;
 
-  heap_free(buffer);
+  lb_heap_free(buffer);
 
   return string;
 }
 
-void string_to_file(string_t *string, char const *output_file) {
-  filesys_save_text(string->buffer, string->buffer_size, output_file);
+void lb_string_to_file(lb_string_t *string, char const *output_file) {
+  lb_filesys_save_text(string->buffer, string->buffer_size, output_file);
 }
-string_t string_copy(string_t *reference) {
-  string_t string = {0};
+lb_string_t lb_string_copy(lb_string_t *reference) {
+  lb_string_t string = {0};
 
-  string.buffer = (char *)heap_alloc(reference->buffer_capacity, 0, reference->buffer);
+  string.buffer = (char *)lb_heap_alloc(reference->buffer_capacity, 0, reference->buffer);
   string.buffer_capacity = reference->buffer_capacity;
   string.buffer_size = reference->buffer_size;
 
   return string;
 }
-uint8_t string_equal(string_t *string, string_t *reference) {
+uint8_t lb_string_equal(lb_string_t *string, lb_string_t *reference) {
   uint8_t not_equal = 0;
 
   not_equal |= string->buffer_size != reference->buffer_size;
-  not_equal |= memcmp(string->buffer, reference->buffer, MIN(string->buffer_size, reference->buffer_size));
+  not_equal |= memcmp(string->buffer, reference->buffer, LB_MIN(string->buffer_size, reference->buffer_size));
 
   return not_equal == 0;
 }
-void string_fill(string_t *string, char const *value) {
+void lb_string_fill(lb_string_t *string, char const *value) {
   if (value) {
     memcpy(string->buffer, value, string->buffer_size);
 
     string->buffer[string->buffer_size] = 0;
   }
 }
-void string_upper(string_t *string) {
+void lb_string_upper(lb_string_t *string) {
   char *ptr = string->buffer;
 
   while (*ptr) {
@@ -112,7 +109,7 @@ void string_upper(string_t *string) {
     ptr++;
   }
 }
-void string_lower(string_t *string) {
+void lb_string_lower(lb_string_t *string) {
   char *ptr = string->buffer;
 
   while (*ptr) {
@@ -123,14 +120,14 @@ void string_lower(string_t *string) {
     ptr++;
   }
 }
-void string_append(string_t *string, char const *value) {
+void lb_string_append(lb_string_t *string, char const *value) {
   uint64_t value_length = strlen(value);
 
   if (value) {
     string->buffer_size += value_length;
 
     while (string->buffer_size >= string->buffer_capacity) {
-      string_expand(string);
+      lb_string_expand(string);
     }
 
     memcpy(string->buffer + string->buffer_size - value_length, value, value_length);
@@ -138,12 +135,12 @@ void string_append(string_t *string, char const *value) {
     string->buffer[string->buffer_size] = 0;
   }
 }
-void string_appends(string_t *string, char const *value, uint64_t size) {
+void lb_string_appends(lb_string_t *string, char const *value, uint64_t size) {
   if (value) {
     string->buffer_size += size;
 
     while (string->buffer_size >= string->buffer_capacity) {
-      string_expand(string);
+      lb_string_expand(string);
     }
 
     memcpy(string->buffer + string->buffer_size - size, value, size);
@@ -151,12 +148,13 @@ void string_appends(string_t *string, char const *value, uint64_t size) {
     string->buffer[string->buffer_size] = 0;
   }
 }
-void string_appendv(string_t *string, uint64_t arg_count, ...) {
+void lb_string_appendv(lb_string_t *string, uint64_t arg_count, ...) {
   uint64_t arg_index = 0;
 
   va_list args;
   va_start(args, arg_count);
   while (arg_index < arg_count) {
+
     char const *value = va_arg(args, char const *);
 
     uint64_t value_length = strlen(value);
@@ -165,7 +163,7 @@ void string_appendv(string_t *string, uint64_t arg_count, ...) {
       string->buffer_size += value_length;
 
       while (string->buffer_size >= string->buffer_capacity) {
-        string_expand(string);
+        lb_string_expand(string);
       }
 
       memcpy(string->buffer + string->buffer_size - value_length, value, value_length);
@@ -177,7 +175,7 @@ void string_appendv(string_t *string, uint64_t arg_count, ...) {
   }
   va_end(args);
 }
-void string_appendf(string_t *string, char const *format, ...) {
+void lb_string_appendf(lb_string_t *string, char const *format, ...) {
   va_list args;
 
   va_start(args, format);
@@ -185,7 +183,7 @@ void string_appendf(string_t *string, char const *format, ...) {
   va_end(args);
 
   while ((string->buffer_size + value_length) >= string->buffer_capacity) {
-    string_expand(string);
+    lb_string_expand(string);
   }
 
   va_start(args, format);
@@ -195,45 +193,45 @@ void string_appendf(string_t *string, char const *format, ...) {
   string->buffer_size += value_length;
   string->buffer[string->buffer_size] = 0;
 }
-void string_resize(string_t *string, uint64_t size) {
+void lb_string_resize(lb_string_t *string, uint64_t size) {
   uint64_t buffer_size = size;
   uint64_t buffer_capacity = 0;
 
   if (size) {
-    buffer_capacity = ALIGN_UP_BY(size + 1, STRING_BUFFER_ALIGNMENT);
+    buffer_capacity = LB_ALIGN_UP_BY(size + 1, LB_STRING_BUFFER_ALIGNMENT);
   } else {
-    buffer_capacity = ALIGN_UP_BY(STRING_BUFFER_CAPACITY, STRING_BUFFER_ALIGNMENT);
+    buffer_capacity = LB_ALIGN_UP_BY(LB_STRING_BUFFER_CAPACITY, LB_STRING_BUFFER_ALIGNMENT);
   }
 
-  string->buffer = (char *)heap_realloc(string->buffer, buffer_capacity);
+  string->buffer = (char *)lb_heap_realloc(string->buffer, buffer_capacity);
   string->buffer_capacity = buffer_capacity;
   string->buffer_size = buffer_size;
   string->buffer[string->buffer_size] = 0;
 }
-void string_expand(string_t *string) {
-  uint64_t buffer_capacity = ALIGN_UP_BY(string->buffer_capacity * 2, STRING_BUFFER_ALIGNMENT);
+void lb_string_expand(lb_string_t *string) {
+  uint64_t buffer_capacity = LB_ALIGN_UP_BY(string->buffer_capacity * 2, LB_STRING_BUFFER_ALIGNMENT);
 
-  string->buffer = (char *)heap_realloc(string->buffer, buffer_capacity);
+  string->buffer = (char *)lb_heap_realloc(string->buffer, buffer_capacity);
   string->buffer_capacity = buffer_capacity;
 }
-void string_clear(string_t *string) {
+void lb_string_clear(lb_string_t *string) {
   string->buffer_size = 0;
   string->buffer[string->buffer_size] = 0;
 }
-char string_at(string_t *string, uint64_t index) {
+char lb_string_at(lb_string_t *string, uint64_t index) {
   return string->buffer[index];
 }
-char *string_buffer(string_t *string) {
+char *lb_string_buffer(lb_string_t *string) {
   return string->buffer;
 }
-void string_set(string_t *string, char const *value) {
+void lb_string_set(lb_string_t *string, char const *value) {
   if (value) {
     uint64_t value_size = strlen(value);
 
     string->buffer_size = value_size;
 
     while (string->buffer_size >= string->buffer_capacity) {
-      string_expand(string);
+      lb_string_expand(string);
     }
 
     memcpy(string->buffer + string->buffer_size - value_size, value, value_size);
@@ -241,15 +239,15 @@ void string_set(string_t *string, char const *value) {
     string->buffer[string->buffer_size] = 0;
   }
 }
-uint8_t string_empty(string_t *string) {
+uint8_t lb_string_empty(lb_string_t *string) {
   return string->buffer_size == 0;
 }
-uint64_t string_size(string_t *string) {
+uint64_t lb_string_size(lb_string_t *string) {
   return string->buffer_size;
 }
-uint64_t string_capacity(string_t *string) {
+uint64_t lb_string_capacity(lb_string_t *string) {
   return string->buffer_capacity;
 }
-void string_destroy(string_t *string) {
-  heap_free(string->buffer);
+void lb_string_destroy(lb_string_t *string) {
+  lb_heap_free(string->buffer);
 }

@@ -1,5 +1,5 @@
-#ifndef LB_IMPORTER_FWD_H
-#define LB_IMPORTER_FWD_H
+#ifndef IM_FWD_H
+#define IM_FWD_H
 
 typedef struct graphic_pipeline_import_settings_t {
   char *pipeline_name;
@@ -21,4 +21,4 @@ typedef struct model_import_settings_t {
   char *model_file_path;
 } model_import_settings_t;
 
-#endif // LB_IMPORTER_FWD_H
+#endif // IM_FWD_H

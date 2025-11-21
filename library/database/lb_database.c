@@ -1,110 +1,107 @@
-#include <library/lb_pch.h>
-
+#include <library/database/lb_pch.h>
 #include <library/database/lb_database.h>
 
-#include <sqlite3/sqlite3.h>
-
-static int64_t database_get_sequence_index_by_name(char const *table_name);
+static int64_t lb_database_get_sequence_index_by_name(char const *table_name);
 
 static sqlite3 *s_database_handle = 0;
 
-void database_create(void) {
-  SQL_CHECK(sqlite3_open(DB_FILE_PATH, &s_database_handle));
+void lb_database_create(void) {
+  LB_SQL_CHECK(sqlite3_open(LB_FILE_PATH, &s_database_handle));
 }
-void database_destroy(void) {
-  SQL_CHECK(sqlite3_close(s_database_handle));
+void lb_database_destroy(void) {
+  LB_SQL_CHECK(sqlite3_close(s_database_handle));
 }
 
-scene_asset_id_t database_load_default_scene_asset_id(void) {
-  scene_asset_id_t scene_asset_id = -1;
+lb_scene_id_t lb_database_load_default_scene_id(void) {
+  lb_scene_id_t scene_id = -1;
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT SA.ID\n");
-  string_appendf(&sql, "FROM SCENE_ASSETS AS SA\n");
-  string_appendf(&sql, "WHERE SA.IS_DEFAULT = 1\n");
+  lb_string_appendf(&sql, "SELECT SCENE.ID\n");
+  lb_string_appendf(&sql, "FROM SCENE\n");
+  lb_string_appendf(&sql, "WHERE SCENE.IS_DEFAULT = 1\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    scene_asset_id = sqlite3_column_int64(stmt, 0);
+    scene_id = sqlite3_column_int64(stmt, 0);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return scene_asset_id;
+  return scene_id;
 }
-swapchain_asset_id_t database_load_default_swapchain_asset_id(void) {
-  swapchain_asset_id_t swapchain_asset_id = -1;
+lb_swapchain_id_t lb_database_load_default_swapchain_id(void) {
+  lb_swapchain_id_t swapchain_id = -1;
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT SA.ID\n");
-  string_appendf(&sql, "FROM SWAPCHAIN_ASSETS AS SA\n");
-  string_appendf(&sql, "WHERE SA.IS_DEFAULT = 1\n");
+  lb_string_appendf(&sql, "SELECT SWAPCHAIN.ID\n");
+  lb_string_appendf(&sql, "FROM SWAPCHAIN\n");
+  lb_string_appendf(&sql, "WHERE SWAPCHAIN.IS_DEFAULT = 1\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    swapchain_asset_id = sqlite3_column_int64(stmt, 0);
+    swapchain_id = sqlite3_column_int64(stmt, 0);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return swapchain_asset_id;
+  return swapchain_id;
 }
-renderer_asset_id_t database_load_default_renderer_asset_id(void) {
-  renderer_asset_id_t renderer_asset_id = -1;
+lb_renderer_id_t lb_database_load_default_renderer_id(void) {
+  lb_renderer_id_t renderer_id = -1;
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT RA.ID\n");
-  string_appendf(&sql, "FROM RENDERER_ASSETS AS RA\n");
-  string_appendf(&sql, "WHERE RA.IS_DEFAULT = 1\n");
+  lb_string_appendf(&sql, "SELECT RENDERER.ID\n");
+  lb_string_appendf(&sql, "FROM RENDERER\n");
+  lb_string_appendf(&sql, "WHERE RENDERER.IS_DEFAULT = 1\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    renderer_asset_id = sqlite3_column_int64(stmt, 0);
+    renderer_id = sqlite3_column_int64(stmt, 0);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return renderer_asset_id;
+  return renderer_id;
 }
 
-vector_t database_load_swapchain_assets(void) {
-  vector_t swapchain_assets = vector_create(sizeof(swapchain_asset_t));
+lb_vector_t lb_database_load_all_swapchains(void) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_swapchain_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT SA.ID, SA.NAME, SA.IMAGE_COUNT, SA.DEPTH_FORMAT, SA.IS_DEFAULT\n");
-  string_appendf(&sql, "FROM SWAPCHAIN_ASSETS AS SA\n");
+  lb_string_appendf(&sql, "SELECT SWAPCHAIN.ID, SWAPCHAIN.NAME, SWAPCHAIN.IMAGE_COUNT, SWAPCHAIN.DEPTH_FORMAT, SWAPCHAIN.IS_DEFAULT\n");
+  lb_string_appendf(&sql, "FROM SWAPCHAIN\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    swapchain_asset_t swapchain_asset = {0};
+    lb_swapchain_t swapchain = {0};
 
-    pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_swapchain_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t image_count = sqlite3_column_int(stmt, 2);
     int32_t depth_format = sqlite3_column_int(stmt, 3);
@@ -112,144 +109,144 @@ vector_t database_load_swapchain_assets(void) {
 
     uint64_t name_size = strlen(name) + 1;
 
-    swapchain_asset.id = id;
-    swapchain_asset.name = heap_alloc(name_size, 1, name);
-    swapchain_asset.name_size = name_size;
-    swapchain_asset.image_count = image_count;
-    swapchain_asset.depth_format = depth_format;
-    swapchain_asset.is_default = is_default;
+    swapchain.id = id;
+    swapchain.name = heap_alloc(name_size, 1, name);
+    swapchain.name_size = name_size;
+    swapchain.image_count = image_count;
+    swapchain.depth_format = depth_format;
+    swapchain.is_default = is_default;
 
-    vector_push(&swapchain_assets, &swapchain_asset);
+    lb_vector_push(&vector, &swapchain);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return swapchain_assets;
+  return vector;
 }
-swapchain_asset_t database_load_swapchain_asset_by_id(swapchain_asset_id_t swapchain_asset_id) {
-  swapchain_asset_t swapchain_asset = {0};
+lb_swapchain_t lb_database_load_swapchain_by_id(lb_swapchain_id_t swapchain_id) {
+  lb_swapchain_t swapchain = {0};
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT SA.ID, SA.NAME, SA.IMAGE_COUNT, SA.DEPTH_FORMAT, SA.IS_DEFAULT\n");
-  string_appendf(&sql, "FROM SWAPCHAIN_ASSETS AS SA\n");
-  string_appendf(&sql, "WHERE SA.ID = %lld\n", swapchain_asset_id);
+  lb_string_appendf(&sql, "SELECT SWAPCHAIN.ID, SWAPCHAIN.NAME, SWAPCHAIN.IMAGE_COUNT, SWAPCHAIN.DEPTH_FORMAT, SWAPCHAIN.IS_DEFAULT\n");
+  lb_string_appendf(&sql, "FROM SWAPCHAIN\n");
+  lb_string_appendf(&sql, "WHERE SWAPCHAIN.ID = %lld\n", swapchain_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    swapchain_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_swapchain_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t image_count = sqlite3_column_int(stmt, 2);
     int32_t depth_format = sqlite3_column_int(stmt, 3);
 
     uint64_t name_size = strlen(name) + 1;
 
-    swapchain_asset.id = id;
-    swapchain_asset.name = heap_alloc(name_size, 1, name);
-    swapchain_asset.name_size = name_size;
-    swapchain_asset.image_count = image_count;
-    swapchain_asset.depth_format = depth_format;
+    swapchain.id = id;
+    swapchain.name = lb_heap_alloc(name_size, 1, name);
+    swapchain.name_size = name_size;
+    swapchain.image_count = image_count;
+    swapchain.depth_format = depth_format;
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return swapchain_asset;
+  return swapchain;
 }
 
-vector_t database_load_renderer_assets(void) {
-  vector_t renderer_assets = vector_create(sizeof(renderer_asset_t));
+lb_vector_t lb_database_load_all_renderer(void) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_renderer_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT RA.ID, RA.NAME, RA.FRAMES_IN_FLIGHT, RA.IS_DEFAULT\n");
-  string_appendf(&sql, "FROM RENDERER_ASSETS AS RA\n");
+  lb_string_appendf(&sql, "SELECT RENDERER.ID, RENDERER.NAME, RENDERER.FRAMES_IN_FLIGHT, RENDERER.IS_DEFAULT\n");
+  lb_string_appendf(&sql, "FROM RENDERER\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    renderer_asset_t renderer_asset = {0};
+    lb_renderer_t renderer = {0};
 
-    pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_renderer_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t frames_in_flight = sqlite3_column_int(stmt, 2);
     uint8_t is_default = sqlite3_column_int(stmt, 3);
 
     uint64_t name_size = strlen(name) + 1;
 
-    renderer_asset.id = id;
-    renderer_asset.name = heap_alloc(name_size, 1, name);
-    renderer_asset.name_size = name_size;
-    renderer_asset.frames_in_flight = frames_in_flight;
-    renderer_asset.is_default = is_default;
+    renderer.id = id;
+    renderer.name = lb_heap_alloc(name_size, 1, name);
+    renderer.name_size = name_size;
+    renderer.frames_in_flight = frames_in_flight;
+    renderer.is_default = is_default;
 
-    vector_push(&renderer_assets, &renderer_asset);
+    lb_vector_push(&vector, &renderer);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return renderer_assets;
+  return vector;
 }
-renderer_asset_t database_load_renderer_asset_by_id(renderer_asset_id_t renderer_asset_id) {
-  renderer_asset_t renderer_asset = {0};
+lb_renderer_t lb_database_load_renderer_by_id(lb_renderer_id_t renderer_id) {
+  lb_renderer_t renderer = {0};
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT RA.ID, RA.NAME, RA.FRAMES_IN_FLIGHT, RA.IS_DEFAULT\n");
-  string_appendf(&sql, "FROM RENDERER_ASSETS AS RA\n");
-  string_appendf(&sql, "WHERE RA.ID = %lld\n", renderer_asset_id);
+  lb_string_appendf(&sql, "SELECT RENDERER.ID, RENDERER.NAME, RENDERER.FRAMES_IN_FLIGHT, RENDERER.IS_DEFAULT\n");
+  lb_string_appendf(&sql, "FROM RENDERER\n");
+  lb_string_appendf(&sql, "WHERE RENDERER.ID = %lld\n", renderer_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    renderer_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_renderer_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t frames_in_flight = sqlite3_column_int(stmt, 2);
     uint8_t is_default = sqlite3_column_int(stmt, 3);
 
     uint64_t name_size = strlen(name) + 1;
 
-    renderer_asset.id = id;
-    renderer_asset.name = heap_alloc(name_size, 1, name);
-    renderer_asset.name_size = name_size;
-    renderer_asset.frames_in_flight = frames_in_flight;
-    renderer_asset.is_default = is_default;
+    renderer.id = id;
+    renderer.name = lb_heap_alloc(name_size, 1, name);
+    renderer.name_size = name_size;
+    renderer.frames_in_flight = frames_in_flight;
+    renderer.is_default = is_default;
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return renderer_asset;
+  return renderer;
 }
 
-uint64_t database_load_vertex_input_binding_count_by_id(pipeline_asset_id_t pipeline_asset_id) {
+uint64_t lb_database_load_vertex_input_binding_count_by_id(lb_pipeline_id_t pipeline_id) {
   uint64_t pipeline_vertex_input_binding_count = 0;
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT COUNT(*) AS CNT\n");
-  string_appendf(&sql, "FROM PIPELINE_VERTEX_INPUT_BINDINGS AS PVIB\n");
-  string_appendf(&sql, "WHERE PVIB.PIPELINE_ASSET_ID = %lld\n", pipeline_asset_id);
+  lb_string_appendf(&sql, "SELECT COUNT(*) AS CNT\n");
+  lb_string_appendf(&sql, "FROM PIPELINE_VERTEX_INPUT_BINDING\n");
+  lb_string_appendf(&sql, "WHERE PIPELINE_VERTEX_INPUT_BINDING.PIPELINE_ID = %lld\n", pipeline_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
@@ -258,22 +255,22 @@ uint64_t database_load_vertex_input_binding_count_by_id(pipeline_asset_id_t pipe
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
   return pipeline_vertex_input_binding_count;
 }
-uint64_t database_load_descriptor_binding_count_by_id(pipeline_asset_id_t pipeline_asset_id) {
+uint64_t lb_database_load_descriptor_binding_count_by_id(lb_pipeline_id_t pipeline_id) {
   uint64_t pipeline_descriptor_binding_count = 0;
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT COUNT(*) AS CNT\n");
-  string_appendf(&sql, "FROM PIPELINE_DESCRIPTOR_BINDINGS AS PDB\n");
-  string_appendf(&sql, "WHERE PDB.PIPELINE_ASSET_ID = %lld\n", pipeline_asset_id);
+  lb_string_appendf(&sql, "SELECT COUNT(*) AS CNT\n");
+  lb_string_appendf(&sql, "FROM PIPELINE_DESCRIPTOR_BINDING\n");
+  lb_string_appendf(&sql, "WHERE PIPELINE_DESCRIPTOR_BINDING.PIPELINE_ASSET_ID = %lld\n", pipeline_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
@@ -282,28 +279,28 @@ uint64_t database_load_descriptor_binding_count_by_id(pipeline_asset_id_t pipeli
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
   return pipeline_descriptor_binding_count;
 }
 
-vector_t database_load_pipeline_assets(void) {
-  vector_t pipeline_assets = vector_create(sizeof(pipeline_asset_t));
+lb_vector_t lb_database_load_all_pipelines(void) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_pipeline_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT PA.ID, PA.NAME, PA.TYPE, PA.LINK_INDEX, PA.AUTO_CREATE_PIPELINE, PA.AUTO_CREATE_VERTEX_INPUT_BUFFER, PA.AUTO_LINK_DESCRIPTOR_BINDINGS, PA.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
-  string_appendf(&sql, "FROM PIPELINE_ASSETS AS PA\n");
+  lb_string_appendf(&sql, "SELECT PIPELINE.ID, PIPELINE.NAME, PIPELINE.TYPE, PIPELINE.LINK_INDEX, PIPELINE.AUTO_CREATE_PIPELINE, PIPELINE.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
+  lb_string_appendf(&sql, "FROM PIPELINE\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    pipeline_asset_t pipeline_asset = {0};
+    lb_pipeline_t pipeline = {0};
 
-    pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_pipeline_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     uint32_t type = (uint32_t)sqlite3_column_int(stmt, 2);
     uint32_t link_index = (uint32_t)sqlite3_column_int(stmt, 3);
@@ -314,43 +311,43 @@ vector_t database_load_pipeline_assets(void) {
 
     uint64_t name_size = strlen(name) + 1;
 
-    pipeline_asset.id = id;
-    pipeline_asset.name = heap_alloc(name_size, 1, name);
-    pipeline_asset.name_size = name_size;
-    pipeline_asset.type = type;
-    pipeline_asset.link_index = link_index;
-    pipeline_asset.auto_create_pipeline = auto_create_pipeline;
-    pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
-    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
-    pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
+    pipeline.id = id;
+    pipeline.name = lb_heap_alloc(name_size, 1, name);
+    pipeline.name_size = name_size;
+    pipeline.type = type;
+    pipeline.link_index = link_index;
+    pipeline.auto_create_pipeline = auto_create_pipeline;
+    pipeline.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
+    pipeline.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
+    pipeline.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
 
-    vector_push(&pipeline_assets, &pipeline_asset);
+    lb_vector_push(&vector, &pipeline);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return pipeline_assets;
+  return vector;
 }
-vector_t database_load_pipeline_assets_by_type(uint32_t pipeline_type) {
-  vector_t pipeline_assets = vector_create(sizeof(pipeline_asset_t));
+lb_vector_t lb_database_load_all_pipeline_by_type(lb_pipeline_type_t pipeline_type) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_pipeline_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT PA.ID, PA.NAME, PA.TYPE, PA.LINK_INDEX, PA.AUTO_CREATE_PIPELINE, PA.AUTO_CREATE_VERTEX_INPUT_BUFFER, PA.AUTO_LINK_DESCRIPTOR_BINDINGS, PA.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
-  string_appendf(&sql, "FROM PIPELINE_ASSETS AS PA\n");
-  string_appendf(&sql, "WHERE TYPE = %u\n", pipeline_type);
+  lb_string_appendf(&sql, "SELECT PIPELINE.ID, PIPELINE.NAME, PIPELINE.TYPE, PIPELINE.LINK_INDEX, PIPELINE.AUTO_CREATE_PIPELINE, PIPELINE.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
+  lb_string_appendf(&sql, "FROM PIPELINE\n");
+  lb_string_appendf(&sql, "WHERE TYPE = %u\n", pipeline_type);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    pipeline_asset_t pipeline_asset = {0};
+    lb_pipeline_t pipeline = {0};
 
-    pipeline_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_pipeline_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     uint32_t type = (uint32_t)sqlite3_column_int(stmt, 2);
     uint32_t link_index = (uint32_t)sqlite3_column_int(stmt, 3);
@@ -361,43 +358,43 @@ vector_t database_load_pipeline_assets_by_type(uint32_t pipeline_type) {
 
     uint64_t name_size = strlen(name) + 1;
 
-    pipeline_asset.id = id;
-    pipeline_asset.name = heap_alloc(name_size, 1, name);
-    pipeline_asset.name_size = name_size;
-    pipeline_asset.type = type;
-    pipeline_asset.link_index = link_index;
-    pipeline_asset.auto_create_pipeline = auto_create_pipeline;
-    pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
-    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
-    pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
+    pipeline.id = id;
+    pipeline.name = lb_heap_alloc(name_size, 1, name);
+    pipeline.name_size = name_size;
+    pipeline.type = type;
+    pipeline.link_index = link_index;
+    pipeline.auto_create_pipeline = auto_create_pipeline;
+    pipeline.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
+    pipeline.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
+    pipeline.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
 
-    vector_push(&pipeline_assets, &pipeline_asset);
+    lb_vector_push(&vector, &pipeline);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return pipeline_assets;
+  return vector;
 }
-pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_asset_id_t pipeline_asset_id) {
-  pipeline_resource_t pipeline_resource = {0};
+lb_pipeline_resource_t lb_database_load_pipeline_resource_by_id(lb_pipeline_id_t pipeline_id) {
+  lb_pipeline_resource_t pipeline_resource = {0};
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT PR.ID, PR.VERTEX_SHADER_FILE_PATH, PR.FRAGMENT_SHADER_FILE_PATH, PR.COMPUTE_SHADER_FILE_PATH\n");
-  string_appendf(&sql, "FROM PIPELINE_ASSETS AS PA\n");
-  string_appendf(&sql, "LEFT JOIN PIPELINE_RESOURCES AS PR\n");
-  string_appendf(&sql, "ON PA.ID = PR.PIPELINE_ASSET_ID\n");
-  string_appendf(&sql, "WHERE PA.ID = %lld\n", pipeline_asset_id);
+  lb_string_appendf(&sql, "SELECT PIPELINE_RESOURCE.ID, PIPELINE_RESOURCE.VERTEX_SHADER_FILE_PATH, PIPELINE_RESOURCE.FRAGMENT_SHADER_FILE_PATH, PIPELINE_RESOURCE.COMPUTE_SHADER_FILE_PATH\n");
+  lb_string_appendf(&sql, "FROM PIPELINE\n");
+  lb_string_appendf(&sql, "LEFT JOIN PIPELINE_RESOURCE\n");
+  lb_string_appendf(&sql, "ON PIPELINE.ID = PIPELINE_RESOURCE.PIPELINE_ID\n");
+  lb_string_appendf(&sql, "WHERE PIPELINE_RESOURCE.ID = %lld\n", pipeline_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    pipeline_resource_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_pipeline_resource_id_t id = sqlite3_column_int64(stmt, 0);
     char const *vertex_shader_file_path = sqlite3_column_text(stmt, 1);
     char const *fragment_shader_file_path = sqlite3_column_text(stmt, 2);
     char const *compute_shader_file_path = sqlite3_column_text(stmt, 3);
@@ -407,10 +404,10 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_asset_id_t pi
     uint64_t compute_shader_file_path_size = compute_shader_file_path ? strlen(compute_shader_file_path) + 1 : 0;
 
     pipeline_resource.id = id;
-    pipeline_resource.pipeline_asset_id = pipeline_asset_id;
-    pipeline_resource.vertex_shader_file_path = vertex_shader_file_path ? heap_alloc(vertex_shader_file_path_size, 1, vertex_shader_file_path) : 0;
-    pipeline_resource.fragment_shader_file_path = fragment_shader_file_path ? heap_alloc(fragment_shader_file_path_size, 1, fragment_shader_file_path) : 0;
-    pipeline_resource.compute_shader_file_path = compute_shader_file_path ? heap_alloc(compute_shader_file_path_size, 1, compute_shader_file_path) : 0;
+    pipeline_resource.pipeline_id = pipeline_id;
+    pipeline_resource.vertex_shader_file_path = vertex_shader_file_path ? lb_heap_alloc(vertex_shader_file_path_size, 1, vertex_shader_file_path) : 0;
+    pipeline_resource.fragment_shader_file_path = fragment_shader_file_path ? lb_heap_alloc(fragment_shader_file_path_size, 1, fragment_shader_file_path) : 0;
+    pipeline_resource.compute_shader_file_path = compute_shader_file_path ? lb_heap_alloc(compute_shader_file_path_size, 1, compute_shader_file_path) : 0;
     pipeline_resource.vertex_shader_file_path_size = vertex_shader_file_path_size;
     pipeline_resource.fragment_shader_file_path_size = fragment_shader_file_path_size;
     pipeline_resource.compute_shader_file_path_size = compute_shader_file_path_size;
@@ -418,30 +415,30 @@ pipeline_resource_t database_load_pipeline_resource_by_id(pipeline_asset_id_t pi
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
   return pipeline_resource;
 }
-vector_t database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset_id_t pipeline_asset_id) {
-  vector_t pipeline_vertex_input_bindings = vector_create(sizeof(pipeline_vertex_input_binding_t));
+lb_vector_t lb_database_load_all_pipeline_vertex_input_bindings_by_id(lb_pipeline_id_t pipeline_id) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_pipeline_vertex_input_binding_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT PVIB.ID, PVIB.BINDING_NAME, PVIB.LOCATION, PVIB.SIZE, PVIB.COMPONENT_COUNT, PVIB.FORMAT, PVIB.INPUT_RATE\n");
-  string_appendf(&sql, "FROM PIPELINE_ASSETS AS PA\n");
-  string_appendf(&sql, "LEFT JOIN PIPELINE_VERTEX_INPUT_BINDINGS AS PVIB\n");
-  string_appendf(&sql, "ON PA.ID = PVIB.PIPELINE_ASSET_ID\n");
-  string_appendf(&sql, "WHERE PA.ID = %lld\n", pipeline_asset_id);
+  lb_string_appendf(&sql, "SELECT PIPELINE_VERTEX_INPUT_BINDING.ID, PIPELINE_VERTEX_INPUT_BINDING.BINDING_NAME, PIPELINE_VERTEX_INPUT_BINDING.LOCATION, PIPELINE_VERTEX_INPUT_BINDING.SIZE, PIPELINE_VERTEX_INPUT_BINDING.COMPONENT_COUNT, PIPELINE_VERTEX_INPUT_BINDING.FORMAT, PIPELINE_VERTEX_INPUT_BINDING.INPUT_RATE\n");
+  lb_string_appendf(&sql, "FROM PIPELINE\n");
+  lb_string_appendf(&sql, "LEFT JOIN PIPELINE_VERTEX_INPUT_BINDING\n");
+  lb_string_appendf(&sql, "ON PIPELINE.ID = PIPELINE_VERTEX_INPUT_BINDING.PIPELINE_ID\n");
+  lb_string_appendf(&sql, "WHERE PIPELINE.ID = %lld\n", pipeline_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    pipeline_vertex_input_binding_t pipeline_vertex_input_binding = {0};
+    lb_pipeline_vertex_input_binding_t pipeline_vertex_input_binding = {0};
 
-    pipeline_vertex_input_binding_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_pipeline_vertex_input_binding_id_t id = sqlite3_column_int64(stmt, 0);
     char const *binding_name = sqlite3_column_text(stmt, 1);
     uint32_t location = (uint32_t)sqlite3_column_int(stmt, 2);
     uint32_t size = (uint32_t)sqlite3_column_int(stmt, 3);
@@ -452,8 +449,8 @@ vector_t database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset_id_t 
     uint64_t binding_name_size = binding_name ? strlen(binding_name) + 1 : 0;
 
     pipeline_vertex_input_binding.id = id;
-    pipeline_vertex_input_binding.pipeline_asset_id = pipeline_asset_id;
-    pipeline_vertex_input_binding.binding_name = heap_alloc(binding_name_size, 1, binding_name);
+    pipeline_vertex_input_binding.pipeline_id = pipeline_id;
+    pipeline_vertex_input_binding.binding_name = lb_heap_alloc(binding_name_size, 1, binding_name);
     pipeline_vertex_input_binding.binding_name_size = binding_name_size;
     pipeline_vertex_input_binding.location = location;
     pipeline_vertex_input_binding.size = size;
@@ -461,35 +458,35 @@ vector_t database_load_pipeline_vertex_input_bindings_by_id(pipeline_asset_id_t 
     pipeline_vertex_input_binding.format = format;
     pipeline_vertex_input_binding.input_rate = input_rate;
 
-    vector_push(&pipeline_vertex_input_bindings, &pipeline_vertex_input_binding);
+    lb_vector_push(&vector, &pipeline_vertex_input_binding);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return pipeline_vertex_input_bindings;
+  return vector;
 }
-vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pipeline_asset_id) {
-  vector_t pipeline_descriptor_bindings = vector_create(sizeof(pipeline_descriptor_binding_t));
+lb_vector_t lb_database_load_all_pipeline_descriptor_bindings_by_id(lb_pipeline_id_t pipeline_id) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_pipeline_descriptor_binding_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT PDB.ID, PDB.BINDING_NAME, PDB.BINDING, PDB.DESCRIPTOR_TYPE, PDB.DESCRIPTOR_COUNT, PDB.STAGE_FLAGS, PDB.AUTO_BUFFER\n");
-  string_appendf(&sql, "FROM PIPELINE_ASSETS AS PA\n");
-  string_appendf(&sql, "LEFT JOIN PIPELINE_DESCRIPTOR_BINDINGS AS PDB\n");
-  string_appendf(&sql, "ON PA.ID = PDB.PIPELINE_ASSET_ID\n");
-  string_appendf(&sql, "WHERE PA.ID = %lld\n", pipeline_asset_id);
+  lb_string_appendf(&sql, "SELECT PIPELINE_DESCRIPTOR_BINDING.ID, PIPELINE_DESCRIPTOR_BINDING.BINDING_NAME, PIPELINE_DESCRIPTOR_BINDING.BINDING, PIPELINE_DESCRIPTOR_BINDING.DESCRIPTOR_TYPE, PIPELINE_DESCRIPTOR_BINDING.DESCRIPTOR_COUNT, PIPELINE_DESCRIPTOR_BINDING.STAGE_FLAGS, PIPELINE_DESCRIPTOR_BINDING.AUTO_BUFFER\n");
+  lb_string_appendf(&sql, "FROM PIPELINE\n");
+  lb_string_appendf(&sql, "LEFT JOIN PIPELINE_DESCRIPTOR_BINDING\n");
+  lb_string_appendf(&sql, "ON PIPELINE.ID = PIPELINE_DESCRIPTOR_BINDING.PIPELINE_ID\n");
+  lb_string_appendf(&sql, "WHERE PIPELINE.ID = %lld\n", pipeline_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    pipeline_descriptor_binding_t pipeline_descriptor_binding = {0};
+    lb_pipeline_descriptor_binding_t pipeline_descriptor_binding = {0};
 
-    pipeline_descriptor_binding_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_pipeline_descriptor_binding_id_t id = sqlite3_column_int64(stmt, 0);
     char const *binding_name = (char const *)sqlite3_column_text(stmt, 1);
     uint32_t binding = (uint32_t)sqlite3_column_int(stmt, 2);
     uint32_t descriptor_type = (uint32_t)sqlite3_column_int(stmt, 3);
@@ -500,8 +497,8 @@ vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pi
     uint64_t binding_name_size = binding_name ? strlen(binding_name) + 1 : 0;
 
     pipeline_descriptor_binding.id = id;
-    pipeline_descriptor_binding.pipeline_asset_id = pipeline_asset_id;
-    pipeline_descriptor_binding.binding_name = heap_alloc(binding_name_size, 1, binding_name);
+    pipeline_descriptor_binding.pipeline_id = pipeline_id;
+    pipeline_descriptor_binding.binding_name = lb_heap_alloc(binding_name_size, 1, binding_name);
     pipeline_descriptor_binding.binding_name_size = binding_name_size;
     pipeline_descriptor_binding.binding = binding;
     pipeline_descriptor_binding.descriptor_type = descriptor_type;
@@ -509,180 +506,181 @@ vector_t database_load_pipeline_descriptor_bindings_by_id(pipeline_asset_id_t pi
     pipeline_descriptor_binding.stage_flags = stage_flags;
     pipeline_descriptor_binding.auto_buffer = auto_buffer;
 
-    vector_push(&pipeline_descriptor_bindings, &pipeline_descriptor_binding);
+    lb_vector_push(&vector, &pipeline_descriptor_binding);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return pipeline_descriptor_bindings;
+  return vector;
 }
 
-vector_t database_load_model_assets(void) {
-  vector_t model_assets = vector_create(sizeof(pipeline_asset_t));
+lb_vector_t lb_database_load_all_models(void) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_pipeline_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT ID, NAME FROM MODEL_ASSETS\n");
+  lb_string_appendf(&sql, "SELECT MODEL.ID, MODEL.NAME\n");
+  lb_string_appendf(&sql, "FROM MODEL\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    model_asset_t model_asset = {0};
+    lb_model_t model = {0};
 
-    model_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_model_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
 
     uint64_t name_size = name ? strlen(name) + 1 : 0;
 
-    model_asset.id = id;
-    model_asset.name = heap_alloc(name_size, 1, name);
-    model_asset.name_size = name_size;
+    model.id = id;
+    model.name = lb_heap_alloc(name_size, 1, name);
+    model.name_size = name_size;
 
-    vector_push(&model_assets, &model_asset);
+    lb_vector_push(&vector, &model);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return model_assets;
+  return vector;
 }
-model_resource_t database_load_model_resource_by_id(model_asset_id_t model_asset_id) {
-  model_resource_t model_resource = {0};
+lb_model_resource_t lb_database_load_model_resource_by_id(lb_model_id_t model_id) {
+  lb_model_resource_t model_resource = {0};
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT MR.ID, MR.MODEL_FILE_PATH\n");
-  string_appendf(&sql, "FROM MODEL_ASSETS AS MA\n");
-  string_appendf(&sql, "LEFT JOIN MODEL_RESOURCES AS MR\n");
-  string_appendf(&sql, "ON MA.ID = MR.MODEL_ASSET_ID\n");
-  string_appendf(&sql, "WHERE MA.ID = %lld\n", model_asset_id);
+  lb_string_appendf(&sql, "SELECT MODEL_RESOURCE.ID, MODEL_RESOURCE.MODEL_FILE_PATH\n");
+  lb_string_appendf(&sql, "FROM MODEL\n");
+  lb_string_appendf(&sql, "LEFT JOIN MODEL_RESOURCE\n");
+  lb_string_appendf(&sql, "ON MODEL.ID = MODEL_RESOURCE.MODEL_ID\n");
+  lb_string_appendf(&sql, "WHERE MODEL.ID = %lld\n", model_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    model_resource_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_model_resource_id_t id = sqlite3_column_int64(stmt, 0);
     char const *model_file_path = sqlite3_column_text(stmt, 1);
 
     uint64_t model_file_path_size = model_file_path ? strlen(model_file_path) + 1 : 0;
 
     model_resource.id = id;
-    model_resource.model_asset_id = model_asset_id;
-    model_resource.model_file_path = model_file_path ? heap_alloc(model_file_path_size, 1, model_file_path) : 0;
+    model_resource.model_id = model_id;
+    model_resource.model_file_path = model_file_path ? lb_heap_alloc(model_file_path_size, 1, model_file_path) : 0;
     model_resource.model_file_path_size = model_file_path_size;
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
   return model_resource;
 }
-vector_t database_load_model_meshes_by_id(model_asset_id_t model_asset_id) {
-  vector_t model_meshes = vector_create(sizeof(model_mesh_t));
+lb_vector_t lb_database_load_all_model_meshes_by_id(lb_model_id_t model_id) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_model_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT MM.ID, MM.NAME\n");
-  string_appendf(&sql, "FROM MODEL_ASSETS AS MA\n");
-  string_appendf(&sql, "LEFT JOIN MODEL_MESHES AS MM\n");
-  string_appendf(&sql, "ON MA.ID = MM.MODEL_ASSET_ID\n");
-  string_appendf(&sql, "WHERE MA.ID = %lld\n", model_asset_id);
+  lb_string_appendf(&sql, "SELECT MODEL_MESH.ID, MODEL_MESH.NAME\n");
+  lb_string_appendf(&sql, "FROM MODEL\n");
+  lb_string_appendf(&sql, "LEFT JOIN MODEL_MESH\n");
+  lb_string_appendf(&sql, "ON MODEL.ID = MODEL_MESH.MODEL_ID\n");
+  lb_string_appendf(&sql, "WHERE MODEL.ID = %lld\n", model_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    model_mesh_t model_mesh = {0};
+    lb_model_mesh_t model_mesh = {0};
 
-    model_mesh_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_model_mesh_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
 
     uint64_t name_size = name ? strlen(name) + 1 : 0;
 
     model_mesh.id = id;
-    model_mesh.model_asset_id = model_asset_id;
-    model_mesh.name = heap_alloc(name_size, 1, name);
+    model_mesh.model_id = model_id;
+    model_mesh.name = lb_heap_alloc(name_size, 1, name);
     model_mesh.name_size = name_size;
 
-    vector_push(&model_meshes, &model_mesh);
+    lb_vector_push(&vector, &model_mesh);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return model_meshes;
+  return vector;
 }
 
-vector_t database_load_mesh_primitives_by_id(model_mesh_id_t model_mesh_id) {
-  vector_t mesh_primitives = vector_create(sizeof(mesh_primitive_t));
+lb_vector_t lb_database_load_all_mesh_primitives_by_id(lb_model_mesh_id_t model_mesh_id) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_mesh_primitive_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT MP.ID, MP.NAME\n");
-  string_appendf(&sql, "FROM MODEL_MESHES AS MM\n");
-  string_appendf(&sql, "LEFT JOIN MESH_PRIMITIVES AS MP\n");
-  string_appendf(&sql, "ON MM.ID = MP.MODEL_MESH_ID\n");
-  string_appendf(&sql, "WHERE MM.ID = %lld\n", model_mesh_id);
+  lb_string_appendf(&sql, "SELECT MESH_PRIMITIVE.ID, MESH_PRIMITIVE.NAME\n");
+  lb_string_appendf(&sql, "FROM MODEL\n");
+  lb_string_appendf(&sql, "LEFT JOIN MESH_PRIMITIVE\n");
+  lb_string_appendf(&sql, "ON MODEL.ID = MESH_PRIMITIVE.MODEL_MESH_ID\n");
+  lb_string_appendf(&sql, "WHERE MODEL.ID = %lld\n", model_mesh_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    mesh_primitive_t mesh_primitive = {0};
+    lb_mesh_primitive_t mesh_primitive = {0};
 
-    mesh_primitive_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_mesh_primitive_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
 
     uint64_t name_size = name ? strlen(name) + 1 : 0;
 
     mesh_primitive.id = id;
     mesh_primitive.model_mesh_id = model_mesh_id;
-    mesh_primitive.name = heap_alloc(name_size, 1, name);
+    mesh_primitive.name = lb_heap_alloc(name_size, 1, name);
     mesh_primitive.name_size = name_size;
 
-    vector_push(&mesh_primitives, &mesh_primitive);
+    lb_vector_push(&vector, &mesh_primitive);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return mesh_primitives;
+  return vector;
 }
-vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_id) {
-  vector_t mesh_attributes = vector_create(sizeof(mesh_attribute_t));
+lb_vector_t lb_database_load_all_mesh_attributes_by_id(lb_mesh_primitive_id_t mesh_primitive_id) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_mesh_attribute_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT MA.ID, MA.NAME, MA.TYPE, MA.COUNT\n");
-  string_appendf(&sql, "FROM MESH_PRIMITIVES AS MP\n");
-  string_appendf(&sql, "LEFT JOIN MESH_ATTRIBUTES AS MA\n");
-  string_appendf(&sql, "ON MP.ID = MA.MESH_PRIMITIVE_ID\n");
-  string_appendf(&sql, "WHERE MP.ID = %lld\n", mesh_primitive_id);
+  lb_string_appendf(&sql, "SELECT MESH_ATTRIBUTE.ID, MESH_ATTRIBUTE.NAME, MESH_ATTRIBUTE.TYPE, MESH_ATTRIBUTE.COUNT\n");
+  lb_string_appendf(&sql, "FROM MESH_PRIMITIVE\n");
+  lb_string_appendf(&sql, "LEFT JOIN MESH_ATTRIBUTE\n");
+  lb_string_appendf(&sql, "ON MESH_PRIMITIVE.ID = MESH_ATTRIBUTE.MESH_PRIMITIVE_ID\n");
+  lb_string_appendf(&sql, "WHERE MESH_PRIMITIVE.ID = %lld\n", mesh_primitive_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    mesh_attribute_t mesh_attribute = {0};
+    lb_mesh_attribute_t mesh_attribute = {0};
 
-    mesh_attribute_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_mesh_attribute_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     uint32_t type = sqlite3_column_int(stmt, 2);
     uint64_t count = sqlite3_column_int64(stmt, 3);
@@ -691,156 +689,157 @@ vector_t database_load_mesh_attributes_by_id(mesh_primitive_id_t mesh_primitive_
 
     mesh_attribute.id = id;
     mesh_attribute.mesh_primitive_id = mesh_primitive_id;
-    mesh_attribute.name = heap_alloc(name_size, 1, name);
+    mesh_attribute.name = lb_heap_alloc(name_size, 1, name);
     mesh_attribute.name_size = name_size;
     mesh_attribute.type = type;
     mesh_attribute.count = count;
 
-    vector_push(&mesh_attributes, &mesh_attribute);
+    lb_vector_push(&vector, &mesh_attribute);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return mesh_attributes;
+  return vector;
 }
 
-attribute_buffer_t database_load_attribute_buffer_by_id(mesh_attribute_id_t mesh_attribute_id) {
-  attribute_buffer_t attribute_buffer = {0};
+lb_attribute_buffer_t lb_database_load_attribute_buffer_by_id(lb_mesh_attribute_id_t mesh_attribute_id) {
+  lb_attribute_buffer_t attribute_buffer = {0};
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT AB.ID, AB.DATA\n");
-  string_appendf(&sql, "FROM MESH_ATTRIBUTES AS MA\n");
-  string_appendf(&sql, "LEFT JOIN ATTRIBUTE_BUFFER AS AB\n");
-  string_appendf(&sql, "ON MA.ID = AB.MESH_ATTRIBUTE_ID\n");
-  string_appendf(&sql, "WHERE MA.ID = %lld\n", mesh_attribute_id);
+  lb_string_appendf(&sql, "SELECT ATTRIBUTE_BUFFER.ID, ATTRIBUTE_BUFFER.DATA\n");
+  lb_string_appendf(&sql, "FROM MESH_ATTRIBUTE\n");
+  lb_string_appendf(&sql, "LEFT JOIN ATTRIBUTE_BUFFER\n");
+  lb_string_appendf(&sql, "ON MESH_ATTRIBUTE.ID = ATTRIBUTE_BUFFER.MESH_ATTRIBUTE_ID\n");
+  lb_string_appendf(&sql, "WHERE MESH_ATTRIBUTE.ID = %lld\n", mesh_attribute_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    attribute_data_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_attribute_data_id_t id = sqlite3_column_int64(stmt, 0);
     uint8_t const *data = sqlite3_column_blob(stmt, 1);
     uint64_t data_size = sqlite3_column_bytes(stmt, 1);
 
     attribute_buffer.id = id;
     attribute_buffer.mesh_attribute_id = mesh_attribute_id;
-    attribute_buffer.data = heap_alloc(data_size, 0, data);
+    attribute_buffer.data = lb_heap_alloc(data_size, 0, data);
     attribute_buffer.data_size = data_size;
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
   return attribute_buffer;
 }
 
-vector_t database_load_scene_assets(void) {
-  vector_t scene_assets = vector_create(sizeof(scene_asset_t));
+lb_vector_t lb_database_load_all_scenes(void) {
+  lb_vector_t vector = lb_vector_create(sizeof(lb_scene_t));
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT ID, NAME FROM SCENE_ASSETS\n");
+  lb_string_appendf(&sql, "SELECT SCENE.ID, SCENE.NAME\n");
+  lb_string_appendf(&sql, "FROM SCENE\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    scene_asset_t scene_asset = {0};
+    lb_scene_t scene = {0};
 
-    scene_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_scene_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
 
     uint64_t name_size = name ? strlen(name) + 1 : 0;
 
-    scene_asset.id = id;
-    scene_asset.name = heap_alloc(name_size, 1, name);
-    scene_asset.name_size = name_size;
+    scene.id = id;
+    scene.name = lb_heap_alloc(name_size, 1, name);
+    scene.name_size = name_size;
 
-    vector_push(&scene_assets, &scene_asset);
+    lb_vector_push(&vector, &scene);
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return scene_assets;
+  return vector;
 }
 
-graph_asset_t database_load_graph_asset_by_id(graph_asset_id_t graph_asset_id) {
-  graph_asset_t graph_asset = {0};
+lb_graph_t lb_database_load_graph_by_id(lb_graph_id_t graph_id) {
+  lb_graph_t graph = {0};
 
-  string_t sql = string_create();
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "SELECT GA.ID, GA.NAME\n");
-  string_appendf(&sql, "FROM GRAPH_ASSETS AS GA\n");
-  string_appendf(&sql, "WHERE GA.ID = %lld\n", graph_asset_id);
+  lb_string_appendf(&sql, "SELECT GRAPH.ID, GRAPH.NAME\n");
+  lb_string_appendf(&sql, "FROM GRAPH\n");
+  lb_string_appendf(&sql, "WHERE GRAPH.ID = %lld\n", graph_id);
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
   while (sqlite3_step(stmt) == SQLITE_ROW) {
 
-    renderer_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    lb_renderer_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
 
     uint64_t name_size = strlen(name) + 1;
 
-    graph_asset.id = id;
-    graph_asset.name = heap_alloc(name_size, 1, name);
-    graph_asset.name_size = name_size;
+    graph.id = id;
+    graph.name = lb_heap_alloc(name_size, 1, name);
+    graph.name_size = name_size;
   }
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  return graph_asset;
+  return graph;
 }
 
-void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset) {
-  string_t sql = string_create();
+void lb_database_store_swapchain(lb_swapchain_t *swapchain) {
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "INSERT INTO SWAPCHAIN_ASSETS (NAME, IMAGE_COUNT, DEPTH_FORMAT)\n");
-  string_appendf(&sql, "VALUES (?, ?, ?)\n");
-  string_appendf(&sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
-  string_appendf(&sql, "IMAGE_COUNT = EXCLUDED.IMAGE_COUNT,\n");
-  string_appendf(&sql, "DEPTH_FORMAT = EXCLUDED.DEPTH_FORMAT\n");
+  lb_string_appendf(&sql, "INSERT INTO SWAPCHAIN (NAME, IMAGE_COUNT, DEPTH_FORMAT)\n");
+  lb_string_appendf(&sql, "VALUES (?, ?, ?)\n");
+  lb_string_appendf(&sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
+  lb_string_appendf(&sql, "IMAGE_COUNT = EXCLUDED.IMAGE_COUNT,\n");
+  lb_string_appendf(&sql, "DEPTH_FORMAT = EXCLUDED.DEPTH_FORMAT\n");
 
   sqlite3_stmt *stmt = 0;
 
-  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(&sql), -1, &stmt, 0));
 
-  sqlite3_bind_text(stmt, 1, swapchain_asset->name, -1, SQLITE_STATIC);
-  sqlite3_bind_int(stmt, 2, swapchain_asset->image_count);
-  sqlite3_bind_int(stmt, 3, swapchain_asset->depth_format);
+  sqlite3_bind_text(stmt, 1, swapchain->name, -1, SQLITE_STATIC);
+  sqlite3_bind_int(stmt, 2, swapchain->image_count);
+  sqlite3_bind_int(stmt, 3, swapchain->depth_format);
 
-  SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+  LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
   sqlite3_finalize(stmt);
 
-  string_destroy(&sql);
+  lb_string_destroy(&sql);
 
-  if (swapchain_asset->id == 0) {
-    swapchain_asset->id = database_get_sequence_index_by_name("SWAPCHAIN_ASSETS");
+  if (swapchain->id == 0) {
+    swapchain->id = database_get_sequence_index_by_name("SWAPCHAIN");
   }
 }
 
-void database_store_renderer_asset(renderer_asset_t *renderer_asset) {
-  string_t sql = string_create();
+void lb_database_store_renderer_asset(lb_renderer_t *renderer) {
+  lb_string_t sql = lb_string_create();
 
-  string_appendf(&sql, "INSERT INTO RENDERER_ASSETS (NAME, FRAMES_IN_FLIGHT)\n");
-  string_appendf(&sql, "VALUES (?, ?)\n");
-  string_appendf(&sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
-  string_appendf(&sql, "FRAMES_IN_FLIGHT = EXCLUDED.FRAMES_IN_FLIGHT\n");
+  lb_string_appendf(&sql, "INSERT INTO RENDERER (NAME, FRAMES_IN_FLIGHT)\n");
+  lb_string_appendf(&sql, "VALUES (?, ?)\n");
+  lb_string_appendf(&sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
+  lb_string_appendf(&sql, "FRAMES_IN_FLIGHT = EXCLUDED.FRAMES_IN_FLIGHT\n");
 
   sqlite3_stmt *stmt = 0;
 

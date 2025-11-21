@@ -1,9 +1,8 @@
-#include <library/lb_pch.h>
-
+#include <library/core/lb_pch.h>
 #include <library/core/lb_filesys.h>
 #include <library/core/lb_heap.h>
 
-void filesys_load_text(uint8_t **buffer, uint64_t *buffer_size, char const *file_path) {
+void lb_filesys_load_text(uint8_t **buffer, uint64_t *buffer_size, char const *file_path) {
   FILE *file = 0;
 
   fopen_s(&file, file_path, "r");
@@ -12,7 +11,7 @@ void filesys_load_text(uint8_t **buffer, uint64_t *buffer_size, char const *file
     fseek(file, 0, SEEK_END);
 
     (*buffer_size) = (uint64_t)ftell(file);
-    (*buffer) = (uint8_t *)heap_alloc((*buffer_size), 0, 0);
+    (*buffer) = (uint8_t *)lb_heap_alloc((*buffer_size), 0, 0);
 
     fseek(file, 0, SEEK_SET);
     uint64_t read_count = fread(*buffer, sizeof(uint8_t), *buffer_size, file);
@@ -22,7 +21,7 @@ void filesys_load_text(uint8_t **buffer, uint64_t *buffer_size, char const *file
     fclose(file);
   }
 }
-void filesys_load_binary(uint8_t **buffer, uint64_t *buffer_size, char const *file_path) {
+void lb_filesys_load_binary(uint8_t **buffer, uint64_t *buffer_size, char const *file_path) {
   FILE *file = 0;
 
   fopen_s(&file, file_path, "rb");
@@ -31,7 +30,7 @@ void filesys_load_binary(uint8_t **buffer, uint64_t *buffer_size, char const *fi
     fseek(file, 0, SEEK_END);
 
     (*buffer_size) = (uint64_t)ftell(file);
-    (*buffer) = (uint8_t *)heap_alloc(*buffer_size, 0, 0);
+    (*buffer) = (uint8_t *)lb_heap_alloc(*buffer_size, 0, 0);
 
     fseek(file, 0, SEEK_SET);
     fread(*buffer, sizeof(uint8_t), *buffer_size, file);
@@ -40,7 +39,7 @@ void filesys_load_binary(uint8_t **buffer, uint64_t *buffer_size, char const *fi
   }
 }
 
-void filesys_save_text(uint8_t *buffer, uint64_t buffer_size, char const *file_path) {
+void lb_filesys_save_text(uint8_t *buffer, uint64_t buffer_size, char const *file_path) {
   FILE *file = 0;
 
   fopen_s(&file, file_path, "w");
@@ -52,7 +51,7 @@ void filesys_save_text(uint8_t *buffer, uint64_t buffer_size, char const *file_p
     fclose(file);
   }
 }
-void filesys_save_binary(uint8_t *buffer, uint64_t buffer_size, char const *file_path) {
+void lb_filesys_save_binary(uint8_t *buffer, uint64_t buffer_size, char const *file_path) {
   FILE *file = 0;
 
   fopen_s(&file, file_path, "wb");

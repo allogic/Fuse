@@ -2,7 +2,7 @@
 #define LB_DATABASE_MACROS_H
 
 #ifdef BUILD_DEBUG
-#  define SQL_CHECK(EXPRESSION)                                                        \
+#  define LB_SQL_CHECK(EXPRESSION)                                                     \
     {                                                                                  \
       uint32_t result = (EXPRESSION);                                                  \
       if (result != SQLITE_OK) {                                                       \
@@ -11,11 +11,11 @@
       }                                                                                \
     }
 #else
-#  define SQL_CHECK(EXPRESSION) (EXPRESSION)
+#  define LB_SQL_CHECK(EXPRESSION) (EXPRESSION)
 #endif // BUILD_DEBUG
 
 #ifdef BUILD_DEBUG
-#  define SQL_CHECK_STATUS(EXPRESSION, STATUS)                                         \
+#  define LB_SQL_CHECK_STATUS(EXPRESSION, STATUS)                                      \
     {                                                                                  \
       uint32_t result = (EXPRESSION);                                                  \
       if (result != (STATUS)) {                                                        \
@@ -24,7 +24,7 @@
       }                                                                                \
     }
 #else
-#  define SQL_CHECK_STATUS(EXPRESSION, STATUS) (EXPRESSION)
+#  define LB_SQL_CHECK_STATUS(EXPRESSION, STATUS) (EXPRESSION)
 #endif // BUILD_DEBUG
 
 #endif // LB_DATABASE_MACROS_H
