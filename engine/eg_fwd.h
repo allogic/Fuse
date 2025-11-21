@@ -283,6 +283,13 @@ typedef struct eg_terrain_vertex_t {
   vector3_t normal;
   vector4_t color;
 } eg_terrain_vertex_t;
+typedef struct eg_brdf_vertex_t {
+  vector3_t position;
+  vector3_t normal;
+  vector3_t tangent;
+  vector2_t texcoord_channel_0;
+  vector4_t color_channel_0;
+} eg_brdf_vertex_t;
 
 typedef struct eg_scene_t {
   eg_context_t *context;

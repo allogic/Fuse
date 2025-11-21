@@ -7,6 +7,7 @@
 #include <editor/view/ed_canvas.h>
 #include <editor/view/ed_catalog.h>
 #include <editor/view/ed_hierarchy.h>
+#include <editor/view/ed_geometry.h>
 #include <editor/view/ed_inspector.h>
 #include <editor/view/ed_profiler.h>
 #include <editor/view/ed_viewport.h>
@@ -46,7 +47,7 @@ ImFont *g_editor_material_symbols = 0;
 // Canvas Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-ed_canvas_view_t *g_canvas_model = 0;
+ed_canvas_view_t *g_canvas_pcg = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Catalog Stuff
@@ -54,6 +55,7 @@ ed_canvas_view_t *g_canvas_model = 0;
 
 ed_catalog_view_t *g_catalog_scene = 0;
 ed_catalog_view_t *g_catalog_model = 0;
+ed_catalog_view_t *g_catalog_pcg = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 // Hierarchy Stuff
@@ -70,6 +72,12 @@ ed_inspector_view_t *g_inspector_scene = 0;
 ed_inspector_view_t *g_inspector_model = 0;
 
 //////////////////////////////////////////////////////////////////////////////
+// Geometry Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+ed_geometry_view_t *g_geometry_pcg = 0;
+
+//////////////////////////////////////////////////////////////////////////////
 // Profiler Stuff
 //////////////////////////////////////////////////////////////////////////////
 
@@ -81,12 +89,13 @@ ed_profiler_view_t *g_profiler_scene = 0;
 
 uint8_t g_dockspace_is_dirty = 1;
 
-ed_dockspace_type_t g_dockspace_selected_type = ED_DOCKSPACE_TYPE_MODEL;
+ed_dockspace_type_t g_dockspace_selected_type = ED_DOCKSPACE_TYPE_PCG;
 
 char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT] = {
   "Game",
   "Scene",
   "Model",
+  "PCG",
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -96,6 +105,7 @@ char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT] = {
 ed_viewport_view_t *g_viewport_game = 0;
 ed_viewport_view_t *g_viewport_scene = 0;
 ed_viewport_view_t *g_viewport_model = 0;
+ed_viewport_view_t *g_viewport_pcg = 0;
 
 char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
   "Color",
@@ -288,11 +298,13 @@ static void editor_create(eg_context_t *context) {
   g_viewport_game = ed_viewport_view_create(context);
   g_viewport_scene = ed_viewport_view_create(context);
   g_viewport_model = ed_viewport_view_create(context);
+  g_viewport_pcg = ed_viewport_view_create(context);
 
-  g_canvas_model = ed_canvas_view_create(context);
+  g_canvas_pcg = ed_canvas_view_create(context);
 
   g_catalog_scene = ed_catalog_view_create(context, ASSET_TYPE_SCENE);
   g_catalog_model = ed_catalog_view_create(context, ASSET_TYPE_MODEL);
+  g_catalog_pcg = ed_catalog_view_create(context, ASSET_TYPE_MODEL);
 
   g_hierarchy_scene = ed_hierarchy_view_create(context);
   g_hierarchy_model = ed_hierarchy_view_create(context);
@@ -300,12 +312,15 @@ static void editor_create(eg_context_t *context) {
   g_inspector_scene = ed_inspector_view_create(context);
   g_inspector_model = ed_inspector_view_create(context);
 
+  g_geometry_pcg = ed_geometry_view_create(context);
+
   g_profiler_scene = ed_profiler_view_create(context);
 }
 static void editor_refresh(eg_context_t *context) {
   ed_viewport_view_refresh(g_viewport_game);
   ed_viewport_view_refresh(g_viewport_scene);
   ed_viewport_view_refresh(g_viewport_model);
+  ed_viewport_view_refresh(g_viewport_pcg);
 }
 static void editor_draw(eg_context_t *context) {
   VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
@@ -331,6 +346,8 @@ static void editor_draw(eg_context_t *context) {
 static void editor_destroy(eg_context_t *context) {
   ed_profiler_view_destroy(g_profiler_scene);
 
+  ed_geometry_view_destroy(g_geometry_pcg);
+
   ed_inspector_view_destroy(g_inspector_scene);
   ed_inspector_view_destroy(g_inspector_model);
 
@@ -339,12 +356,14 @@ static void editor_destroy(eg_context_t *context) {
 
   ed_catalog_view_destroy(g_catalog_model);
   ed_catalog_view_destroy(g_catalog_scene);
+  ed_catalog_view_destroy(g_catalog_pcg);
 
-  ed_canvas_view_destroy(g_canvas_model);
+  ed_canvas_view_destroy(g_canvas_pcg);
 
   ed_viewport_view_destroy(g_viewport_game);
   ed_viewport_view_destroy(g_viewport_scene);
   ed_viewport_view_destroy(g_viewport_model);
+  ed_viewport_view_destroy(g_viewport_pcg);
 
   ImNodes::PopColorStyle();
   ImNodes::PopColorStyle();

@@ -34,7 +34,7 @@ extern ImFont *g_editor_material_symbols;
 // Canvas Stuff
 //////////////////////////////////////////////////////////////////////////////
 
-extern ed_canvas_view_t *g_canvas_model;
+extern ed_canvas_view_t *g_canvas_pcg;
 
 //////////////////////////////////////////////////////////////////////////////
 // Hierarchy Stuff
@@ -51,6 +51,12 @@ extern ed_inspector_view_t *g_inspector_scene;
 extern ed_inspector_view_t *g_inspector_model;
 
 //////////////////////////////////////////////////////////////////////////////
+// Geometry Stuff
+//////////////////////////////////////////////////////////////////////////////
+
+extern ed_geometry_view_t *g_geometry_pcg;
+
+//////////////////////////////////////////////////////////////////////////////
 // Profiler Stuff
 //////////////////////////////////////////////////////////////////////////////
 
@@ -62,6 +68,7 @@ extern ed_profiler_view_t *g_profiler_scene;
 
 extern ed_catalog_view_t *g_catalog_scene;
 extern ed_catalog_view_t *g_catalog_model;
+extern ed_catalog_view_t *g_catalog_pcg;
 
 //////////////////////////////////////////////////////////////////////////////
 // Dockspace Stuff
@@ -80,6 +87,7 @@ extern char const *g_dockspace_type_names[ED_DOCKSPACE_TYPE_COUNT];
 extern ed_viewport_view_t *g_viewport_game;
 extern ed_viewport_view_t *g_viewport_scene;
 extern ed_viewport_view_t *g_viewport_model;
+extern ed_viewport_view_t *g_viewport_pcg;
 
 extern char const *g_viewport_gbuffer_attachment_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT];
 

@@ -1,12 +1,16 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_main.h>
+#include <editor/ed_canvas.h>
 
 #include <editor/view/ed_canvas.h>
 
+#include <editor/node/ed_mesh.h>
 #include <editor/node/ed_noise.h>
+#include <editor/node/ed_output.h>
 
 static void ed_canvas_view_handle_pending_node_transactions(ed_canvas_view_t *canvas);
 static void ed_canvas_view_handle_pending_view_resets(ed_canvas_view_t *canvas);
+static void ed_canvas_view_handle_node_selection(ed_canvas_view_t *canvas);
 
 static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas);
 
@@ -18,35 +22,43 @@ ed_canvas_view_t *ed_canvas_view_create(eg_context_t *context) {
   canvas->base.is_open = 1;
   canvas->base.is_docked = 0;
 
-  canvas->unique_node_id = 0;
-  canvas->unique_pin_id = 0;
-  canvas->unique_link_id = 0;
-  canvas->nodes = vector_create(sizeof(void *));
-  canvas->reset_view_is_prending = 0;
+  canvas->handle = ed_canvas_create(context);
+  canvas->reset_view_is_pending = 0;
   canvas->create_node_is_pending = 0;
-  canvas->next_node_type = ED_NODE_TYPE_NONE;
   canvas->next_node_screen_position_x = 0.0F;
   canvas->next_node_screen_position_y = 0.0F;
+  canvas->next_node_type = ED_NODE_TYPE_NONE;
+  canvas->selected_nodes = vector_create(sizeof(uint32_t));
+  canvas->selected_node = -1;
 
   return canvas;
 }
 void ed_canvas_view_draw(ed_canvas_view_t *canvas) {
-  ed_canvas_view_handle_pending_node_transactions(canvas);
-  ed_canvas_view_handle_pending_view_resets(canvas);
-
   ImNodes::BeginNodeEditor();
 
   uint64_t node_index = 0;
-  uint64_t node_count = vector_count(&canvas->nodes);
+  uint64_t node_count = vector_count(&canvas->handle.nodes);
 
   while (node_index < node_count) {
 
-    ed_node_t *node = *(ed_node_t **)vector_at(&canvas->nodes, node_index);
+    ed_node_t *node = *(ed_node_t **)vector_at(&canvas->handle.nodes, node_index);
 
     switch (node->type) {
+      case ED_NODE_TYPE_MESH: {
+
+        ed_mesh_node_draw((ed_mesh_node_t *)node);
+
+        break;
+      }
       case ED_NODE_TYPE_NOISE: {
 
         ed_noise_node_draw((ed_noise_node_t *)node);
+
+        break;
+      }
+      case ED_NODE_TYPE_OUTPUT: {
+
+        ed_output_node_draw((ed_output_node_t *)node);
 
         break;
       }
@@ -58,30 +70,70 @@ void ed_canvas_view_draw(ed_canvas_view_t *canvas) {
   ed_canvas_view_draw_context_menu(canvas);
 
   ImNodes::EndNodeEditor();
+
+  ed_canvas_view_handle_pending_node_transactions(canvas);
+  ed_canvas_view_handle_pending_view_resets(canvas);
+  ed_canvas_view_handle_node_selection(canvas);
 }
 void ed_canvas_view_destroy(ed_canvas_view_t *canvas) {
-  uint64_t node_index = 0;
-  uint64_t node_count = vector_count(&canvas->nodes);
+  ed_canvas_destroy(&canvas->handle);
 
-  while (node_index < node_count) {
+  vector_destroy(&canvas->selected_nodes);
 
-    ed_node_t *node = *(ed_node_t **)vector_at(&canvas->nodes, node_index);
+  heap_free(canvas);
+}
 
-    switch (node->type) {
+static void ed_canvas_view_handle_pending_node_transactions(ed_canvas_view_t *canvas) {
+  if (canvas->create_node_is_pending) {
+
+    ed_node_t *node = 0;
+
+    switch (canvas->next_node_type) {
+      case ED_NODE_TYPE_MESH: {
+
+        node = (ed_node_t *)ed_mesh_node_create(&canvas->handle);
+
+        break;
+      }
       case ED_NODE_TYPE_NOISE: {
 
-        ed_noise_node_destroy((ed_noise_node_t *)node);
+        node = (ed_node_t *)ed_noise_node_create(&canvas->handle);
 
         break;
       }
     }
 
-    node_index++;
+    if (node) {
+      ImNodes::SetNodeScreenSpacePos(node->id, ImVec2(canvas->next_node_screen_position_x, canvas->next_node_screen_position_y));
+
+      vector_push(&canvas->handle.nodes, &node);
+    }
+
+    canvas->create_node_is_pending = 0;
   }
+}
+static void ed_canvas_view_handle_pending_view_resets(ed_canvas_view_t *canvas) {
+  if (canvas->reset_view_is_pending) {
 
-  vector_destroy(&canvas->nodes);
+    ImNodes::EditorContextResetPanning(ImVec2(0.0F, 0.0F));
 
-  heap_free(canvas);
+    canvas->reset_view_is_pending = 0;
+  }
+}
+static void ed_canvas_view_handle_node_selection(ed_canvas_view_t *canvas) {
+  int32_t node_count = ImNodes::NumSelectedNodes();
+
+  vector_resize(&canvas->selected_nodes, node_count);
+
+  if (node_count > 0) {
+    int32_t *selected_node_buffer = (int32_t *)vector_buffer(&canvas->selected_nodes);
+
+    ImNodes::GetSelectedNodes(selected_node_buffer);
+
+    canvas->selected_node = *selected_node_buffer;
+  } else {
+    canvas->selected_node = -1;
+  }
 }
 
 static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas) {
@@ -93,6 +145,13 @@ static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas) {
 
   if (ImGui::BeginPopup("canvas_context_menu")) {
 
+    if (ImGui::MenuItem("Mesh")) {
+      canvas->create_node_is_pending = 1;
+      canvas->next_node_type = ED_NODE_TYPE_MESH;
+      canvas->next_node_screen_position_x = ImGui::GetMousePos().x;
+      canvas->next_node_screen_position_y = ImGui::GetMousePos().y;
+    }
+
     if (ImGui::MenuItem("Noise")) {
       canvas->create_node_is_pending = 1;
       canvas->next_node_type = ED_NODE_TYPE_NOISE;
@@ -101,43 +160,9 @@ static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas) {
     }
 
     if (ImGui::MenuItem("Reset View")) {
-      canvas->reset_view_is_prending = 1;
+      canvas->reset_view_is_pending = 1;
     }
 
     ImGui::EndPopup();
-  }
-}
-
-static void ed_canvas_view_handle_pending_node_transactions(ed_canvas_view_t *canvas) {
-  if (canvas->create_node_is_pending) {
-
-    uint32_t node_id = canvas->unique_node_id++;
-
-    ImNodes::SetNodeScreenSpacePos(node_id, ImVec2(canvas->next_node_screen_position_x, canvas->next_node_screen_position_y));
-
-    ed_node_t *node = 0;
-
-    switch (canvas->next_node_type) {
-      case ED_NODE_TYPE_NOISE: {
-
-        node = (ed_node_t *)ed_noise_node_create(canvas->base.context, node_id);
-
-        break;
-      }
-    }
-
-    if (node) {
-      vector_push(&canvas->nodes, &node);
-    }
-
-    canvas->create_node_is_pending = 0;
-  }
-}
-static void ed_canvas_view_handle_pending_view_resets(ed_canvas_view_t *canvas) {
-  if (canvas->reset_view_is_prending) {
-
-    ImNodes::EditorContextResetPanning(ImVec2(0.0F, 0.0F));
-
-    canvas->reset_view_is_prending = 0;
   }
 }

@@ -16,9 +16,18 @@ typedef int64_t model_mesh_id_t;
 
 typedef int64_t mesh_primitive_id_t;
 typedef int64_t mesh_attribute_id_t;
+
 typedef int64_t attribute_data_id_t;
 
 typedef int64_t scene_asset_id_t;
+
+typedef int64_t graph_asset_id_t;
+
+typedef int64_t node_asset_id_t;
+
+typedef int64_t mesh_node_asset_id_t;
+typedef int64_t noise_node_asset_id_t;
+typedef int64_t output_node_asset_id_t;
 
 typedef enum asset_type_t {
   ASSET_TYPE_SWAPCHAIN,
@@ -28,6 +37,13 @@ typedef enum asset_type_t {
   ASSET_TYPE_SCENE,
   ASSET_TYPE_COUNT,
 } asset_type_t;
+
+typedef enum node_type_t {
+  NODE_TYPE_MESH,
+  NODE_TYPE_NOISE,
+  NODE_TYPE_OUTPUT,
+  NODE_TYPE_COUNT,
+} node_type_t;
 
 typedef struct swapchain_asset_t {
   swapchain_asset_id_t id;
@@ -122,6 +138,7 @@ typedef struct mesh_attribute_t {
   uint32_t type;
   uint64_t count;
 } mesh_attribute_t;
+
 typedef struct attribute_buffer_t {
   attribute_data_id_t id;
   mesh_attribute_id_t mesh_attribute_id;
@@ -134,5 +151,39 @@ typedef struct scene_asset_t {
   char *name;
   uint64_t name_size;
 } scene_asset_t;
+
+typedef struct graph_asset_t {
+  graph_asset_id_t id;
+  char *name;
+  uint64_t name_size;
+  uint32_t unique_node_id;
+  uint32_t unique_pin_id;
+  uint32_t unique_link_id;
+} graph_asset_t;
+
+typedef struct node_asset_t {
+  node_asset_id_t id;
+  node_type_t type;
+} node_asset_t;
+
+typedef struct noise_node_asset_t {
+  noise_node_asset_id_t id;
+  uint32_t node_id;
+  uint32_t factor_pin_id;
+  float position_x;
+  float position_y;
+} noise_node_asset_t;
+typedef struct mesh_node_asset_t {
+  mesh_node_asset_id_t id;
+  uint32_t mesh_pin_id;
+  float position_x;
+  float position_y;
+} mesh_node_asset_t;
+typedef struct output_node_asset_t {
+  output_node_asset_id_t id;
+  uint32_t mesh_pin_id;
+  float position_x;
+  float position_y;
+} output_node_asset_t;
 
 #endif // LB_DATABASE_FWD_H

@@ -4,6 +4,7 @@
 
 #include <editor/view/ed_canvas.h>
 #include <editor/view/ed_catalog.h>
+#include <editor/view/ed_geometry.h>
 #include <editor/view/ed_hierarchy.h>
 #include <editor/view/ed_inspector.h>
 #include <editor/view/ed_profiler.h>
@@ -53,34 +54,45 @@ void ed_dockspace_draw(eg_context_t *context) {
         }
         case ED_DOCKSPACE_TYPE_SCENE: {
 
-          ImGuiID dock_id_main = dockspace_id;
-          ImGuiID dock_id_right_bottom = 0;
-          ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Right, 0.25F, 0, &dock_id_main);
-          ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Up, 0.25F, 0, &dock_id_right_bottom);
-          ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Left, 0.2F, 0, &dock_id_main);
+          ImGuiID dock_id_viewport = dockspace_id;
+          ImGuiID dock_id_inspector = 0;
+          ImGuiID dock_id_catalog = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15F, 0, &dockspace_id);
+          ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.25F, 0, &dockspace_id);
+          ImGuiID dock_id_hierarchy = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Up, 0.25F, 0, &dock_id_inspector);
 
-          ImGui::DockBuilderDockWindow("Viewport", dock_id_main);
-          ImGui::DockBuilderDockWindow("Catalog", dock_id_left);
-          ImGui::DockBuilderDockWindow("Hierarchy", dock_id_right_top);
-          ImGui::DockBuilderDockWindow("Inspector", dock_id_right_bottom);
+          ImGui::DockBuilderDockWindow("Viewport", dock_id_viewport);
+          ImGui::DockBuilderDockWindow("Catalog", dock_id_catalog);
+          ImGui::DockBuilderDockWindow("Hierarchy", dock_id_hierarchy);
+          ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
 
           break;
         }
         case ED_DOCKSPACE_TYPE_MODEL: {
 
-          ImGuiID dock_id_main = dockspace_id;
-          ImGuiID dock_id_main_bottom = 0;
-          ImGuiID dock_id_main_top = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Up, 0.5F, 0, &dock_id_main_bottom);
-          ImGuiID dock_id_right_bottom = 0;
-          ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Right, 0.25F, 0, &dock_id_main);
-          ImGuiID dock_id_right_top = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Up, 0.25F, 0, &dock_id_right_bottom);
-          ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_id_main, ImGuiDir_Left, 0.2F, 0, &dock_id_main);
+          ImGuiID dock_id_viewport = dockspace_id;
+          ImGuiID dock_id_inspector = 0;
+          ImGuiID dock_id_catalog = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15F, 0, &dockspace_id);
+          ImGuiID dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.25F, 0, &dockspace_id);
+          ImGuiID dock_id_hierarchy = ImGui::DockBuilderSplitNode(dock_id_right, ImGuiDir_Up, 0.25F, 0, &dock_id_inspector);
 
-          ImGui::DockBuilderDockWindow("Viewport", dock_id_main_top);
-          ImGui::DockBuilderDockWindow("Canvas", dock_id_main_bottom);
-          ImGui::DockBuilderDockWindow("Catalog", dock_id_left);
-          ImGui::DockBuilderDockWindow("Hierarchy", dock_id_right_top);
-          ImGui::DockBuilderDockWindow("Inspector", dock_id_right_bottom);
+          ImGui::DockBuilderDockWindow("Viewport", dock_id_viewport);
+          ImGui::DockBuilderDockWindow("Catalog", dock_id_catalog);
+          ImGui::DockBuilderDockWindow("Hierarchy", dock_id_hierarchy);
+          ImGui::DockBuilderDockWindow("Inspector", dock_id_inspector);
+
+          break;
+        }
+        case ED_DOCKSPACE_TYPE_PCG: {
+
+          ImGuiID dock_id_canvas = 0;
+          ImGuiID dock_id_catalog = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15F, 0, &dockspace_id);
+          ImGuiID dock_id_geometry = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2F, 0, &dockspace_id);
+          ImGuiID dock_id_viewport = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.5F, 0, &dock_id_canvas);
+
+          ImGui::DockBuilderDockWindow("Viewport", dock_id_viewport);
+          ImGui::DockBuilderDockWindow("Canvas", dock_id_canvas);
+          ImGui::DockBuilderDockWindow("Catalog", dock_id_catalog);
+          ImGui::DockBuilderDockWindow("Geometry", dock_id_geometry);
 
           break;
         }
@@ -168,11 +180,36 @@ void ed_dockspace_draw(eg_context_t *context) {
         ed_dockspace_end_child(g_viewport_model->base.is_docked);
       }
 
-      if (ed_dockspace_begin_child("Canvas", &g_canvas_model->base.is_open, &g_canvas_model->base.is_docked)) {
+      break;
+    }
+    case ED_DOCKSPACE_TYPE_PCG: {
 
-        ed_canvas_view_draw(g_canvas_model);
+      if (ed_dockspace_begin_child("Catalog", &g_catalog_pcg->base.is_open, &g_catalog_pcg->base.is_docked)) {
 
-        ed_dockspace_end_child(g_canvas_model->base.is_docked);
+        ed_catalog_view_draw(g_catalog_pcg);
+
+        ed_dockspace_end_child(g_catalog_pcg->base.is_docked);
+      }
+
+      if (ed_dockspace_begin_child("Viewport", &g_viewport_pcg->base.is_open, &g_viewport_pcg->base.is_docked)) {
+
+        ed_viewport_view_draw(g_viewport_pcg, 1);
+
+        ed_dockspace_end_child(g_viewport_pcg->base.is_docked);
+      }
+
+      if (ed_dockspace_begin_child("Canvas", &g_canvas_pcg->base.is_open, &g_canvas_pcg->base.is_docked)) {
+
+        ed_canvas_view_draw(g_canvas_pcg);
+
+        ed_dockspace_end_child(g_canvas_pcg->base.is_docked);
+      }
+
+      if (ed_dockspace_begin_child("Geometry", &g_geometry_pcg->base.is_open, &g_geometry_pcg->base.is_docked)) {
+
+        ed_geometry_view_draw(g_geometry_pcg);
+
+        ed_dockspace_end_child(g_geometry_pcg->base.is_docked);
       }
 
       break;
