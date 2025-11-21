@@ -774,6 +774,38 @@ vector_t database_load_scene_assets(void) {
   return scene_assets;
 }
 
+graph_asset_t database_load_graph_asset_by_id(graph_asset_id_t graph_asset_id) {
+  graph_asset_t graph_asset = {0};
+
+  string_t sql = string_create();
+
+  string_appendf(&sql, "SELECT GA.ID, GA.NAME\n");
+  string_appendf(&sql, "FROM GRAPH_ASSETS AS GA\n");
+  string_appendf(&sql, "WHERE GA.ID = %lld\n", graph_asset_id);
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    renderer_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+
+    uint64_t name_size = strlen(name) + 1;
+
+    graph_asset.id = id;
+    graph_asset.name = heap_alloc(name_size, 1, name);
+    graph_asset.name_size = name_size;
+  }
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  return graph_asset;
+}
+
 void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset) {
   string_t sql = string_create();
 
@@ -1101,17 +1133,65 @@ void database_store_attribute_buffer(attribute_buffer_t *attribute_buffer) {
   }
 }
 
+void database_store_scene_asset(scene_asset_t *scene_asset) {
+  string_t sql = string_create();
+
+  string_appendf(&sql, "INSERT INTO SCENE_ASSETS (NAME)\n");
+  string_appendf(&sql, "VALUES (?)\n");
+  string_appendf(&sql, "ON CONFLICT (NAME) DO NOTHING\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  sqlite3_bind_text(stmt, 1, scene_asset->name, -1, SQLITE_STATIC);
+
+  SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  if (scene_asset->id == 0) {
+    scene_asset->id = database_get_sequence_index_by_name("SCENE_ASSETS");
+  }
+}
+
+void database_store_graph_asset(graph_asset_t *graph_asset) {
+  string_t sql = string_create();
+
+  string_appendf(&sql, "INSERT INTO GRAPH_ASSETS (NAME)\n");
+  string_appendf(&sql, "VALUES (?)\n");
+  string_appendf(&sql, "ON CONFLICT (NAME) DO NOTHING\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  SQL_CHECK(sqlite3_prepare_v2(s_database_handle, string_buffer(&sql), -1, &stmt, 0));
+
+  sqlite3_bind_text(stmt, 1, graph_asset->name, -1, SQLITE_STATIC);
+
+  SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+  sqlite3_finalize(stmt);
+
+  string_destroy(&sql);
+
+  if (graph_asset->id == 0) {
+    graph_asset->id = database_get_sequence_index_by_name("GRAPH_ASSETS");
+  }
+}
+
 void database_destroy_swapchain_assets(vector_t *swapchain_assets) {
-  uint64_t swapchain_asset_index = 0;
-  uint64_t swapchain_asset_count = vector_count(swapchain_assets);
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(swapchain_assets);
 
-  while (swapchain_asset_index < swapchain_asset_count) {
+  while (asset_index < asset_count) {
 
-    swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(swapchain_assets, swapchain_asset_index);
+    swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(swapchain_assets, asset_index);
 
     heap_free(swapchain_asset->name);
 
-    swapchain_asset_index++;
+    asset_index++;
   }
 
   vector_destroy(swapchain_assets);
@@ -1121,16 +1201,16 @@ void database_destroy_swapchain_asset(swapchain_asset_t *swapchain_asset) {
 }
 
 void database_destroy_renderer_assets(vector_t *renderer_assets) {
-  uint64_t renderer_asset_index = 0;
-  uint64_t renderer_asset_count = vector_count(renderer_assets);
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(renderer_assets);
 
-  while (renderer_asset_index < renderer_asset_count) {
+  while (asset_index < asset_count) {
 
-    renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(renderer_assets, renderer_asset_index);
+    renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(renderer_assets, asset_index);
 
     heap_free(renderer_asset->name);
 
-    renderer_asset_index++;
+    asset_index++;
   }
 
   vector_destroy(renderer_assets);
@@ -1140,16 +1220,16 @@ void database_destroy_renderer_asset(renderer_asset_t *renderer_asset) {
 }
 
 void database_destroy_pipeline_assets(vector_t *pipeline_assets) {
-  uint64_t pipeline_asset_index = 0;
-  uint64_t pipeline_asset_count = vector_count(pipeline_assets);
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(pipeline_assets);
 
-  while (pipeline_asset_index < pipeline_asset_count) {
+  while (asset_index < asset_count) {
 
-    pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(pipeline_assets, pipeline_asset_index);
+    pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(pipeline_assets, asset_index);
 
     heap_free(pipeline_asset->name);
 
-    pipeline_asset_index++;
+    asset_index++;
   }
 
   vector_destroy(pipeline_assets);
@@ -1168,47 +1248,47 @@ void database_destroy_pipeline_resource(pipeline_resource_t *pipeline_resource) 
   }
 }
 void database_destroy_pipeline_vertex_input_bindings(vector_t *vertex_input_bindings) {
-  uint64_t vertex_input_binding_index = 0;
-  uint64_t vertex_input_binding_count = vector_count(vertex_input_bindings);
+  uint64_t binding_index = 0;
+  uint64_t binding_count = vector_count(vertex_input_bindings);
 
-  while (vertex_input_binding_index < vertex_input_binding_count) {
+  while (binding_index < binding_count) {
 
-    pipeline_vertex_input_binding_t *vertex_input_binding = (pipeline_vertex_input_binding_t *)vector_at(vertex_input_bindings, vertex_input_binding_index);
+    pipeline_vertex_input_binding_t *vertex_input_binding = (pipeline_vertex_input_binding_t *)vector_at(vertex_input_bindings, binding_index);
 
     heap_free(vertex_input_binding->binding_name);
 
-    vertex_input_binding_index++;
+    binding_index++;
   }
 
   vector_destroy(vertex_input_bindings);
 }
 void database_destroy_pipeline_descriptor_bindings(vector_t *descriptor_bindings) {
-  uint64_t descriptor_binding_index = 0;
-  uint64_t descriptor_binding_count = vector_count(descriptor_bindings);
+  uint64_t binding_index = 0;
+  uint64_t binding_count = vector_count(descriptor_bindings);
 
-  while (descriptor_binding_index < descriptor_binding_count) {
+  while (binding_index < binding_count) {
 
-    pipeline_descriptor_binding_t *pipeline_descriptor_binding = (pipeline_descriptor_binding_t *)vector_at(descriptor_bindings, descriptor_binding_index);
+    pipeline_descriptor_binding_t *pipeline_descriptor_binding = (pipeline_descriptor_binding_t *)vector_at(descriptor_bindings, binding_index);
 
     heap_free(pipeline_descriptor_binding->binding_name);
 
-    descriptor_binding_index++;
+    binding_index++;
   }
 
   vector_destroy(descriptor_bindings);
 }
 
 void database_destroy_model_assets(vector_t *model_assets) {
-  uint64_t model_asset_index = 0;
-  uint64_t model_asset_count = vector_count(model_assets);
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(model_assets);
 
-  while (model_asset_index < model_asset_count) {
+  while (asset_index < asset_count) {
 
-    model_asset_t *model_asset = (model_asset_t *)vector_at(model_assets, model_asset_index);
+    model_asset_t *model_asset = (model_asset_t *)vector_at(model_assets, asset_index);
 
     heap_free(model_asset->name);
 
-    model_asset_index++;
+    asset_index++;
   }
 
   vector_destroy(model_assets);
@@ -1270,19 +1350,35 @@ void database_destroy_attribute_buffer(attribute_buffer_t *attribute_buffer) {
 }
 
 void database_destroy_scene_assets(vector_t *scene_assets) {
-  uint64_t scene_asset_index = 0;
-  uint64_t scene_asset_count = vector_count(scene_assets);
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(scene_assets);
 
-  while (scene_asset_index < scene_asset_count) {
+  while (asset_index < asset_count) {
 
-    scene_asset_t *scene_asset = (scene_asset_t *)vector_at(scene_assets, scene_asset_index);
+    scene_asset_t *scene_asset = (scene_asset_t *)vector_at(scene_assets, asset_index);
 
     heap_free(scene_asset->name);
 
-    scene_asset_index++;
+    asset_index++;
   }
 
   vector_destroy(scene_assets);
+}
+
+void database_destroy_graph_assets(vector_t *graph_assets) {
+  uint64_t asset_index = 0;
+  uint64_t asset_count = vector_count(graph_assets);
+
+  while (asset_index < asset_count) {
+
+    graph_asset_t *graph_asset = (graph_asset_t *)vector_at(graph_assets, asset_index);
+
+    heap_free(graph_asset->name);
+
+    asset_index++;
+  }
+
+  vector_destroy(graph_assets);
 }
 
 static int64_t database_get_sequence_index_by_name(char const *table_name) {

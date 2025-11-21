@@ -47,7 +47,6 @@ typedef struct ed_canvas_view_t {
   node_type_t next_node_type;
   ed_graph_t graph;
   vector_t selected_nodes;
-  int32_t selected_node;
 } ed_canvas_view_t;
 typedef struct ed_viewport_view_t {
   ed_view_t base;

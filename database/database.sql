@@ -3,3 +3,4 @@
 .read 'pipeline.sql'
 .read 'model.sql'
 .read 'scene.sql'
+.read 'graph.sql'

@@ -38,6 +38,8 @@ attribute_buffer_t database_load_attribute_buffer_by_id(mesh_attribute_id_t mesh
 
 vector_t database_load_scene_assets(void);
 
+graph_asset_t database_load_graph_asset_by_id(graph_asset_id_t graph_asset_id);
+
 void database_store_swapchain_asset(swapchain_asset_t *swapchain_asset);
 
 void database_store_renderer_asset(renderer_asset_t *renderer_asset);
@@ -55,6 +57,10 @@ void database_store_mesh_primitive(mesh_primitive_t *mesh_primitive);
 void database_store_mesh_attribute(mesh_attribute_t *mesh_attribute);
 
 void database_store_attribute_buffer(attribute_buffer_t *attribute_buffer);
+
+void database_store_scene_asset(scene_asset_t *scene_asset);
+
+void database_store_graph_asset(graph_asset_t *graph_asset);
 
 void database_destroy_swapchain_assets(vector_t *swapchain_assets);
 void database_destroy_swapchain_asset(swapchain_asset_t *swapchain_asset);
@@ -77,6 +83,8 @@ void database_destroy_mesh_attributes(vector_t *mesh_attributes);
 void database_destroy_attribute_buffer(attribute_buffer_t *attribute_buffer);
 
 void database_destroy_scene_assets(vector_t *scene_assets);
+
+void database_destroy_graph_assets(vector_t *graph_assets);
 
 #ifdef __cplusplus
 }
