@@ -1,0 +1,95 @@
+#ifndef LB_DATABASE_H
+#define LB_DATABASE_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+void lb_database_create(void);
+void lb_database_destroy(void);
+
+lb_scene_asset_id_t lb_database_load_default_scene_asset_id(void);
+lb_swapchain_asset_id_t lb_database_load_default_swapchain_asset_id(void);
+lb_renderer_asset_id_t lb_database_load_default_renderer_asset_id(void);
+
+lb_vector_t *lb_database_load_all_swapchain_assets(void);
+lb_swapchain_asset_t lb_database_load_swapchain_asset_by_id(lb_swapchain_asset_id_t swapchain_asset_id);
+
+lb_vector_t *lb_database_load_all_renderer_assets(void);
+lb_renderer_asset_t lb_database_load_renderer_asset_by_id(lb_renderer_asset_id_t renderer_asset_id);
+
+uint64_t lb_database_load_vertex_input_binding_count_by_id(lb_pipeline_asset_id_t pipeline_asset_id);
+uint64_t lb_database_load_descriptor_binding_count_by_id(lb_pipeline_asset_id_t pipeline_asset_id);
+
+lb_vector_t *lb_database_load_all_pipeline_assets(void);
+lb_vector_t *lb_database_load_all_pipeline_assets_by_type(lb_pipeline_type_t pipeline_type);
+lb_pipeline_asset_t lb_database_load_pipeline_asset_by_id(lb_pipeline_asset_id_t pipeline_asset_id);
+lb_pipeline_resource_t lb_database_load_pipeline_resource_by_id(lb_pipeline_asset_id_t pipeline_asset_id);
+lb_vector_t *lb_database_load_all_pipeline_vertex_input_bindings_by_id(lb_pipeline_asset_id_t pipeline_asset_id);
+lb_vector_t *lb_database_load_all_pipeline_descriptor_bindings_by_id(lb_pipeline_asset_id_t pipeline_asset_id);
+
+lb_vector_t *lb_database_load_all_model_assets(void);
+lb_model_resource_t lb_database_load_model_resource_by_id(lb_model_asset_id_t model_asset_id);
+lb_vector_t *lb_database_load_all_model_meshes_by_id(lb_model_asset_id_t model_asset_id);
+
+lb_vector_t *lb_database_load_all_mesh_primitives_by_id(lb_model_mesh_id_t model_mesh_id);
+lb_vector_t *lb_database_load_all_mesh_attributes_by_id(lb_mesh_primitive_id_t mesh_primitive_id);
+
+lb_attribute_buffer_t lb_database_load_attribute_buffer_by_id(lb_mesh_attribute_id_t mesh_attribute_id);
+
+lb_vector_t *lb_database_load_all_scene_assets(void);
+
+lb_graph_asset_t lb_database_load_graph_asset_by_id(lb_graph_asset_id_t graph_asset_id);
+
+void lb_database_store_swapchain_asset(lb_swapchain_asset_t *swapchain_asset);
+
+void lb_database_store_renderer_asset(lb_renderer_asset_t *renderer_asset);
+
+void lb_database_store_pipeline_asset(lb_pipeline_asset_t *pipeline_asset);
+void lb_database_store_pipeline_resource(lb_pipeline_resource_t *pipeline_resource);
+void lb_database_store_pipeline_vertex_input_binding(lb_pipeline_vertex_input_binding_t *pipeline_vertex_input_binding);
+void lb_database_store_pipeline_descriptor_binding(lb_pipeline_descriptor_binding_t *pipeline_descriptor_binding);
+
+void lb_database_store_model_asset(lb_model_asset_t *model_asset);
+void lb_database_store_model_resource(lb_model_resource_t *model_resource);
+void lb_database_store_model_mesh(lb_model_mesh_t *model_mesh);
+
+void lb_database_store_mesh_primitive(lb_mesh_primitive_t *mesh_primitive);
+void lb_database_store_mesh_attribute(lb_mesh_attribute_t *mesh_attribute);
+
+void lb_database_store_attribute_buffer(lb_attribute_buffer_t *attribute_buffer);
+
+void lb_database_store_scene_asset(lb_scene_asset_t *scene_asset);
+
+void lb_database_store_graph_asset(lb_graph_asset_t *graph_asset);
+
+void lb_database_destroy_swapchain_asset(lb_swapchain_asset_t *swapchain_asset);
+void lb_database_destroy_swapchain_assets(lb_vector_t *swapchain_assets);
+
+void lb_database_destroy_renderer_asset(lb_renderer_asset_t *renderer_asset);
+void lb_database_destroy_renderer_assets(lb_vector_t *renderer_assets);
+
+void lb_database_destroy_pipeline_asset(lb_pipeline_asset_t *pipeline_asset);
+void lb_database_destroy_pipeline_assets(lb_vector_t *pipeline_assets);
+void lb_database_destroy_pipeline_resource(lb_pipeline_resource_t *pipeline_resource);
+void lb_database_destroy_pipeline_vertex_input_bindings(lb_vector_t *vertex_input_bindings);
+void lb_database_destroy_pipeline_descriptor_bindings(lb_vector_t *descriptor_bindings);
+
+void lb_database_destroy_model_assets(lb_vector_t *model_assets);
+void lb_database_destroy_model_resource(lb_model_resource_t *model_resource);
+void lb_database_destroy_model_meshs(lb_vector_t *model_meshes);
+
+void lb_database_destroy_mesh_primitives(lb_vector_t *mesh_primitives);
+void lb_database_destroy_mesh_attributes(lb_vector_t *mesh_attributes);
+
+void lb_database_destroy_attribute_buffer(lb_attribute_buffer_t *attribute_buffer);
+
+void lb_database_destroy_scene_assets(lb_vector_t *scene_assets);
+
+void lb_database_destroy_graph_assets(lb_vector_t *graph_assets);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // LB_DATABASE_H

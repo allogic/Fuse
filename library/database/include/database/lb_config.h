@@ -1,0 +1,9 @@
+#ifndef LB_DATABASE_CONFIG_H
+#define LB_DATABASE_CONFIG_H
+
+#define LB_FILE_PATH "..\\engine.db" // TODO
+
+#define LB_ASSET_NAME_SIZE (255ULL)
+#define LB_FILE_PATH_SIZE (255ULL)
+
+#endif // LB_DATABASE_CONFIG_H

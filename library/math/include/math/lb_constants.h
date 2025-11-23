@@ -1,0 +1,16 @@
+#ifndef LB_MATH_CONSTANTS_H
+#define LB_MATH_CONSTANTS_H
+
+#define LB_PI_HALF ((float)1.57079632679489655800)
+#define LB_PI ((float)3.14159265358979323846)
+#define LB_TAU ((float)6.28318530717958623200)
+
+#define LB_DEG_TO_RAD ((float)0.01745329251994329547)
+#define LB_RAD_TO_DEG ((float)57.29577951308232286465)
+
+#define LB_EPSILON_3 ((float)1.0E-3)
+#define LB_EPSILON_4 ((float)1.0E-4)
+#define LB_EPSILON_5 ((float)1.0E-5)
+#define LB_EPSILON_6 ((float)1.0E-6)
+
+#endif // LB_MATH_CONSTANTS_H

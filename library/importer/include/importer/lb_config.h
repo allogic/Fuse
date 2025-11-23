@@ -1,0 +1,4 @@
+#ifndef LB_IMPORTER_CONFIG_H
+#define LB_IMPORTER_CONFIG_H
+
+#endif // LB_IMPORTER_CONFIG_H
