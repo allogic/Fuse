@@ -55,9 +55,13 @@ static void eg_editor_controller_handle_position(eg_context_t *context, eg_edito
   rigidbody->linear_velocity = velocity;
 }
 static void eg_editor_controller_handle_rotation(eg_context_t *context, eg_editor_controller_t *editor_controller, eg_transform_t *transform, eg_rigidbody_t *rigidbody) {
+  float delta_time = eg_context_delta_time(context);
+  uint32_t mouse_position_x = eg_context_mouse_position_x(context);
+  uint32_t mouse_position_y = eg_context_mouse_position_y(context);
+
   if (eg_context_is_mouse_key_pressed(context, EG_MOUSE_KEY_RIGHT)) {
 
-    editor_controller->mouse_begin = lb_vector3_xyz((float)context->mouse_position_x, (float)context->mouse_position_y, 0.0F);
+    editor_controller->mouse_begin = lb_vector3_xyz((float)mouse_position_x, (float)mouse_position_y, 0.0F);
 
   } else if (eg_context_is_mouse_key_held(context, EG_MOUSE_KEY_RIGHT) && eg_context_is_mouse_key_held(context, EG_MOUSE_KEY_LEFT)) {
 
@@ -67,11 +71,11 @@ static void eg_editor_controller_handle_rotation(eg_context_t *context, eg_edito
 
     lb_vector3_t velocity = rigidbody->linear_velocity;
 
-    editor_controller->mouse_end = lb_vector3_xyz((float)context->mouse_position_x, (float)context->mouse_position_y, 0.0F);
+    editor_controller->mouse_end = lb_vector3_xyz((float)mouse_position_x, (float)mouse_position_y, 0.0F);
     editor_controller->mouse_delta = lb_vector3_sub(editor_controller->mouse_begin, editor_controller->mouse_end);
 
-    float x_delta = editor_controller->mouse_delta.x * mouse_move_speed * (float)context->delta_time;
-    float y_delta = -editor_controller->mouse_delta.y * mouse_move_speed * (float)context->delta_time;
+    float x_delta = editor_controller->mouse_delta.x * mouse_move_speed * delta_time;
+    float y_delta = -editor_controller->mouse_delta.y * mouse_move_speed * delta_time;
 
     lb_vector3_t change_in_x = lb_vector3_muls(eg_transform_local_right(transform), x_delta);
     lb_vector3_t change_in_y = lb_vector3_muls(eg_transform_local_up(transform), y_delta);
@@ -84,11 +88,11 @@ static void eg_editor_controller_handle_rotation(eg_context_t *context, eg_edito
 
     lb_vector3_t velocity = rigidbody->angular_velocity;
 
-    editor_controller->mouse_end = lb_vector3_xyz((float)context->mouse_position_x, (float)context->mouse_position_y, 0.0F);
+    editor_controller->mouse_end = lb_vector3_xyz((float)mouse_position_x, (float)mouse_position_y, 0.0F);
     editor_controller->mouse_delta = lb_vector3_sub(editor_controller->mouse_begin, editor_controller->mouse_end);
 
-    float p_delta = -editor_controller->mouse_delta.y * editor_controller->mouse_rotation_speed * (float)context->delta_time;
-    float y_delta = -editor_controller->mouse_delta.x * editor_controller->mouse_rotation_speed * (float)context->delta_time;
+    float p_delta = -editor_controller->mouse_delta.y * editor_controller->mouse_rotation_speed * delta_time;
+    float y_delta = -editor_controller->mouse_delta.x * editor_controller->mouse_rotation_speed * delta_time;
 
     lb_vector3_t change_in_p = lb_vector3_muls(lb_vector3_right(), p_delta);
     lb_vector3_t change_in_y = lb_vector3_muls(lb_vector3_up(), y_delta);
@@ -100,7 +104,7 @@ static void eg_editor_controller_handle_rotation(eg_context_t *context, eg_edito
 
   // TODO: How do I handle physics at one place..?
 
-  lb_vector3_t mouse_damping = lb_vector3_muls(lb_vector3_muls(editor_controller->mouse_delta, editor_controller->mouse_rotation_drag_damping), (float)context->delta_time);
+  lb_vector3_t mouse_damping = lb_vector3_muls(lb_vector3_muls(editor_controller->mouse_delta, editor_controller->mouse_rotation_drag_damping), delta_time);
 
   editor_controller->mouse_begin = lb_vector3_sub(editor_controller->mouse_begin, mouse_damping);
 }

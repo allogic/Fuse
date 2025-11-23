@@ -265,32 +265,6 @@ void lb_map_clear(lb_map_t *map) {
 
   map->record_count = 0;
 }
-lb_map_iter_t *lb_map_iter(lb_map_t *map) {
-  lb_map_iter_t *iter = (lb_map_iter_t *)lb_heap_alloc(sizeof(lb_map_iter_t), 1, 0);
-
-  iter->table = map->table;
-  iter->table_count = map->table_count;
-  iter->first_step = 0;
-
-  uint64_t table_index = 0;
-
-  while (table_index < map->table_count) {
-
-    lb_map_record_t *curr = map->table[table_index];
-
-    if (curr) {
-
-      iter->table_index = table_index;
-      iter->table_record = curr;
-
-      break;
-    }
-
-    table_index++;
-  }
-
-  return iter;
-}
 uint64_t lb_map_hash(lb_map_t *map, void const *key, uint64_t key_size, uint64_t modulus) {
   uint64_t hash = LB_MAP_HASH_POLY;
   uint64_t key_index = 0;
@@ -344,6 +318,32 @@ uint64_t lb_map_record_value_size(lb_map_record_t *record) {
   return record->value_size;
 }
 
+lb_map_iter_t *lb_map_iter_create(lb_map_t *map) {
+  lb_map_iter_t *iter = (lb_map_iter_t *)lb_heap_alloc(sizeof(lb_map_iter_t), 1, 0);
+
+  iter->table = map->table;
+  iter->table_count = map->table_count;
+  iter->first_step = 0;
+
+  uint64_t table_index = 0;
+
+  while (table_index < map->table_count) {
+
+    lb_map_record_t *curr = map->table[table_index];
+
+    if (curr) {
+
+      iter->table_index = table_index;
+      iter->table_record = curr;
+
+      break;
+    }
+
+    table_index++;
+  }
+
+  return iter;
+}
 uint8_t lb_map_iter_step(lb_map_iter_t *iter) {
   if (iter->first_step) {
 
@@ -382,4 +382,7 @@ void *lb_map_iter_value(lb_map_iter_t *iter) {
 }
 uint64_t lb_map_iter_value_size(lb_map_iter_t *iter) {
   return iter->table_record->value_size;
+}
+void lb_map_iter_destroy(lb_map_iter_t *iter) {
+  lb_heap_free(iter);
 }

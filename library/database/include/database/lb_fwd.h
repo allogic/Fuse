@@ -46,7 +46,6 @@ typedef struct lb_swapchain_asset_t {
   lb_swapchain_asset_id_t id;
   char name[LB_ASSET_NAME_SIZE];
   uint32_t image_count;
-  uint32_t depth_format;
   uint8_t is_default;
 } lb_swapchain_asset_t;
 

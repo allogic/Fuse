@@ -38,12 +38,8 @@ eg_scene_t *eg_scene_create(eg_context_t *context) {
   return scene;
 }
 void eg_scene_update(eg_scene_t *scene) {
-  EG_PROFILER_SCOPE_BEGIN(EG_PROFILER_SAMPLE_LANE_SCENE);
-
   ecs_run(scene->world, scene->controller_system, 0.0F, 0);
   ecs_run(scene->world, scene->rigidbody_system, 0.0F, 0);
-
-  EG_PROFILER_SCOPE_END(EG_PROFILER_SAMPLE_LANE_SCENE);
 }
 void eg_scene_destroy(eg_scene_t *scene) {
   ecs_fini(scene->world);

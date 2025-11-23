@@ -18,6 +18,8 @@ eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t heig
   image->tiling = tiling;
   image->filter = filter;
 
+  VkDevice device = eg_context_device(image->context);
+
   VkImageCreateInfo image_create_info = {0};
   image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   image_create_info.imageType = image->type;
@@ -33,27 +35,31 @@ eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t heig
   image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
   image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  EG_VULKAN_CHECK(vkCreateImage(image->context->device, &image_create_info, 0, &image->handle));
+  EG_VULKAN_CHECK(vkCreateImage(device, &image_create_info, 0, &image->handle));
 
   VkMemoryRequirements memory_requirements = {0};
 
-  vkGetImageMemoryRequirements(image->context->device, image->handle, &memory_requirements);
+  vkGetImageMemoryRequirements(device, image->handle, &memory_requirements);
 
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   memory_allocate_info.allocationSize = memory_requirements.size;
   memory_allocate_info.memoryTypeIndex = eg_context_find_memory_type(image->context, memory_requirements.memoryTypeBits, memory_properties);
 
-  EG_VULKAN_CHECK(vkAllocateMemory(image->context->device, &memory_allocate_info, 0, &image->device_memory));
-  EG_VULKAN_CHECK(vkBindImageMemory(image->context->device, image->handle, image->device_memory, 0));
+  EG_VULKAN_CHECK(vkAllocateMemory(device, &memory_allocate_info, 0, &image->device_memory));
+  EG_VULKAN_CHECK(vkBindImageMemory(device, image->handle, image->device_memory, 0));
 
   return image;
 }
 void eg_image_map(eg_image_t *image) {
-  EG_VULKAN_CHECK(vkMapMemory(image->context->device, image->device_memory, 0, image->size, 0, &image->mapped_memory));
+  VkDevice device = eg_context_device(image->context);
+
+  EG_VULKAN_CHECK(vkMapMemory(device, image->device_memory, 0, image->size, 0, &image->mapped_memory));
 }
 void eg_image_unmap(eg_image_t *image) {
-  vkUnmapMemory(image->context->device, image->device_memory);
+  VkDevice device = eg_context_device(image->context);
+
+  vkUnmapMemory(device, image->device_memory);
 
   image->mapped_memory = 0;
 }
@@ -88,19 +94,23 @@ void eg_image_copy_to_buffer(eg_image_t *image, eg_buffer_t *target, VkCommandBu
   vkCmdCopyImageToBuffer(command_buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target->handle, 1, &buffer_image_copy);
 }
 void eg_image_destroy(eg_image_t *image) {
+  VkDevice device = eg_context_device(image->context);
+
   if (image->mapped_memory) {
-    vkUnmapMemory(image->context->device, image->device_memory);
+    vkUnmapMemory(device, image->device_memory);
   }
 
-  vkFreeMemory(image->context->device, image->device_memory, 0);
+  vkFreeMemory(device, image->device_memory, 0);
 
-  vkDestroyImage(image->context->device, image->handle, 0);
+  vkDestroyImage(device, image->handle, 0);
 
   lb_heap_free(image);
 }
 
 VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format) {
   VkImageView image_view = 0;
+
+  VkDevice device = eg_context_device(context);
 
   VkImageViewCreateInfo image_view_create_info = {0};
   image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -113,12 +123,15 @@ VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageVi
   image_view_create_info.subresourceRange.baseArrayLayer = 0;
   image_view_create_info.subresourceRange.layerCount = 1;
 
-  EG_VULKAN_CHECK(vkCreateImageView(context->device, &image_view_create_info, 0, &image_view));
+  EG_VULKAN_CHECK(vkCreateImageView(device, &image_view_create_info, 0, &image_view));
 
   return image_view;
 }
 VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter filter) {
   VkSampler sampler = 0;
+
+  VkDevice device = eg_context_device(context);
+  float max_anisotropy = eg_context_max_anisotropy(context);
 
   VkSamplerCreateInfo sampler_create_info = {0};
   sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -128,7 +141,7 @@ VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter
   sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   sampler_create_info.anisotropyEnable = 1;
-  sampler_create_info.maxAnisotropy = context->physical_device_properties.limits.maxSamplerAnisotropy;
+  sampler_create_info.maxAnisotropy = max_anisotropy;
   sampler_create_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
   sampler_create_info.unnormalizedCoordinates = 0;
   sampler_create_info.compareEnable = 0;
@@ -138,7 +151,7 @@ VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter
   sampler_create_info.minLod = 0.0F;
   sampler_create_info.maxLod = 0.0F;
 
-  EG_VULKAN_CHECK(vkCreateSampler(context->device, &sampler_create_info, 0, &sampler));
+  EG_VULKAN_CHECK(vkCreateSampler(device, &sampler_create_info, 0, &sampler));
 
   return sampler;
 }

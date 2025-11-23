@@ -143,78 +143,13 @@ typedef struct eg_cpu_frame_sample_t {
 } eg_cpu_frame_sample_t;
 
 typedef struct eg_world_settings_t {
-  lb_scene_id_t default_scene_id;
-  lb_swapchain_id_t default_swapchain_id;
-  lb_renderer_id_t default_renderer_id;
+  lb_scene_asset_id_t default_scene_asset_id;
+  lb_swapchain_asset_id_t default_swapchain_asset_id;
+  lb_renderer_asset_id_t default_renderer_asset_id;
 } eg_world_settings_t;
 
-typedef struct eg_context_t {
-  HMODULE module_handle;
-  HWND window_handle;
-  MSG window_message;
-  LARGE_INTEGER time_freq;
-  LARGE_INTEGER time_start;
-  LARGE_INTEGER time_end;
-  double time;
-  double delta_time;
-  double elapsed_time_since_fps_count_update;
-  uint64_t frame_index;
-  uint32_t fps_counter;
-  uint32_t mouse_position_x;
-  uint32_t mouse_position_y;
-  uint32_t mouse_wheel_delta;
-  uint32_t window_width;
-  uint32_t window_height;
-  uint32_t window_titlebar_height;
-  uint32_t window_statusbar_height;
-  int32_t window_border_width;
-  int32_t graphic_queue_index;
-  int32_t present_queue_index;
-  uint8_t is_editor_mode;
-  uint8_t is_window_running;
-  VkInstance instance;
-  VkSurfaceKHR surface;
-  VkSurfaceCapabilitiesKHR surface_capabilities;
-  VkSurfaceFormatKHR prefered_surface_format;
-  VkPresentModeKHR prefered_present_mode;
-  VkPhysicalDevice physical_device;
-  VkPhysicalDeviceProperties physical_device_properties;
-  VkPhysicalDeviceFeatures physical_device_features;
-  VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
-  VkDevice device;
-  VkQueue graphic_queue;
-  VkQueue present_queue;
-  VkCommandPool command_pool;
-  eg_key_state_t event_keyboard_key_states[0xFF];
-  eg_key_state_t event_mouse_key_states[0x3];
-#ifdef BUILD_DEBUG
-  PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger_ext;
-  PFN_vkDestroyDebugUtilsMessengerEXT destroy_debug_utils_messenger_ext;
-  VkDebugUtilsMessengerEXT debug_messenger;
-#endif // BUILD_DEBUG
-  eg_world_settings_t world_settings;
-  struct eg_viewport_t *viewport[0xFF];
-  struct eg_swapchain_t *swapchain;
-  struct eg_renderer_t *renderer;
-  struct eg_scene_t *scene;
-} eg_context_t;
-
-typedef struct eg_swapchain_t {
-  eg_context_t *context;
-  lb_swapchain_t config;
-  uint8_t is_dirty;
-  uint64_t min_image_count;
-  uint64_t image_count;
-  VkFormat depth_format;
-  VkSwapchainKHR handle;
-  VkRenderPass main_render_pass;
-  VkImage *color_image;
-  VkImageView *color_image_view;
-  VkImage *depth_image;
-  VkDeviceMemory *depth_device_memory;
-  VkImageView *depth_image_view;
-  VkFramebuffer *frame_buffer;
-} eg_swapchain_t;
+typedef struct eg_context_t eg_context_t;
+typedef struct eg_swapchain_t eg_swapchain_t;
 
 typedef struct eg_viewport_t {
   eg_context_t *context;
@@ -306,58 +241,35 @@ typedef enum eg_renderer_pipeline_link_type_t {
   EG_RENDERER_PIPELINE_LINK_TYPE_PBR,
 } eg_renderer_pipeline_link_type_t;
 
-typedef struct eg_renderer_t {
-  eg_context_t *context;
-  lb_renderer_t config;
-  uint8_t is_dirty;
-  uint8_t is_debug_enabled;
-  uint64_t frames_in_flight;
-  uint32_t frame_index;
-  uint32_t image_index;
-  VkCommandBuffer *command_buffer;
-  lb_pipeline_type_t pipeline_type[0xFF];
-  void *pipeline_link[0xFF];
-  VkSemaphore *render_finished_semaphore;
-  VkSemaphore *image_available_semaphore;
-  VkFence *frame_fence;
-  eg_time_info_t **time_infos;
-  eg_screen_info_t **screen_infos;
-  eg_camera_info_t **camera_infos;
-  char time_info_descriptor_binding_name[0xFF];
-  char screen_info_descriptor_binding_name[0xFF];
-  char camera_info_descriptor_binding_name[0xFF];
-  lb_map_t *descriptor_binding_buffers_per_frame;
-  eg_debug_vertex_t **debug_line_vertices;
-  uint32_t **debug_line_indices;
-  eg_buffer_t **debug_line_vertex_buffers;
-  eg_buffer_t **debug_line_index_buffers;
-  uint32_t *debug_line_vertex_offset;
-  uint32_t *debug_line_index_offset;
-  VkRenderPass gbuffer_render_pass;
-} eg_renderer_t;
+typedef struct eg_renderer_t eg_renderer_t;
 
 typedef struct eg_graphic_pipeline_t {
   eg_context_t *context;
-  lb_pipeline_t config;
+  lb_pipeline_asset_t asset;
   lb_pipeline_resource_t resource;
+  lb_vector_t *vertex_input_bindings;
+  lb_vector_t *descriptor_bindings;
   uint64_t vertex_input_binding_count;
   uint64_t descriptor_binding_count;
   uint64_t descriptor_pool_size_count;
+
+  uint64_t allocated_descriptor_set_count;
+  uint64_t descriptor_set_layout_count;
   uint64_t descriptor_set_count;
+  uint64_t write_descriptor_set_count;
+
   VkBuffer **vertex_input_binding_buffers_per_frame;
   uint64_t **vertex_input_binding_offsets_per_frame;
   VkBuffer **descriptor_binding_buffers_per_frame;
   VkBuffer *index_buffer_per_frame;
-  lb_map_t *auto_link_descriptor_binding_buffers_per_frame;
+  lb_map_t **auto_link_descriptor_binding_buffers_per_frame;
   VkVertexInputBindingDescription *vertex_input_binding_descriptions;
   VkVertexInputAttributeDescription *vertex_input_attribute_descriptions;
   VkDescriptorPoolSize *descriptor_pool_sizes;
   VkDescriptorSetLayoutBinding *descriptor_set_layout_bindings;
-  lb_vector_t descriptor_set_layouts;
-  lb_vector_t descriptor_sets;
-  lb_vector_t write_descriptor_sets;
-  lb_vector_t vertex_input_bindings;
-  lb_vector_t descriptor_bindings;
+  VkDescriptorSetLayout *descriptor_set_layouts;
+  VkDescriptorSet *descriptor_sets;
+  VkWriteDescriptorSet *write_descriptor_sets;
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;
@@ -365,18 +277,24 @@ typedef struct eg_graphic_pipeline_t {
 } eg_graphic_pipeline_t;
 typedef struct eg_compute_pipeline_t {
   eg_context_t *context;
-  lb_pipeline_t config;
+  lb_pipeline_asset_t asset;
   lb_pipeline_resource_t resource;
+  lb_vector_t *descriptor_bindings;
   uint64_t descriptor_binding_count;
   uint64_t descriptor_pool_size_count;
+
+  uint64_t allocated_descriptor_set_count;
+  uint64_t descriptor_set_layout_count;
+  uint64_t descriptor_set_count;
+  uint64_t write_descriptor_set_count;
+
   VkBuffer **descriptor_binding_buffers_per_frame;
-  lb_map_t *auto_link_descriptor_binding_buffers_per_frame;
+  lb_map_t **auto_link_descriptor_binding_buffers_per_frame;
   VkDescriptorPoolSize *descriptor_pool_sizes;
   VkDescriptorSetLayoutBinding *descriptor_set_layout_bindings;
-  lb_vector_t descriptor_set_layouts;
-  lb_vector_t descriptor_sets;
-  lb_vector_t write_descriptor_sets;
-  lb_vector_t descriptor_bindings;
+  VkDescriptorSetLayout *descriptor_set_layouts;
+  VkDescriptorSet *descriptor_sets;
+  VkWriteDescriptorSet *write_descriptor_sets;
   VkDescriptorPool descriptor_pool;
   VkDescriptorSetLayout descriptor_set_layout;
   VkPipelineLayout pipeline_layout;

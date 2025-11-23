@@ -4,6 +4,58 @@
 #include <engine/eg_renderer.h>
 #include <engine/eg_viewport.h>
 
+struct eg_context_t {
+  HMODULE module_handle;
+  HWND window_handle;
+  MSG window_message;
+  LARGE_INTEGER time_freq;
+  LARGE_INTEGER time_start;
+  LARGE_INTEGER time_end;
+  double time;
+  double delta_time;
+  double elapsed_time_since_fps_count_update;
+  uint64_t frame_index;
+  uint32_t fps_counter;
+  uint32_t mouse_position_x;
+  uint32_t mouse_position_y;
+  uint32_t mouse_wheel_delta;
+  uint32_t window_width;
+  uint32_t window_height;
+  uint32_t window_titlebar_height;
+  uint32_t window_statusbar_height;
+  int32_t window_border_width;
+  int32_t primary_queue_index;
+  int32_t present_queue_index;
+  uint8_t is_editor_mode;
+  uint8_t is_window_running;
+  VkInstance instance;
+  VkSurfaceKHR surface;
+  VkSurfaceCapabilitiesKHR surface_capabilities;
+  VkSurfaceFormatKHR prefered_surface_format;
+  VkFormat prefered_image_depth_format;
+  VkPresentModeKHR prefered_present_mode;
+  VkPhysicalDevice physical_device;
+  VkPhysicalDeviceProperties physical_device_properties;
+  VkPhysicalDeviceFeatures physical_device_features;
+  VkPhysicalDeviceMemoryProperties physical_device_memory_properties;
+  VkDevice device;
+  VkQueue primary_queue;
+  VkQueue present_queue;
+  VkCommandPool command_pool;
+  eg_key_state_t event_keyboard_key_states[0xFF];
+  eg_key_state_t event_mouse_key_states[0x3];
+#ifdef BUILD_DEBUG
+  PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger_proc;
+  PFN_vkDestroyDebugUtilsMessengerEXT destroy_debug_utils_messenger_proc;
+  VkDebugUtilsMessengerEXT debug_messenger;
+#endif // BUILD_DEBUG
+  eg_world_settings_t world_settings;
+  eg_viewport_t *viewport[0xFF];
+  eg_swapchain_t *swapchain;
+  eg_renderer_t *renderer;
+  eg_scene_t *scene;
+};
+
 static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
 #ifdef BUILD_DEBUG
@@ -63,9 +115,9 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
 
   eg_world_settings_t world_settings = {0};
 
-  world_settings.default_scene_id = lb_database_load_default_scene_id();
-  world_settings.default_swapchain_id = lb_database_load_default_swapchain_id();
-  world_settings.default_renderer_id = lb_database_load_default_renderer_id();
+  world_settings.default_scene_asset_id = lb_database_load_default_scene_asset_id();
+  world_settings.default_swapchain_asset_id = lb_database_load_default_swapchain_asset_id();
+  world_settings.default_renderer_asset_id = lb_database_load_default_renderer_asset_id();
 
   eg_context_t *context = (eg_context_t *)lb_heap_alloc(sizeof(eg_context_t), 1, 0);
 
@@ -76,7 +128,7 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
   context->window_border_width = 1;
   context->window_width = width;
   context->window_height = height;
-  context->graphic_queue_index = -1;
+  context->primary_queue_index = -1;
   context->present_queue_index = -1;
   context->world_settings = world_settings;
 
@@ -97,8 +149,8 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
 
   eg_context_create_command_pool(context);
 
-  eg_swapchain_create(context, context->world_settings.default_swapchain_id);
-  eg_renderer_create(context, context->world_settings.default_renderer_id);
+  eg_swapchain_create(context, context->world_settings.default_swapchain_asset_id);
+  eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
 
   return context;
 }
@@ -139,24 +191,26 @@ void eg_context_run(eg_context_t *context) {
       mouse_key_index++;
     }
 
-    if (context->swapchain->is_dirty) {
-      context->swapchain->is_dirty = 0;
+    if (eg_swapchain_is_dirty(context->swapchain)) {
+
+      eg_swapchain_set_dirty(context->swapchain, 0);
 
       eg_renderer_destroy(context->renderer);
       eg_swapchain_destroy(context->swapchain);
 
       eg_context_resize_surface(context);
 
-      eg_swapchain_create(context, context->world_settings.default_swapchain_id);
-      eg_renderer_create(context, context->world_settings.default_renderer_id);
+      eg_swapchain_create(context, context->world_settings.default_swapchain_asset_id);
+      eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
     }
 
-    if (context->renderer->is_dirty) {
-      context->renderer->is_dirty = 0;
+    if (eg_renderer_is_dirty(context->renderer)) {
+
+      eg_renderer_set_dirty(context->renderer, 0);
 
       eg_renderer_destroy(context->renderer);
 
-      eg_renderer_create(context, context->world_settings.default_renderer_id);
+      eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
     }
 
     while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
@@ -167,14 +221,10 @@ void eg_context_run(eg_context_t *context) {
 
     QueryPerformanceCounter(&context->time_start); // TODO: measure whole loop..?
 
-    EG_PROFILER_SCOPE_BEGIN(EG_PROFILER_SAMPLE_LANE_CONTEXT);
-
     eg_scene_update(context->scene);
 
     eg_renderer_update(context->renderer); // TODO: remove this..
     eg_renderer_draw(context->renderer);
-
-    EG_PROFILER_SCOPE_END(EG_PROFILER_SAMPLE_LANE_CONTEXT);
 
     QueryPerformanceCounter(&context->time_end); // TODO: measure whole loop..?
 
@@ -206,6 +256,80 @@ void eg_context_destroy(eg_context_t *context) {
   lb_heap_free(context);
 
   lb_database_destroy();
+}
+
+uint8_t eg_context_is_editor_mode(eg_context_t *context) {
+  return context->is_editor_mode;
+}
+uint32_t eg_context_mouse_position_x(eg_context_t *context) {
+  return context->mouse_position_x;
+}
+uint32_t eg_context_mouse_position_y(eg_context_t *context) {
+  return context->mouse_position_y;
+}
+float eg_context_time(eg_context_t *context) {
+  return (float)context->time;
+}
+float eg_context_delta_time(eg_context_t *context) {
+  return (float)context->delta_time;
+}
+VkDevice eg_context_device(eg_context_t *context) {
+  return context->device;
+}
+int32_t eg_context_primary_queue_index(eg_context_t *context) {
+  return context->primary_queue_index;
+}
+int32_t eg_context_present_queue_index(eg_context_t *context) {
+  return context->present_queue_index;
+}
+VkQueue eg_context_primary_queue(eg_context_t *context) {
+  return context->primary_queue;
+}
+VkQueue eg_context_present_queue(eg_context_t *context) {
+  return context->present_queue;
+}
+VkSurfaceKHR eg_context_surface(eg_context_t *context) {
+  return context->surface;
+}
+uint32_t eg_context_surface_min_image_count(eg_context_t *context) {
+  return context->surface_capabilities.minImageCount;
+}
+VkSurfaceTransformFlagBitsKHR eg_context_surface_transform(eg_context_t *context) {
+  return context->surface_capabilities.currentTransform;
+}
+VkPresentModeKHR eg_context_surface_present_mode(eg_context_t *context) {
+  return context->prefered_present_mode;
+}
+VkFormat eg_context_surface_image_color_format(eg_context_t *context) {
+  return context->prefered_surface_format.format;
+}
+VkFormat eg_context_surface_image_depth_format(eg_context_t *context) {
+  return context->prefered_image_depth_format;
+}
+VkColorSpaceKHR eg_context_surface_image_color_space(eg_context_t *context) {
+  return context->prefered_surface_format.colorSpace;
+}
+uint32_t eg_context_window_width(eg_context_t *context) {
+  return context->window_width;
+}
+uint32_t eg_context_window_height(eg_context_t *context) {
+  return context->window_height;
+}
+float eg_context_max_anisotropy(eg_context_t *context) {
+  return context->physical_device_properties.limits.maxSamplerAnisotropy;
+}
+eg_swapchain_t *eg_context_swapchain(eg_context_t *context) {
+  return context->swapchain;
+}
+eg_renderer_t *eg_context_renderer(eg_context_t *context) {
+  return context->renderer;
+}
+
+void eg_context_set_swapchain(eg_context_t *context, eg_swapchain_t *swapchain) {
+  context->swapchain = swapchain;
+}
+void eg_context_set_renderer(eg_context_t *context, eg_renderer_t *renderer) {
+  context->renderer = renderer;
 }
 
 uint8_t eg_context_is_keyboard_key_pressed(eg_context_t *context, eg_keyboard_key_t key) {
@@ -274,8 +398,8 @@ void eg_context_end_command_buffer(eg_context_t *context, VkCommandBuffer comman
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffer;
 
-  EG_VULKAN_CHECK(vkQueueSubmit(context->graphic_queue, 1, &submit_info, 0));
-  EG_VULKAN_CHECK(vkQueueWaitIdle(context->graphic_queue));
+  EG_VULKAN_CHECK(vkQueueSubmit(context->primary_queue, 1, &submit_info, 0));
+  EG_VULKAN_CHECK(vkQueueWaitIdle(context->primary_queue));
 
   vkFreeCommandBuffers(context->device, context->command_pool, 1, &command_buffer);
 }
@@ -590,10 +714,10 @@ static void eg_context_create_instance(eg_context_t *context) {
   EG_VULKAN_CHECK(vkCreateInstance(&instance_create_info, 0, &context->instance));
 
 #ifdef BUILD_DEBUG
-  context->create_debug_utils_messenger_ext = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context->instance, "vkCreateDebugUtilsMessengerEXT");
-  context->destroy_debug_utils_messenger_ext = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context->instance, "vkDestroyDebugUtilsMessengerEXT");
+  context->create_debug_utils_messenger_proc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context->instance, "vkCreateDebugUtilsMessengerEXT");
+  context->destroy_debug_utils_messenger_proc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context->instance, "vkDestroyDebugUtilsMessengerEXT");
 
-  EG_VULKAN_CHECK(context->create_debug_utils_messenger_ext(context->instance, &debug_create_info, 0, &context->debug_messenger));
+  EG_VULKAN_CHECK(context->create_debug_utils_messenger_proc(context->instance, &debug_create_info, 0, &context->debug_messenger));
 #endif // BUILD_DEBUG
 }
 static void eg_context_create_surface(eg_context_t *context) {
@@ -610,7 +734,7 @@ static void eg_context_create_device(eg_context_t *context) {
   float queue_priority = 1.0F;
 
   device_queue_create_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  device_queue_create_infos[0].queueFamilyIndex = context->graphic_queue_index;
+  device_queue_create_infos[0].queueFamilyIndex = context->primary_queue_index;
   device_queue_create_infos[0].queueCount = 1;
   device_queue_create_infos[0].pQueuePriorities = &queue_priority;
 
@@ -653,14 +777,14 @@ static void eg_context_create_device(eg_context_t *context) {
 
   EG_VULKAN_CHECK(vkCreateDevice(context->physical_device, &device_create_info, 0, &context->device));
 
-  vkGetDeviceQueue(context->device, context->graphic_queue_index, 0, &context->graphic_queue);
+  vkGetDeviceQueue(context->device, context->primary_queue_index, 0, &context->primary_queue);
   vkGetDeviceQueue(context->device, context->present_queue_index, 0, &context->present_queue);
 }
 static void eg_context_create_command_pool(eg_context_t *context) {
   VkCommandPoolCreateInfo command_pool_create_info = {0};
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  command_pool_create_info.queueFamilyIndex = context->graphic_queue_index;
+  command_pool_create_info.queueFamilyIndex = context->primary_queue_index;
 
   EG_VULKAN_CHECK(vkCreateCommandPool(context->device, &command_pool_create_info, 0, &context->command_pool));
 }
@@ -672,7 +796,7 @@ static void eg_context_destroy_window(eg_context_t *context) {
 }
 static void eg_context_destroy_instance(eg_context_t *context) {
 #ifdef BUILD_DEBUG
-  context->destroy_debug_utils_messenger_ext(context->instance, context->debug_messenger, 0);
+  context->destroy_debug_utils_messenger_proc(context->instance, context->debug_messenger, 0);
 #endif // BUILD_DEBUG
 
   vkDestroyInstance(context->instance, 0);
@@ -701,10 +825,13 @@ static void eg_context_check_surface_capabilities(eg_context_t *context) {
   EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(context->physical_device, context->surface, &present_mode_count, present_modes));
 
   uint64_t surface_format_index = 0;
+
   while (surface_format_index < surface_format_count) {
+
     VkSurfaceFormatKHR surface_format = surface_formats[surface_format_index];
 
     if ((surface_format.format == VK_FORMAT_B8G8R8A8_UNORM) && (surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)) {
+
       context->prefered_surface_format = surface_format;
 
       break;
@@ -714,10 +841,13 @@ static void eg_context_check_surface_capabilities(eg_context_t *context) {
   }
 
   uint64_t present_mode_index = 0;
+
   while (present_mode_index < present_mode_count) {
+
     VkPresentModeKHR present_mode = present_modes[present_mode_index];
 
     if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+
       context->prefered_present_mode = present_mode;
 
       break;
@@ -740,14 +870,19 @@ static void eg_context_check_physical_device_extensions(eg_context_t *context) {
 
   uint64_t device_extension_index = 0;
   uint64_t device_extension_count = LB_ARRAY_COUNT(s_context_device_extensions);
+
   while (device_extension_index < device_extension_count) {
+
     uint8_t device_extensions_available = 0;
 
     uint64_t available_device_extension_index = 0;
+
     while (available_device_extension_index < available_device_extension_count) {
+
       VkExtensionProperties properties = available_device_extensions[available_device_extension_index];
 
       if (strcmp(s_context_device_extensions[device_extension_index], properties.extensionName) == 0) {
+
         printf("  Found %s\n", s_context_device_extensions[device_extension_index]);
 
         device_extensions_available = 1;
@@ -759,6 +894,7 @@ static void eg_context_check_physical_device_extensions(eg_context_t *context) {
     }
 
     if (device_extensions_available == 0) {
+
       printf("  Missing %s\n", s_context_device_extensions[device_extension_index]);
 
       break;
@@ -787,7 +923,9 @@ static void eg_context_find_physical_device(eg_context_t *context) {
   EG_VULKAN_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, physical_devices));
 
   uint64_t physical_device_index = 0;
+
   while (physical_device_index < physical_device_count) {
+
     VkPhysicalDevice physical_device = physical_devices[physical_device_index];
 
     vkGetPhysicalDeviceProperties(physical_device, &context->physical_device_properties);
@@ -795,9 +933,11 @@ static void eg_context_find_physical_device(eg_context_t *context) {
     vkGetPhysicalDeviceMemoryProperties(physical_device, &context->physical_device_memory_properties);
 
     if (context->physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+
       if (context->physical_device_features.geometryShader &&
           context->physical_device_features.samplerAnisotropy &&
           context->physical_device_features.shaderFloat64) {
+
         context->physical_device = physical_device;
 
         break;
@@ -817,7 +957,9 @@ static void eg_context_find_physical_device_queue_families(eg_context_t *context
   vkGetPhysicalDeviceQueueFamilyProperties(context->physical_device, &queue_family_property_count, queue_family_properties);
 
   uint64_t physical_device_queue_family_property_index = 0;
+
   while (physical_device_queue_family_property_index < queue_family_property_count) {
+
     VkQueueFamilyProperties properties = queue_family_properties[physical_device_queue_family_property_index];
 
     uint32_t graphic_support = 0;
@@ -829,13 +971,16 @@ static void eg_context_find_physical_device_queue_families(eg_context_t *context
 
     EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(context->physical_device, (uint32_t)physical_device_queue_family_property_index, context->surface, &present_support));
 
-    if (graphic_support && compute_support && (context->graphic_queue_index == -1)) {
-      context->graphic_queue_index = (uint32_t)physical_device_queue_family_property_index;
+    if (graphic_support && compute_support && (context->primary_queue_index == -1)) {
+
+      context->primary_queue_index = (uint32_t)physical_device_queue_family_property_index;
+
     } else if (present_support && (context->present_queue_index == -1)) {
+
       context->present_queue_index = (uint32_t)physical_device_queue_family_property_index;
     }
 
-    if ((context->graphic_queue_index != -1) && (context->present_queue_index != -1)) {
+    if ((context->primary_queue_index != -1) && (context->present_queue_index != -1)) {
       break;
     }
 
@@ -845,7 +990,7 @@ static void eg_context_find_physical_device_queue_families(eg_context_t *context
   lb_heap_free(queue_family_properties);
 
   printf("Queue Indices\n");
-  printf("  Graphic Queue Index %d\n", context->graphic_queue_index);
+  printf("  Primary Queue Index %d\n", context->primary_queue_index);
   printf("  Present Queue Index %d\n", context->present_queue_index);
   printf("\n");
 }

@@ -245,32 +245,6 @@ void lb_set_clear(lb_set_t *set) {
 
   set->record_count = 0;
 }
-lb_set_iter_t *lb_set_iter(lb_set_t *set) {
-  lb_set_iter_t *iter = (lb_set_iter_t *)lb_heap_alloc(sizeof(lb_set_iter_t), 1, 0);
-
-  iter->table = set->table;
-  iter->table_count = set->table_count;
-  iter->first_step = 0;
-
-  uint64_t table_index = 0;
-
-  while (table_index < set->table_count) {
-
-    lb_set_record_t *curr = set->table[table_index];
-
-    if (curr) {
-
-      iter->table_index = table_index;
-      iter->table_record = curr;
-
-      break;
-    }
-
-    table_index++;
-  }
-
-  return iter;
-}
 uint64_t lb_set_hash(lb_set_t *set, void const *key, uint64_t key_size, uint64_t modulus) {
   uint64_t hash = LB_SET_HASH_POLY;
   uint64_t key_index = 0;
@@ -317,6 +291,32 @@ uint64_t lb_set_record_key_size(lb_set_record_t *record) {
   return record->key_size;
 }
 
+lb_set_iter_t *lb_set_iter(lb_set_t *set) {
+  lb_set_iter_t *iter = (lb_set_iter_t *)lb_heap_alloc(sizeof(lb_set_iter_t), 1, 0);
+
+  iter->table = set->table;
+  iter->table_count = set->table_count;
+  iter->first_step = 0;
+
+  uint64_t table_index = 0;
+
+  while (table_index < set->table_count) {
+
+    lb_set_record_t *curr = set->table[table_index];
+
+    if (curr) {
+
+      iter->table_index = table_index;
+      iter->table_record = curr;
+
+      break;
+    }
+
+    table_index++;
+  }
+
+  return iter;
+}
 uint8_t lb_set_iter_step(lb_set_iter_t *iter) {
   if (iter->first_step) {
 
@@ -349,4 +349,7 @@ void *lb_set_iter_key(lb_set_iter_t *iter) {
 }
 uint64_t lb_set_iter_key_size(lb_set_iter_t *iter) {
   return iter->table_record->key_size;
+}
+void lb_set_iter_destroy(lb_set_iter_t *iter) {
+  lb_heap_free(iter);
 }

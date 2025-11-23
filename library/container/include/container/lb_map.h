@@ -15,7 +15,6 @@ uint64_t lb_map_count(lb_map_t *map);
 void *lb_map_at(lb_map_t *map, void const *key, uint64_t key_size);
 void lb_map_expand(lb_map_t *map);
 void lb_map_clear(lb_map_t *map);
-lb_map_iter_t *lb_map_iter(lb_map_t *map);
 uint64_t lb_map_hash(lb_map_t *map, void const *key, uint64_t key_size, uint64_t modulus);
 uint8_t lb_map_load_factor(lb_map_t *map);
 void lb_map_destroy(lb_map_t *map);
@@ -25,11 +24,13 @@ uint64_t lb_map_record_key_size(lb_map_record_t *record);
 void *lb_map_record_value(lb_map_record_t *record);
 uint64_t lb_map_record_value_size(lb_map_record_t *record);
 
+lb_map_iter_t *lb_map_iter_create(lb_map_t *map);
 uint8_t lb_map_iter_step(lb_map_iter_t *iter);
 void *lb_map_iter_key(lb_map_iter_t *iter);
 uint64_t lb_map_iter_key_size(lb_map_iter_t *iter);
 void *lb_map_iter_value(lb_map_iter_t *iter);
 uint64_t lb_map_iter_value_size(lb_map_iter_t *iter);
+void lb_map_iter_destroy(lb_map_iter_t *iter);
 
 #ifdef __cplusplus
 }

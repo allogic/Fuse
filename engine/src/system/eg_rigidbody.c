@@ -25,15 +25,19 @@ void eg_rigidbody_update(ecs_iter_t *iter) {
 }
 
 static void eg_rigidbody_handle_linear_velocity(eg_context_t *context, eg_transform_t *transform, eg_rigidbody_t *rigidbody) {
+  float delta_time = eg_context_delta_time(context);
+
   lb_vector3_t velocity = rigidbody->linear_velocity;
-  lb_vector3_t velocity_step = lb_vector3_muls(lb_vector3_muls(rigidbody->linear_velocity, rigidbody->linear_drag), (float)context->delta_time);
+  lb_vector3_t velocity_step = lb_vector3_muls(lb_vector3_muls(rigidbody->linear_velocity, rigidbody->linear_drag), delta_time);
 
   transform->local_position = lb_vector3_add(transform->local_position, velocity);
   rigidbody->linear_velocity = lb_vector3_sub(rigidbody->linear_velocity, velocity_step);
 }
 static void eg_rigidbody_handle_angular_velocity(eg_context_t *context, eg_transform_t *transform, eg_rigidbody_t *rigidbody) {
+  float delta_time = eg_context_delta_time(context);
+
   lb_vector3_t velocity = rigidbody->angular_velocity;
-  lb_vector3_t velocity_step = lb_vector3_muls(lb_vector3_muls(rigidbody->angular_velocity, rigidbody->angular_drag), (float)context->delta_time);
+  lb_vector3_t velocity_step = lb_vector3_muls(lb_vector3_muls(rigidbody->angular_velocity, rigidbody->angular_drag), delta_time);
 
   lb_quaternion_t qp = lb_quaternion_angle_axis(velocity.x, eg_transform_local_right(transform));
   lb_quaternion_t qy = lb_quaternion_angle_axis(velocity.y, lb_vector3_up());

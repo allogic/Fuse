@@ -8,33 +8,39 @@ eg_buffer_t *eg_buffer_create(eg_context_t *context, uint64_t buffer_size, VkBuf
   buffer->context = context;
   buffer->size = buffer_size;
 
+  VkDevice device = eg_context_device(buffer->context);
+
   VkBufferCreateInfo buffer_create_info = {0};
   buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   buffer_create_info.size = buffer_size;
   buffer_create_info.usage = buffer_usage_flags;
   buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  EG_VULKAN_CHECK(vkCreateBuffer(buffer->context->device, &buffer_create_info, 0, &buffer->handle));
+  EG_VULKAN_CHECK(vkCreateBuffer(device, &buffer_create_info, 0, &buffer->handle));
 
   VkMemoryRequirements memory_requirements = {0};
 
-  vkGetBufferMemoryRequirements(buffer->context->device, buffer->handle, &memory_requirements);
+  vkGetBufferMemoryRequirements(device, buffer->handle, &memory_requirements);
 
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   memory_allocate_info.allocationSize = memory_requirements.size;
   memory_allocate_info.memoryTypeIndex = eg_context_find_memory_type(buffer->context, memory_requirements.memoryTypeBits, memory_properties);
 
-  EG_VULKAN_CHECK(vkAllocateMemory(buffer->context->device, &memory_allocate_info, 0, &buffer->device_memory));
-  EG_VULKAN_CHECK(vkBindBufferMemory(buffer->context->device, buffer->handle, buffer->device_memory, 0));
+  EG_VULKAN_CHECK(vkAllocateMemory(device, &memory_allocate_info, 0, &buffer->device_memory));
+  EG_VULKAN_CHECK(vkBindBufferMemory(device, buffer->handle, buffer->device_memory, 0));
 
   return buffer;
 }
 void eg_buffer_map(eg_buffer_t *buffer) {
-  EG_VULKAN_CHECK(vkMapMemory(buffer->context->device, buffer->device_memory, 0, buffer->size, 0, &buffer->mapped_memory));
+  VkDevice device = eg_context_device(buffer->context);
+
+  EG_VULKAN_CHECK(vkMapMemory(device, buffer->device_memory, 0, buffer->size, 0, &buffer->mapped_memory));
 }
 void eg_buffer_unmap(eg_buffer_t *buffer) {
-  vkUnmapMemory(buffer->context->device, buffer->device_memory);
+  VkDevice device = eg_context_device(buffer->context);
+
+  vkUnmapMemory(device, buffer->device_memory);
 
   buffer->mapped_memory = 0;
 }
@@ -67,13 +73,15 @@ void eg_buffer_copy_to_image(eg_buffer_t *buffer, eg_image_t *target, VkCommandB
   vkCmdCopyBufferToImage(command_buffer, buffer->handle, target->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy);
 }
 void eg_buffer_destroy(eg_buffer_t *buffer) {
+  VkDevice device = eg_context_device(buffer->context);
+
   if (buffer->mapped_memory) {
-    vkUnmapMemory(buffer->context->device, buffer->device_memory);
+    vkUnmapMemory(device, buffer->device_memory);
   }
 
-  vkFreeMemory(buffer->context->device, buffer->device_memory, 0);
+  vkFreeMemory(device, buffer->device_memory, 0);
 
-  vkDestroyBuffer(buffer->context->device, buffer->handle, 0);
+  vkDestroyBuffer(device, buffer->handle, 0);
 
   lb_heap_free(buffer);
 }

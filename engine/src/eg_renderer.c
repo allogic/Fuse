@@ -14,6 +14,37 @@
 // TODO: implement sparse textures..
 // TODO: implement viewport defragmentation..
 
+typedef struct eg_renderer_t {
+  eg_context_t *context;
+  eg_swapchain_t *swapchain;
+  lb_renderer_asset_t asset;
+  uint8_t is_dirty;
+  uint8_t is_debug_enabled;
+  uint32_t frames_in_flight;
+  uint32_t frame_index;
+  uint32_t image_index;
+  VkCommandBuffer *command_buffer;
+  lb_pipeline_type_t pipeline_type[0xFF];
+  void *pipeline_link[0xFF];
+  VkSemaphore *render_finished_semaphore;
+  VkSemaphore *image_available_semaphore;
+  VkFence *frame_fence;
+  eg_time_info_t **time_infos;
+  eg_screen_info_t **screen_infos;
+  eg_camera_info_t **camera_infos;
+  char time_info_descriptor_binding_name[0xFF];
+  char screen_info_descriptor_binding_name[0xFF];
+  char camera_info_descriptor_binding_name[0xFF];
+  lb_map_t **descriptor_binding_buffers_per_frame;
+  eg_debug_vertex_t **debug_line_vertices;
+  uint32_t **debug_line_indices;
+  eg_buffer_t **debug_line_vertex_buffers;
+  eg_buffer_t **debug_line_index_buffers;
+  uint32_t *debug_line_vertex_offset;
+  uint32_t *debug_line_index_offset;
+  VkRenderPass gbuffer_render_pass;
+} eg_renderer_t;
+
 static void eg_renderer_link_pipeline(eg_renderer_t *renderer, uint32_t link_index, lb_pipeline_type_t pipeline_type, void *pipeline);
 
 static void eg_renderer_create_global_buffers(eg_renderer_t *renderer);
@@ -42,21 +73,21 @@ static void eg_renderer_destroy_sync_objects(eg_renderer_t *renderer);
 static void eg_renderer_destroy_command_buffer(eg_renderer_t *renderer);
 static void eg_renderer_destroy_gbuffer_render_pass(eg_renderer_t *renderer);
 
-void eg_renderer_create(eg_context_t *context, lb_renderer_id_t renderer_id) {
+void eg_renderer_create(eg_context_t *context, lb_renderer_asset_id_t renderer_asset_id) {
   eg_renderer_t *renderer = (eg_renderer_t *)lb_heap_alloc(sizeof(eg_renderer_t), 1, 0);
 
+  eg_context_set_renderer(context, renderer);
+
+  renderer->swapchain = eg_context_swapchain(renderer->context);
+
+  uint32_t image_count = eg_swapchain_image_count(renderer->swapchain);
+
   renderer->context = context;
-  renderer->context->renderer = renderer;
-  renderer->config = lb_database_load_renderer_by_id(renderer_id);
+  renderer->asset = lb_database_load_renderer_asset_by_id(renderer_asset_id);
   renderer->is_debug_enabled = 1; // TODO
-
-  renderer->frames_in_flight = renderer->config.frames_in_flight;
-
+  renderer->frames_in_flight = renderer->asset.frames_in_flight;
   renderer->frames_in_flight = LB_MAX(renderer->frames_in_flight, 1);
-  renderer->frames_in_flight = LB_MIN(renderer->frames_in_flight, renderer->context->swapchain->image_count);
-
-  renderer->frame_index = 0;
-  renderer->image_index = 0;
+  renderer->frames_in_flight = LB_MIN(renderer->frames_in_flight, image_count);
 
   strcpy(renderer->time_info_descriptor_binding_name, "time_info");
   strcpy(renderer->screen_info_descriptor_binding_name, "screen_info");
@@ -72,7 +103,9 @@ void eg_renderer_create(eg_context_t *context, lb_renderer_id_t renderer_id) {
   eg_renderer_create_sync_objects(renderer);
   eg_renderer_create_command_buffer(renderer);
 
-  if (renderer->context->is_editor_mode) {
+  uint8_t is_editor_mode = eg_context_is_editor_mode(renderer->context);
+
+  if (is_editor_mode) {
     g_context_editor_create_proc(renderer->context);
   }
 }
@@ -96,11 +129,15 @@ void eg_renderer_update(eg_renderer_t *renderer) {
   eg_renderer_draw_debug_line(renderer, front_position, front_direction, front_color);
 }
 void eg_renderer_draw(eg_renderer_t *renderer) {
-  EG_PROFILER_SCOPE_BEGIN(PROFILER_SAMPLE_LANE_RENDERER);
+  VkDevice device = eg_context_device(renderer->context);
+
+  VkQueue graphic_queue = eg_context_graphic_queue(renderer->context);
+  VkQueue present_queue = eg_context_present_queue(renderer->context);
+  VkSwapchainKHR swapchain_handle = eg_swapchain_handle(renderer->swapchain);
 
   VkResult result = VK_SUCCESS;
 
-  result = vkWaitForFences(renderer->context->device, 1, &renderer->frame_fence[renderer->frame_index], 1, UINT64_MAX);
+  result = vkWaitForFences(device, 1, &renderer->frame_fence[renderer->frame_index], 1, UINT64_MAX);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -116,7 +153,7 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  result = vkResetFences(renderer->context->device, 1, &renderer->frame_fence[renderer->frame_index]);
+  result = vkResetFences(device, 1, &renderer->frame_fence[renderer->frame_index]);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -142,7 +179,7 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
 #endif // BUILD_DEBUG
   }
 
-  result = vkAcquireNextImageKHR(renderer->context->device, renderer->context->swapchain->handle, UINT64_MAX, renderer->image_available_semaphore[renderer->frame_index], 0, &renderer->image_index);
+  result = vkAcquireNextImageKHR(device, swapchain_handle, UINT64_MAX, renderer->image_available_semaphore[renderer->frame_index], 0, &renderer->image_index);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -153,7 +190,8 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
     }
     case VK_ERROR_OUT_OF_DATE_KHR:
     case VK_SUBOPTIMAL_KHR: {
-      renderer->context->swapchain->is_dirty = 1;
+
+      eg_swapchain_set_dirty(renderer->swapchain, 1);
 
       return;
     }
@@ -192,7 +230,7 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
   graphic_submit_info.commandBufferCount = 1;
   graphic_submit_info.pWaitDstStageMask = graphic_wait_stages;
 
-  result = vkQueueSubmit(renderer->context->graphic_queue, 1, &graphic_submit_info, renderer->frame_fence[renderer->frame_index]);
+  result = vkQueueSubmit(graphic_queue, 1, &graphic_submit_info, renderer->frame_fence[renderer->frame_index]);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -212,11 +250,11 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.pWaitSemaphores = &renderer->render_finished_semaphore[renderer->image_index];
   present_info.waitSemaphoreCount = 1;
-  present_info.pSwapchains = &renderer->context->swapchain->handle;
+  present_info.pSwapchains = &swapchain_handle;
   present_info.swapchainCount = 1;
   present_info.pImageIndices = &renderer->image_index;
 
-  result = vkQueuePresentKHR(renderer->context->present_queue, &present_info);
+  result = vkQueuePresentKHR(present_queue, &present_info);
 
   switch (result) {
     case VK_SUCCESS: {
@@ -224,7 +262,8 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
     }
     case VK_ERROR_OUT_OF_DATE_KHR:
     case VK_SUBOPTIMAL_KHR: {
-      renderer->context->swapchain->is_dirty = 1;
+
+      eg_swapchain_set_dirty(renderer->swapchain, 1);
 
       return;
     }
@@ -236,14 +275,17 @@ void eg_renderer_draw(eg_renderer_t *renderer) {
   }
 
   renderer->frame_index = (renderer->frame_index + 1) % renderer->frames_in_flight;
-
-  EG_PROFILER_SCOPE_END(EG_PROFILER_SAMPLE_LANE_RENDERER);
 }
 void eg_renderer_destroy(eg_renderer_t *renderer) {
-  EG_VULKAN_CHECK(vkQueueWaitIdle(renderer->context->graphic_queue));
-  EG_VULKAN_CHECK(vkQueueWaitIdle(renderer->context->present_queue));
+  VkQueue graphic_queue = eg_context_graphic_queue(renderer->context);
+  VkQueue present_queue = eg_context_present_queue(renderer->context);
 
-  if (renderer->context->is_editor_mode) {
+  uint8_t is_editor_mode = eg_context_is_editor_mode(renderer->context);
+
+  EG_VULKAN_CHECK(vkQueueWaitIdle(graphic_queue));
+  EG_VULKAN_CHECK(vkQueueWaitIdle(present_queue));
+
+  if (is_editor_mode) {
     g_context_editor_destroy_proc(renderer->context);
   }
 
@@ -254,9 +296,9 @@ void eg_renderer_destroy(eg_renderer_t *renderer) {
   eg_renderer_destroy_debug_buffers(renderer);
   eg_renderer_destroy_global_buffers(renderer);
 
-  lb_database_destroy_renderer(&renderer->config);
+  lb_database_destroy_renderer_asset(&renderer->asset);
 
-  renderer->context->renderer = 0;
+  eg_context_set_renderer(renderer->context, 0);
 
   lb_heap_free(renderer);
 }
@@ -346,6 +388,14 @@ void eg_renderer_draw_debug_box(eg_renderer_t *renderer, lb_vector3_t position, 
   }
 }
 
+uint8_t eg_renderer_is_dirty(eg_renderer_t *renderer) {
+  return renderer->is_dirty;
+}
+
+void eg_renderer_set_dirty(eg_renderer_t *renderer, uint8_t is_dirty) {
+  renderer->is_dirty = is_dirty;
+}
+
 static void eg_renderer_link_pipeline(eg_renderer_t *renderer, uint32_t link_index, lb_pipeline_type_t pipeline_type, void *pipeline) {
   if (renderer->pipeline_link[link_index]) {
 
@@ -374,7 +424,7 @@ static void eg_renderer_create_global_buffers(eg_renderer_t *renderer) {
   renderer->screen_infos = (eg_screen_info_t **)lb_heap_alloc(sizeof(eg_screen_info_t *) * renderer->frames_in_flight, 0, 0);
   renderer->camera_infos = (eg_camera_info_t **)lb_heap_alloc(sizeof(eg_camera_info_t *) * renderer->frames_in_flight, 0, 0);
 
-  renderer->descriptor_binding_buffers_per_frame = (lb_map_t *)lb_heap_alloc(sizeof(lb_map_t) * renderer->frames_in_flight, 0, 0);
+  renderer->descriptor_binding_buffers_per_frame = (lb_map_t **)lb_heap_alloc(sizeof(lb_map_t *) * renderer->frames_in_flight, 0, 0);
 
   uint64_t frame_index = 0;
   uint64_t frame_count = renderer->frames_in_flight;
@@ -391,9 +441,9 @@ static void eg_renderer_create_global_buffers(eg_renderer_t *renderer) {
     renderer->screen_infos[frame_index] = screen_info_descriptor_binding_buffer->mapped_memory;
     renderer->camera_infos[frame_index] = camera_info_descriptor_binding_buffer->mapped_memory;
 
-    lb_map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name) + 1, &time_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
-    lb_map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name) + 1, &screen_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
-    lb_map_insert(&renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name) + 1, &camera_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
+    lb_map_insert(renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->time_info_descriptor_binding_name, strlen(renderer->time_info_descriptor_binding_name) + 1, &time_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
+    lb_map_insert(renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->screen_info_descriptor_binding_name, strlen(renderer->screen_info_descriptor_binding_name) + 1, &screen_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
+    lb_map_insert(renderer->descriptor_binding_buffers_per_frame[frame_index], renderer->camera_info_descriptor_binding_name, strlen(renderer->camera_info_descriptor_binding_name) + 1, &camera_info_descriptor_binding_buffer, sizeof(eg_buffer_t *));
 
     frame_index++;
   }
@@ -423,8 +473,12 @@ static void eg_renderer_create_debug_buffers(eg_renderer_t *renderer) {
   }
 }
 static void eg_renderer_create_gbuffer_render_pass(eg_renderer_t *renderer) {
+  VkDevice device = eg_context_device(renderer->context);
+  VkFormat surface_image_color_format = eg_context_surface_color_image_format(renderer->context);
+  VkFormat surface_image_depth_format = eg_context_surface_depth_image_format(renderer->context);
+
   VkAttachmentDescription color_attachment_description = {0};
-  color_attachment_description.format = renderer->context->prefered_surface_format.format;
+  color_attachment_description.format = surface_image_color_format;
   color_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
   color_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   color_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -434,7 +488,7 @@ static void eg_renderer_create_gbuffer_render_pass(eg_renderer_t *renderer) {
   color_attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // TODO: change this to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR when standalone..
 
   VkAttachmentDescription depth_attachment_description = {0};
-  depth_attachment_description.format = renderer->context->swapchain->depth_format;
+  depth_attachment_description.format = surface_image_depth_format;
   depth_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
   depth_attachment_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
   depth_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -476,21 +530,21 @@ static void eg_renderer_create_gbuffer_render_pass(eg_renderer_t *renderer) {
   render_pass_create_info.pDependencies = &subpass_dependency;
   render_pass_create_info.dependencyCount = 1;
 
-  EG_VULKAN_CHECK(vkCreateRenderPass(renderer->context->device, &render_pass_create_info, 0, &renderer->gbuffer_render_pass));
+  EG_VULKAN_CHECK(vkCreateRenderPass(device, &render_pass_create_info, 0, &renderer->gbuffer_render_pass));
 }
 static void eg_renderer_create_pipelines(eg_renderer_t *renderer) {
-  lb_vector_t graphic_pipeline_configs = lb_database_load_all_pipeline_by_type(LB_PIPELINE_TYPE_GRAPHIC);
+  lb_vector_t *graphic_pipeline_assets = lb_database_load_all_pipeline_assets_by_type(LB_PIPELINE_TYPE_GRAPHIC);
 
-  uint64_t graphic_pipeline_config_index = 0;
-  uint64_t graphic_pipeline_config_count = lb_vector_count(&graphic_pipeline_configs);
+  uint64_t graphic_pipeline_asset_index = 0;
+  uint64_t graphic_pipeline_asset_count = lb_vector_count(graphic_pipeline_assets);
 
-  while (graphic_pipeline_config_index < graphic_pipeline_config_count) {
+  while (graphic_pipeline_asset_index < graphic_pipeline_asset_count) {
 
-    lb_pipeline_t *graphic_pipeline_config = (lb_pipeline_t *)lb_vector_at(&graphic_pipeline_configs, graphic_pipeline_config_index);
+    lb_pipeline_asset_t *graphic_pipeline_asset = (lb_pipeline_asset_t *)lb_vector_at(graphic_pipeline_assets, graphic_pipeline_asset_index);
 
-    if (graphic_pipeline_config->auto_create_pipeline) {
+    if (graphic_pipeline_asset->auto_create_pipeline) {
 
-      eg_graphic_pipeline_t *graphic_pipeline = eg_graphic_pipeline_create(renderer->context, graphic_pipeline_config->id);
+      eg_graphic_pipeline_t *graphic_pipeline = eg_graphic_pipeline_create(renderer->context, graphic_pipeline_asset->id);
 
       uint64_t frame_index = 0;
       uint64_t frame_count = renderer->frames_in_flight;
@@ -501,7 +555,7 @@ static void eg_renderer_create_pipelines(eg_renderer_t *renderer) {
         eg_graphic_pipeline_link_vertex_input_binding_buffer(graphic_pipeline, frame_index, 0, renderer->debug_line_vertex_buffers[frame_index]->handle, 0);
         eg_graphic_pipeline_link_index_buffer(graphic_pipeline, frame_index, renderer->debug_line_index_buffers[frame_index]->handle);
 
-        if (graphic_pipeline_config->auto_link_descriptor_bindings) {
+        if (graphic_pipeline_asset->auto_link_descriptor_bindings) {
           eg_graphic_pipeline_set_auto_link_descriptor_bindings(graphic_pipeline, renderer->descriptor_binding_buffers_per_frame);
         }
 
@@ -511,33 +565,33 @@ static void eg_renderer_create_pipelines(eg_renderer_t *renderer) {
       eg_graphic_pipeline_allocate_descriptor_sets(graphic_pipeline, 1);
       eg_graphic_pipeline_update_descriptor_sets(graphic_pipeline);
 
-      eg_renderer_link_pipeline(renderer, graphic_pipeline_config->link_index, graphic_pipeline_config->type, graphic_pipeline);
+      eg_renderer_link_pipeline(renderer, graphic_pipeline_asset->link_index, graphic_pipeline_asset->type, graphic_pipeline);
     }
 
-    graphic_pipeline_config_index++;
+    graphic_pipeline_asset_index++;
   }
 
-  lb_database_destroy_pipelinev(&graphic_pipeline_configs);
+  lb_database_destroy_pipeline_assets(graphic_pipeline_assets);
 
-  lb_vector_t compute_pipeline_configs = lb_database_load_all_pipeline_by_type(LB_PIPELINE_TYPE_COMPUTE);
+  lb_vector_t *compute_pipeline_assets = lb_database_load_all_pipeline_assets_by_type(LB_PIPELINE_TYPE_COMPUTE);
 
-  uint64_t compute_pipeline_config_index = 0;
-  uint64_t compute_pipeline_config_count = lb_vector_count(&compute_pipeline_configs);
+  uint64_t compute_pipeline_asset_index = 0;
+  uint64_t compute_pipeline_asset_count = lb_vector_count(compute_pipeline_assets);
 
-  while (compute_pipeline_config_index < compute_pipeline_config_count) {
+  while (compute_pipeline_asset_index < compute_pipeline_asset_count) {
 
-    lb_pipeline_t *pipeline_config = (lb_pipeline_t *)lb_vector_at(&compute_pipeline_configs, compute_pipeline_config_index);
+    lb_pipeline_asset_t *pipeline_asset = (lb_pipeline_asset_t *)lb_vector_at(compute_pipeline_assets, compute_pipeline_asset_index);
 
-    if (pipeline_config->auto_create_pipeline) {
+    if (pipeline_asset->auto_create_pipeline) {
 
-      eg_compute_pipeline_t *pipeline = eg_compute_pipeline_create(renderer->context, pipeline_config->id);
+      eg_compute_pipeline_t *pipeline = eg_compute_pipeline_create(renderer->context, pipeline_asset->id);
 
       uint64_t frame_index = 0;
       uint64_t frame_count = renderer->frames_in_flight;
 
       while (frame_index < frame_count) {
 
-        if (pipeline_config->auto_link_descriptor_bindings) {
+        if (pipeline_asset->auto_link_descriptor_bindings) {
           eg_compute_pipeline_set_auto_link_descriptor_bindings(pipeline, renderer->descriptor_binding_buffers_per_frame);
         }
 
@@ -547,15 +601,17 @@ static void eg_renderer_create_pipelines(eg_renderer_t *renderer) {
       eg_compute_pipeline_allocate_descriptor_sets(pipeline, 1);
       eg_compute_pipeline_update_descriptor_sets(pipeline);
 
-      eg_renderer_link_pipeline(renderer, pipeline_config->link_index, pipeline_config->type, pipeline);
+      eg_renderer_link_pipeline(renderer, pipeline_asset->link_index, pipeline_asset->type, pipeline);
     }
 
-    compute_pipeline_config_index++;
+    compute_pipeline_asset_index++;
   }
 
-  lb_database_destroy_pipelinev(&compute_pipeline_configs);
+  lb_database_destroy_pipeline_assets(compute_pipeline_assets);
 }
 static void eg_renderer_create_sync_objects(eg_renderer_t *renderer) {
+  VkDevice device = eg_context_device(renderer->context);
+
   renderer->render_finished_semaphore = (VkSemaphore *)lb_heap_alloc(sizeof(VkSemaphore) * renderer->context->swapchain->image_count, 0, 0);
   renderer->image_available_semaphore = (VkSemaphore *)lb_heap_alloc(sizeof(VkSemaphore) * renderer->frames_in_flight, 0, 0);
   renderer->frame_fence = (VkFence *)lb_heap_alloc(sizeof(VkFence) * renderer->frames_in_flight, 0, 0);
@@ -573,7 +629,7 @@ static void eg_renderer_create_sync_objects(eg_renderer_t *renderer) {
 
   while (image_index < image_count) {
 
-    EG_VULKAN_CHECK(vkCreateSemaphore(renderer->context->device, &semaphore_create_info, 0, &renderer->render_finished_semaphore[image_index]));
+    EG_VULKAN_CHECK(vkCreateSemaphore(device, &semaphore_create_info, 0, &renderer->render_finished_semaphore[image_index]));
 
     image_index++;
   }
@@ -583,13 +639,15 @@ static void eg_renderer_create_sync_objects(eg_renderer_t *renderer) {
 
   while (frame_index < frame_count) {
 
-    EG_VULKAN_CHECK(vkCreateSemaphore(renderer->context->device, &semaphore_create_info, 0, &renderer->image_available_semaphore[frame_index]));
-    EG_VULKAN_CHECK(vkCreateFence(renderer->context->device, &fence_create_info, 0, &renderer->frame_fence[frame_index]));
+    EG_VULKAN_CHECK(vkCreateSemaphore(device, &semaphore_create_info, 0, &renderer->image_available_semaphore[frame_index]));
+    EG_VULKAN_CHECK(vkCreateFence(device, &fence_create_info, 0, &renderer->frame_fence[frame_index]));
 
     frame_index++;
   }
 }
 static void eg_renderer_create_command_buffer(eg_renderer_t *renderer) {
+  VkDevice device = eg_context_device(renderer->context);
+
   renderer->command_buffer = (VkCommandBuffer *)lb_heap_alloc(sizeof(VkCommandBuffer) * renderer->frames_in_flight, 0, 0);
 
   VkCommandBufferAllocateInfo command_buffer_alloc_create_info = {0};
@@ -598,13 +656,16 @@ static void eg_renderer_create_command_buffer(eg_renderer_t *renderer) {
   command_buffer_alloc_create_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   command_buffer_alloc_create_info.commandBufferCount = (uint32_t)renderer->frames_in_flight;
 
-  EG_VULKAN_CHECK(vkAllocateCommandBuffers(renderer->context->device, &command_buffer_alloc_create_info, renderer->command_buffer));
+  EG_VULKAN_CHECK(vkAllocateCommandBuffers(device, &command_buffer_alloc_create_info, renderer->command_buffer));
 }
 
 static void eg_renderer_update_uniform_buffers(eg_renderer_t *renderer) {
   eg_scene_t *scene = renderer->context->scene;
 
   if (scene) {
+
+    uint32_t window_width = eg_context_window_width(renderer->context);
+    uint32_t window_height = eg_context_window_height(renderer->context);
 
     // TODO: find an easier way to compute world position's automatically..
     eg_transform_compute_world_position(scene->world, scene->player);
@@ -614,19 +675,12 @@ static void eg_renderer_update_uniform_buffers(eg_renderer_t *renderer) {
     eg_transform_t *transform = ecs_get_mut(scene->world, scene->player, eg_transform_t);
     eg_camera_t *camera = ecs_get_mut(scene->world, scene->player, eg_camera_t);
 
-    renderer->time_infos[renderer->frame_index]->time = (float)renderer->context->time;
-    renderer->time_infos[renderer->frame_index]->delta_time = (float)renderer->context->delta_time;
-
-    lb_vector2_t resolution = lb_vector2_xy((float)renderer->context->window_width, (float)renderer->context->window_height);
-
-    renderer->screen_infos[renderer->frame_index]->resolution = resolution;
-
     lb_vector3_t eye = transform->world_position;
     lb_vector3_t center = lb_vector3_add(transform->world_position, eg_transform_local_front(transform));
     lb_vector3_t up = lb_vector3_down();
 
     float fov = lb_deg_to_rad(camera->fov);
-    float aspect_ratio = (float)renderer->context->window_width / (float)renderer->context->window_height;
+    float aspect_ratio = (float)window_width / (float)window_height;
     float near_z = camera->near_z;
     float far_z = camera->far_z;
 
@@ -634,6 +688,11 @@ static void eg_renderer_update_uniform_buffers(eg_renderer_t *renderer) {
     lb_matrix4_t projection = lb_matrix4_persp(fov, aspect_ratio, near_z, far_z);
     lb_matrix4_t view_projection = lb_matrix4_mul(view, projection);
     lb_matrix4_t view_projection_inv = lb_matrix4_inverse(view_projection);
+
+    renderer->time_infos[renderer->frame_index]->time = eg_context_time(renderer->context);
+    renderer->time_infos[renderer->frame_index]->delta_time = eg_context_delta_time(renderer->context);
+
+    renderer->screen_infos[renderer->frame_index]->resolution = lb_vector2_xy((float)window_width, (float)window_height);
 
     renderer->camera_infos[renderer->frame_index]->position = transform->world_position;
     renderer->camera_infos[renderer->frame_index]->view = view;
@@ -749,7 +808,9 @@ static void eg_renderer_transition_viewport_images_to_shader_read(eg_renderer_t 
 }
 
 static void eg_renderer_record_editor_commands(eg_renderer_t *renderer) {
-  if (renderer->context->is_editor_mode) {
+  uint8_t is_editor_mode = eg_context_is_editor_mode(renderer->context);
+
+  if (is_editor_mode) {
 
     g_context_editor_refresh_proc(renderer->context);
   }
@@ -761,9 +822,11 @@ static void eg_renderer_record_compute_commands(eg_renderer_t *renderer) {
   // vkCmdDispatch(g_renderer_graphic_command_buffers[g_renderer_frame_index], group_count_x, group_count_y, group_count_z);
 }
 static void eg_renderer_record_graphic_commands(eg_renderer_t *renderer) {
+  uint8_t is_editor_mode = eg_context_is_editor_mode(renderer->context);
+
   eg_renderer_gbuffer_pass(renderer);
 
-  if (renderer->context->is_editor_mode) {
+  if (is_editor_mode) {
 
     eg_renderer_transition_viewport_images_to_shader_read(renderer);
 
@@ -863,8 +926,8 @@ static void eg_renderer_editor_pass(eg_renderer_t *renderer) {
 
   VkClearValue clear_values[] = {color_clear_value, depth_clear_value};
 
-  uint32_t width = renderer->context->window_width;
-  uint32_t height = renderer->context->window_height;
+  uint32_t window_width = eg_context_window_width(renderer->context);
+  uint32_t window_height = eg_context_window_height(renderer->context);
 
   VkRenderPassBeginInfo render_pass_create_info = {0};
   render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -872,8 +935,8 @@ static void eg_renderer_editor_pass(eg_renderer_t *renderer) {
   render_pass_create_info.framebuffer = renderer->context->swapchain->frame_buffer[renderer->image_index];
   render_pass_create_info.renderArea.offset.x = 0;
   render_pass_create_info.renderArea.offset.y = 0;
-  render_pass_create_info.renderArea.extent.width = width;
-  render_pass_create_info.renderArea.extent.height = height;
+  render_pass_create_info.renderArea.extent.width = window_width;
+  render_pass_create_info.renderArea.extent.height = window_height;
   render_pass_create_info.pClearValues = clear_values;
   render_pass_create_info.clearValueCount = LB_ARRAY_COUNT(clear_values);
 
@@ -882,8 +945,8 @@ static void eg_renderer_editor_pass(eg_renderer_t *renderer) {
   VkViewport viewport = {0};
   viewport.x = 0.0F;
   viewport.y = 0.0F;
-  viewport.width = (float)width;
-  viewport.height = (float)height;
+  viewport.width = (float)window_width;
+  viewport.height = (float)window_height;
   viewport.minDepth = 0.0F;
   viewport.maxDepth = 1.0F;
 
@@ -892,8 +955,8 @@ static void eg_renderer_editor_pass(eg_renderer_t *renderer) {
   VkRect2D scissor = {0};
   scissor.offset.x = 0;
   scissor.offset.y = 0;
-  scissor.extent.width = width;
-  scissor.extent.height = height;
+  scissor.extent.width = window_width;
+  scissor.extent.height = window_height;
 
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
@@ -908,16 +971,18 @@ static void eg_renderer_destroy_global_buffers(eg_renderer_t *renderer) {
 
   while (frame_index < frame_count) {
 
-    lb_map_iter_t iter = lb_map_iter(&renderer->descriptor_binding_buffers_per_frame[frame_index]);
+    lb_map_iter_t *iter = lb_map_iter_create(renderer->descriptor_binding_buffers_per_frame[frame_index]);
 
-    while (lb_map_iter_step(&iter)) {
+    while (lb_map_iter_step(iter)) {
 
-      eg_buffer_t *buffer = *(eg_buffer_t **)lb_map_iter_value(&iter);
+      eg_buffer_t *buffer = *(eg_buffer_t **)lb_map_iter_value(iter);
 
       eg_buffer_destroy(buffer);
     }
 
-    lb_map_destroy(&renderer->descriptor_binding_buffers_per_frame[frame_index]);
+    lb_map_iter_destroy(iter);
+
+    lb_map_destroy(renderer->descriptor_binding_buffers_per_frame[frame_index]);
 
     frame_index++;
   }
@@ -980,12 +1045,14 @@ static void eg_renderer_destroy_pipelines(eg_renderer_t *renderer) {
   }
 }
 static void eg_renderer_destroy_sync_objects(eg_renderer_t *renderer) {
+  VkDevice device = eg_context_device(renderer->context);
+
   uint64_t image_index = 0;
   uint64_t image_count = renderer->context->swapchain->image_count;
 
   while (image_index < image_count) {
 
-    vkDestroySemaphore(renderer->context->device, renderer->render_finished_semaphore[image_index], 0);
+    vkDestroySemaphore(device, renderer->render_finished_semaphore[image_index], 0);
 
     image_index++;
   }
@@ -995,9 +1062,9 @@ static void eg_renderer_destroy_sync_objects(eg_renderer_t *renderer) {
 
   while (frame_index < frame_count) {
 
-    vkDestroySemaphore(renderer->context->device, renderer->image_available_semaphore[frame_index], 0);
+    vkDestroySemaphore(device, renderer->image_available_semaphore[frame_index], 0);
 
-    vkDestroyFence(renderer->context->device, renderer->frame_fence[frame_index], 0);
+    vkDestroyFence(device, renderer->frame_fence[frame_index], 0);
 
     frame_index++;
   }
@@ -1007,10 +1074,14 @@ static void eg_renderer_destroy_sync_objects(eg_renderer_t *renderer) {
   lb_heap_free(renderer->frame_fence);
 }
 static void eg_renderer_destroy_command_buffer(eg_renderer_t *renderer) {
-  vkFreeCommandBuffers(renderer->context->device, renderer->context->command_pool, (uint32_t)renderer->frames_in_flight, renderer->command_buffer);
+  VkDevice device = eg_context_device(renderer->context);
+
+  vkFreeCommandBuffers(device, renderer->context->command_pool, (uint32_t)renderer->frames_in_flight, renderer->command_buffer);
 
   lb_heap_free(renderer->command_buffer);
 }
 static void eg_renderer_destroy_gbuffer_render_pass(eg_renderer_t *renderer) {
-  vkDestroyRenderPass(renderer->context->device, renderer->gbuffer_render_pass, 0);
+  VkDevice device = eg_context_device(renderer->context);
+
+  vkDestroyRenderPass(device, renderer->gbuffer_render_pass, 0);
 }

@@ -90,7 +90,7 @@ lb_vector_t *lb_database_load_all_swapchain_assets(void) {
 
   lb_string_t *sql = lb_string_create();
 
-  lb_string_appendf(sql, "SELECT SWAPCHAIN_ASSET.ID, SWAPCHAIN_ASSET.NAME, SWAPCHAIN_ASSET.IMAGE_COUNT, SWAPCHAIN_ASSET.DEPTH_FORMAT, SWAPCHAIN_ASSET.IS_DEFAULT\n");
+  lb_string_appendf(sql, "SELECT SWAPCHAIN_ASSET.ID, SWAPCHAIN_ASSET.NAME, SWAPCHAIN_ASSET.IMAGE_COUNT, SWAPCHAIN_ASSET.IS_DEFAULT\n");
   lb_string_appendf(sql, "FROM SWAPCHAIN_ASSET\n");
 
   sqlite3_stmt *stmt = 0;
@@ -104,13 +104,11 @@ lb_vector_t *lb_database_load_all_swapchain_assets(void) {
     lb_swapchain_asset_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t image_count = sqlite3_column_int(stmt, 2);
-    int32_t depth_format = sqlite3_column_int(stmt, 3);
-    uint8_t is_default = sqlite3_column_int(stmt, 4);
+    uint8_t is_default = sqlite3_column_int(stmt, 3);
 
     swapchain_asset.id = id;
     strcpy(swapchain_asset.name, name);
     swapchain_asset.image_count = image_count;
-    swapchain_asset.depth_format = depth_format;
     swapchain_asset.is_default = is_default;
 
     lb_vector_push(swapchain_assets, &swapchain_asset);
@@ -127,7 +125,7 @@ lb_swapchain_asset_t lb_database_load_swapchain_asset_by_id(lb_swapchain_asset_i
 
   lb_string_t *sql = lb_string_create();
 
-  lb_string_appendf(sql, "SELECT SWAPCHAIN_ASSET.ID, SWAPCHAIN_ASSET.NAME, SWAPCHAIN_ASSET.IMAGE_COUNT, SWAPCHAIN_ASSET.DEPTH_FORMAT, SWAPCHAIN_ASSET.IS_DEFAULT\n");
+  lb_string_appendf(sql, "SELECT SWAPCHAIN_ASSET.ID, SWAPCHAIN_ASSET.NAME, SWAPCHAIN_ASSET.IMAGE_COUNT, SWAPCHAIN_ASSET.IS_DEFAULT\n");
   lb_string_appendf(sql, "FROM SWAPCHAIN_ASSET\n");
   lb_string_appendf(sql, "WHERE SWAPCHAIN_ASSET.ID = %lld\n", swapchain_asset_id);
 
@@ -140,12 +138,10 @@ lb_swapchain_asset_t lb_database_load_swapchain_asset_by_id(lb_swapchain_asset_i
     lb_swapchain_asset_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t image_count = sqlite3_column_int(stmt, 2);
-    int32_t depth_format = sqlite3_column_int(stmt, 3);
 
     swapchain_asset.id = id;
     strcpy(swapchain_asset.name, name);
     swapchain_asset.image_count = image_count;
-    swapchain_asset.depth_format = depth_format;
   }
 
   sqlite3_finalize(stmt);
@@ -802,11 +798,10 @@ lb_graph_asset_t lb_database_load_graph_asset_by_id(lb_graph_asset_id_t graph_as
 void lb_database_store_swapchain_asset(lb_swapchain_asset_t *swapchain_asset) {
   lb_string_t *sql = lb_string_create();
 
-  lb_string_appendf(sql, "INSERT INTO SWAPCHAIN_ASSET (NAME, IMAGE_COUNT, DEPTH_FORMAT)\n");
-  lb_string_appendf(sql, "VALUES (?, ?, ?)\n");
+  lb_string_appendf(sql, "INSERT INTO SWAPCHAIN_ASSET (NAME, IMAGE_COUNT)\n");
+  lb_string_appendf(sql, "VALUES (?, ?)\n");
   lb_string_appendf(sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
   lb_string_appendf(sql, "IMAGE_COUNT = EXCLUDED.IMAGE_COUNT,\n");
-  lb_string_appendf(sql, "DEPTH_FORMAT = EXCLUDED.DEPTH_FORMAT\n");
 
   sqlite3_stmt *stmt = 0;
 
@@ -814,7 +809,6 @@ void lb_database_store_swapchain_asset(lb_swapchain_asset_t *swapchain_asset) {
 
   sqlite3_bind_text(stmt, 1, swapchain_asset->name, -1, SQLITE_STATIC);
   sqlite3_bind_int(stmt, 2, swapchain_asset->image_count);
-  sqlite3_bind_int(stmt, 3, swapchain_asset->depth_format);
 
   LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
