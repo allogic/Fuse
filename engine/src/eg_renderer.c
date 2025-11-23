@@ -14,7 +14,7 @@
 // TODO: implement sparse textures..
 // TODO: implement viewport defragmentation..
 
-typedef struct eg_renderer_t {
+struct eg_renderer_t {
   eg_context_t *context;
   eg_swapchain_t *swapchain;
   lb_renderer_asset_t asset;
@@ -43,7 +43,7 @@ typedef struct eg_renderer_t {
   uint32_t *debug_line_vertex_offset;
   uint32_t *debug_line_index_offset;
   VkRenderPass gbuffer_render_pass;
-} eg_renderer_t;
+};
 
 static void eg_renderer_link_pipeline(eg_renderer_t *renderer, uint32_t link_index, lb_pipeline_type_t pipeline_type, void *pipeline);
 
