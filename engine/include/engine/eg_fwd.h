@@ -124,12 +124,6 @@ typedef enum eg_mouse_key_t {
   EG_MOUSE_KEY_RIGHT,
 } eg_mouse_key_t;
 
-typedef void (*eg_editor_create_proc_t)(struct eg_context_t *context);
-typedef void (*eg_editor_refresh_proc_t)(struct eg_context_t *context);
-typedef void (*eg_editor_draw_proc_t)(struct eg_context_t *context);
-typedef void (*eg_editor_destroy_proc_t)(struct eg_context_t *context);
-typedef LRESULT (*eg_editor_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
-
 typedef enum eg_profiler_sample_lane_t {
   EG_PROFILER_SAMPLE_LANE_CONTEXT,
   EG_PROFILER_SAMPLE_LANE_SCENE,
@@ -158,6 +152,17 @@ typedef struct eg_buffer_t eg_buffer_t;
 typedef struct eg_image_t eg_image_t;
 typedef struct eg_scene_t eg_scene_t;
 typedef struct eg_terrain_t eg_terrain_t;
+
+typedef void (*eg_editor_create_proc_t)(eg_context_t *context);
+typedef void (*eg_editor_refresh_proc_t)(eg_context_t *context);
+typedef void (*eg_editor_draw_proc_t)(eg_context_t *context);
+typedef void (*eg_editor_destroy_proc_t)(eg_context_t *context);
+typedef LRESULT (*eg_editor_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
+
+typedef void (*eg_script_create_proc_t)(eg_context_t *context);
+typedef void (*eg_script_update_proc_t)(eg_context_t *context);
+typedef void (*eg_script_fixed_update_proc_t)(eg_context_t *context);
+typedef void (*eg_script_destroy_proc_t)(eg_context_t *context);
 
 typedef struct eg_time_info_t {
   float time;

@@ -24,10 +24,11 @@ eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_ass
   scene->asset = lb_database_load_scene_asset_by_id(scene_asset_id);
   scene->world = ecs_init_w_args(0, 0);
 
-  ECS_COMPONENT_DEFINE(scene->world, eg_transform_t);
-  ECS_COMPONENT_DEFINE(scene->world, eg_rigidbody_t);
   ECS_COMPONENT_DEFINE(scene->world, eg_camera_t);
   ECS_COMPONENT_DEFINE(scene->world, eg_editor_controller_t);
+  ECS_COMPONENT_DEFINE(scene->world, eg_rigidbody_t);
+  ECS_COMPONENT_DEFINE(scene->world, eg_script_t);
+  ECS_COMPONENT_DEFINE(scene->world, eg_transform_t);
 
   scene->controller_system = ecs_system(scene->world, {.ctx = context,
                                                        .entity = ecs_entity(scene->world, {.name = "controller system"}),
@@ -90,6 +91,13 @@ eg_rigidbody_t const *eg_scene_rigidbody(eg_scene_t *scene, ecs_entity_t entity)
 }
 eg_rigidbody_t *eg_scene_rigidbody_mut(eg_scene_t *scene, ecs_entity_t entity) {
   return ecs_get_mut(scene->world, entity, eg_rigidbody_t);
+}
+
+eg_script_t const *eg_scene_script(eg_scene_t *scene, ecs_entity_t entity) {
+  return ecs_get(scene->world, entity, eg_script_t);
+}
+eg_script_t *eg_scene_script_mut(eg_scene_t *scene, ecs_entity_t entity) {
+  return ecs_get_mut(scene->world, entity, eg_script_t);
 }
 
 eg_transform_t const *eg_scene_transform(eg_scene_t *scene, ecs_entity_t entity) {

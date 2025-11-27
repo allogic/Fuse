@@ -22,6 +22,9 @@ eg_editor_controller_t *eg_scene_editor_controller_mut(eg_scene_t *scene, ecs_en
 eg_rigidbody_t const *eg_scene_rigidbody(eg_scene_t *scene, ecs_entity_t entity);
 eg_rigidbody_t *eg_scene_rigidbody_mut(eg_scene_t *scene, ecs_entity_t entity);
 
+eg_script_t const *eg_scene_script(eg_scene_t *scene, ecs_entity_t entity);
+eg_script_t *eg_scene_script_mut(eg_scene_t *scene, ecs_entity_t entity);
+
 eg_transform_t const *eg_scene_transform(eg_scene_t *scene, ecs_entity_t entity);
 eg_transform_t *eg_scene_transform_mut(eg_scene_t *scene, ecs_entity_t entity);
 

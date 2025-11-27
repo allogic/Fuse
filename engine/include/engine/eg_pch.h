@@ -21,8 +21,9 @@
 
 #include <engine/component/eg_camera.h>
 #include <engine/component/eg_controller.h>
-#include <engine/component/eg_transform.h>
 #include <engine/component/eg_rigidbody.h>
+#include <engine/component/eg_script.h>
+#include <engine/component/eg_transform.h>
 
 #include <engine/eg_context.h>
 #include <engine/eg_swapchain.h>
