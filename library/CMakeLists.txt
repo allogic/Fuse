@@ -1,3 +1,4 @@
+ADD_SUBDIRECTORY (compiler)
 ADD_SUBDIRECTORY (container)
 ADD_SUBDIRECTORY (core)
 ADD_SUBDIRECTORY (database)

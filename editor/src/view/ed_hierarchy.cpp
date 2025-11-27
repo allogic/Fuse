@@ -9,7 +9,7 @@ static void ed_hierarchy_view_draw_context_menu(ed_hierarchy_view_t *hierarchy, 
 static void ed_hierarchy_view_draw_entity_buttons(ed_hierarchy_view_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 
 ed_hierarchy_view_t *ed_hierarchy_view_create(eg_context_t *context) {
-  ed_hierarchy_view_t *hierarchy = (ed_hierarchy_view_t *)heap_alloc(sizeof(ed_hierarchy_view_t), 1, 0);
+  ed_hierarchy_view_t *hierarchy = (ed_hierarchy_view_t *)lb_heap_alloc(sizeof(ed_hierarchy_view_t), 1, 0);
 
   hierarchy->base.context = context;
   hierarchy->base.is_dirty = 0;
@@ -24,10 +24,14 @@ void ed_hierarchy_view_refresh(ed_hierarchy_view_t *hierarchy) {
   // TODO
 }
 void ed_hierarchy_view_draw(ed_hierarchy_view_t *hierarchy) {
-  ed_hierarchy_view_draw_tree(hierarchy, hierarchy->base.context->scene->world, hierarchy->base.context->scene->root);
+  eg_scene_t *scene = eg_context_scene(hierarchy->base.context);
+  ecs_world_t *world = eg_scene_world(scene);
+  ecs_entity_t root = eg_scene_root(scene);
+
+  ed_hierarchy_view_draw_tree(hierarchy, world, root);
 }
 void ed_hierarchy_view_destroy(ed_hierarchy_view_t *hierarchy) {
-  heap_free(hierarchy);
+  lb_heap_free(hierarchy);
 }
 
 static void ed_hierarchy_view_draw_tree(ed_hierarchy_view_t *hierarchy, ecs_world_t *world, ecs_entity_t entity) {

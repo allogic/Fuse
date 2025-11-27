@@ -26,8 +26,13 @@ void ed_dockspace_draw(eg_context_t *context) {
   ImGuiDockNodeFlags dock_node_flags =
     ImGuiDockNodeFlags_NoCloseButton;
 
-  ImGui::SetNextWindowPos(ImVec2(0.0F, (float)context->window_titlebar_height));
-  ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_height - (float)context->window_titlebar_height - context->window_statusbar_height));
+  uint32_t window_width = eg_context_window_width(context);
+  uint32_t window_height = eg_context_window_height(context);
+  uint32_t window_titlebar_height = eg_context_titlebar_height(context);
+  uint32_t window_statusbar_height = eg_context_statusbar_height(context);
+
+  ImGui::SetNextWindowPos(ImVec2(0.0F, (float)window_titlebar_height));
+  ImGui::SetNextWindowSize(ImVec2((float)window_width, (float)window_height - (float)window_titlebar_height - window_statusbar_height));
 
   if (g_dockspace_selected_type != ED_DOCKSPACE_TYPE_GAME) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0F, 5.0F));

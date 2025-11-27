@@ -14,8 +14,11 @@ static void ed_titlebar_draw_window_controls(eg_context_t *context);
 static void ed_titlebar_draw_scene_controls(eg_context_t *context);
 
 void ed_titlebar_draw(eg_context_t *context) {
+  uint32_t window_width = eg_context_window_width(context);
+  uint32_t window_titlebar_height = eg_context_titlebar_height(context);
+
   ImGui::SetNextWindowPos(ImVec2(0.0F, 0.0F));
-  ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_titlebar_height));
+  ImGui::SetNextWindowSize(ImVec2((float)window_width, (float)window_titlebar_height));
 
   ImGui::PushStyleColor(ImGuiCol_Button, ED_DARK_GREY);
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ED_LIGHT_GRAY_COLOR);
@@ -53,7 +56,10 @@ static void ed_titlebar_reset_drag_state(eg_context_t *context) {
       ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 
     ReleaseCapture();
-    SendMessage(context->window_handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+
+    HWND window_handle = eg_context_window_handle(context);
+
+    SendMessage(window_handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
   }
 
   ImGui::GetIO().MouseDown[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
@@ -87,12 +93,14 @@ static void ed_titlebar_draw_main_menu(eg_context_t *context) {
 
   ImGui::SameLine();
   if (ImGui::Button("Import")) {
-    importer_import_default_assets();
+    lb_importer_import_default_assets();
   }
 
   ImGui::PopID();
 }
 static void ed_titlebar_draw_window_controls(eg_context_t *context) {
+  HWND window_handle = eg_context_window_handle(context);
+
   ImVec2 window_size = ImGui::GetWindowSize();
 
   ImGui::SetCursorPos(ImVec2(window_size.x - 90.0F, 5.0F));
@@ -101,7 +109,7 @@ static void ed_titlebar_draw_window_controls(eg_context_t *context) {
   ImGui::PushFont(g_editor_material_symbols_h6);
 
   if (ImGui::Button(ICON_MS_REMOVE)) {
-    ShowWindow(context->window_handle, SW_MINIMIZE);
+    ShowWindow(window_handle, SW_MINIMIZE);
   }
 
   ImGui::SameLine();
@@ -109,9 +117,9 @@ static void ed_titlebar_draw_window_controls(eg_context_t *context) {
     static uint8_t is_maximized = 0;
 
     if (is_maximized) {
-      ShowWindow(context->window_handle, SW_RESTORE);
+      ShowWindow(window_handle, SW_RESTORE);
     } else {
-      ShowWindow(context->window_handle, SW_MAXIMIZE);
+      ShowWindow(window_handle, SW_MAXIMIZE);
     }
 
     is_maximized = !is_maximized;
@@ -120,7 +128,7 @@ static void ed_titlebar_draw_window_controls(eg_context_t *context) {
   ImGui::SameLine();
 
   if (ImGui::Button(ICON_MS_CLOSE)) {
-    context->is_window_running = 0;
+    eg_context_set_running(context, 0);
   }
 
   ImGui::PopFont();

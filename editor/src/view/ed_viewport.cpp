@@ -7,7 +7,11 @@ static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport);
 static void ed_viewport_view_destroy_attachments(ed_viewport_view_t *viewport);
 
 ed_viewport_view_t *ed_viewport_view_create(eg_context_t *context) {
-  ed_viewport_view_t *viewport = (ed_viewport_view_t *)heap_alloc(sizeof(ed_viewport_view_t), 1, 0);
+  ed_viewport_view_t *viewport = (ed_viewport_view_t *)lb_heap_alloc(sizeof(ed_viewport_view_t), 1, 0);
+
+  eg_swapchain_t *swapchain = eg_context_swapchain(context);
+
+  uint32_t image_count = eg_swapchain_image_count(swapchain);
 
   viewport->base.context = context;
   viewport->base.is_dirty = 0;
@@ -19,8 +23,8 @@ ed_viewport_view_t *ed_viewport_view_create(eg_context_t *context) {
   viewport->prev_width = 1;
   viewport->prev_height = 1;
   viewport->handle = eg_viewport_create(context, 1, 1);
-  viewport->gbuffer_color_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
-  viewport->gbuffer_depth_attachment = (VkDescriptorSet *)heap_alloc(sizeof(VkDescriptorSet) * context->swapchain->image_count, 0, 0);
+  viewport->gbuffer_color_attachment = (VkDescriptorSet *)lb_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
+  viewport->gbuffer_depth_attachment = (VkDescriptorSet *)lb_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
 
   ed_viewport_view_create_attachments(viewport);
 
@@ -39,7 +43,12 @@ void ed_viewport_view_refresh(ed_viewport_view_t *viewport) {
   }
 }
 void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls) {
+  eg_renderer_t *renderer = eg_context_renderer(viewport->base.context);
+
+  uint32_t image_index = eg_renderer_image_index(renderer);
+
   if (enable_controls) {
+
     ImGui::SetNextItemWidth(200.0F);
 
     if (ImGui::BeginCombo("Attachment", g_viewport_gbuffer_attachment_names[viewport->gbuffer_attachment_type])) {
@@ -90,14 +99,14 @@ void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls
   switch (viewport->gbuffer_attachment_type) {
     case ED_GBUFFER_ATTACHMENT_TYPE_COLOR: {
 
-      gbuffer_image = viewport->gbuffer_color_attachment[viewport->base.context->renderer->image_index];
+      gbuffer_image = viewport->gbuffer_color_attachment[image_index];
 
       break;
     }
 
     case ED_GBUFFER_ATTACHMENT_TYPE_DEPTH: {
 
-      gbuffer_image = viewport->gbuffer_depth_attachment[viewport->base.context->renderer->image_index];
+      gbuffer_image = viewport->gbuffer_depth_attachment[image_index];
 
       break;
     }
@@ -112,26 +121,28 @@ void ed_viewport_view_destroy(ed_viewport_view_t *viewport) {
 
   eg_viewport_destroy(viewport->handle);
 
-  heap_free(viewport->gbuffer_color_attachment);
-  heap_free(viewport->gbuffer_depth_attachment);
+  lb_heap_free(viewport->gbuffer_color_attachment);
+  lb_heap_free(viewport->gbuffer_depth_attachment);
 
-  heap_free(viewport);
+  lb_heap_free(viewport);
 }
 
 static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport) {
-  uint64_t image_index = 0;
-  uint64_t image_count = viewport->base.context->swapchain->image_count;
+  eg_swapchain_t *swapchain = eg_context_swapchain(viewport->base.context);
+
+  uint32_t image_index = 0;
+  uint32_t image_count = eg_swapchain_image_count(swapchain);
 
   while (image_index < image_count) {
 
-    VkSampler gbuffer_color_sampler = viewport->handle->color_sampler[image_index];
-    VkImageView gbuffer_color_image_view = viewport->handle->color_image_view[image_index];
+    VkSampler gbuffer_color_sampler = eg_viewport_color_sampler(viewport->handle, image_index);
+    VkImageView gbuffer_color_image_view = eg_viewport_color_image_view(viewport->handle, image_index);
     VkImageLayout gbuffer_color_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     viewport->gbuffer_color_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_color_sampler, gbuffer_color_image_view, gbuffer_color_image_layout);
 
-    VkSampler gbuffer_depth_sampler = viewport->handle->depth_sampler[image_index];
-    VkImageView gbuffer_depth_image_view = viewport->handle->depth_image_view[image_index];
+    VkSampler gbuffer_depth_sampler = eg_viewport_depth_sampler(viewport->handle, image_index);
+    VkImageView gbuffer_depth_image_view = eg_viewport_depth_image_view(viewport->handle, image_index);
     VkImageLayout gbuffer_depth_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     viewport->gbuffer_depth_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_depth_sampler, gbuffer_depth_image_view, gbuffer_depth_image_layout);
@@ -140,8 +151,10 @@ static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport) {
   }
 }
 static void ed_viewport_view_destroy_attachments(ed_viewport_view_t *viewport) {
-  uint64_t image_index = 0;
-  uint64_t image_count = viewport->base.context->swapchain->image_count;
+  eg_swapchain_t *swapchain = eg_context_swapchain(viewport->base.context);
+
+  uint32_t image_index = 0;
+  uint32_t image_count = eg_swapchain_image_count(swapchain);
 
   while (image_index < image_count) {
 

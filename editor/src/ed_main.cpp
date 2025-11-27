@@ -121,21 +121,23 @@ int32_t main(int32_t argc, char **argv) {
 
   eg_context_t *context = eg_context_create(1920, 1080, 1);
 
-  // TODO: move scene stuff somewhere else
-  context->scene = eg_scene_create(context);
-
   eg_context_run(context);
-
-  eg_scene_destroy(context->scene);
 
   eg_context_destroy(context);
 
-  heap_reset();
+  lb_heap_reset();
 
   return 0;
 }
 
 static void editor_create(eg_context_t *context) {
+  VkDevice device = eg_context_device(context);
+
+  eg_renderer_t *renderer = eg_context_renderer(context);
+  eg_swapchain_t *swapchain = eg_context_swapchain(context);
+
+  uint32_t frames_in_flight = eg_renderer_frames_in_flight(renderer);
+
   // TODO: double check descriptor pool's..
 
   VkDescriptorPoolSize s_editor_descriptor_pool_sizes[] = {
@@ -146,10 +148,10 @@ static void editor_create(eg_context_t *context) {
   descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   descriptor_pool_create_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   descriptor_pool_create_info.pPoolSizes = s_editor_descriptor_pool_sizes;
-  descriptor_pool_create_info.poolSizeCount = (uint32_t)ARRAY_COUNT(s_editor_descriptor_pool_sizes);
-  descriptor_pool_create_info.maxSets = 1000 * (uint32_t)context->renderer->frames_in_flight; // TODO: adjust this value..
+  descriptor_pool_create_info.poolSizeCount = (uint32_t)LB_ARRAY_COUNT(s_editor_descriptor_pool_sizes);
+  descriptor_pool_create_info.maxSets = 1000 * frames_in_flight; // TODO: adjust this value..
 
-  vkCreateDescriptorPool(context->device, &descriptor_pool_create_info, 0, &g_editor_descriptor_pool);
+  vkCreateDescriptorPool(device, &descriptor_pool_create_info, 0, &g_editor_descriptor_pool);
 
   IMGUI_CHECKVERSION();
 
@@ -170,21 +172,21 @@ static void editor_create(eg_context_t *context) {
 
   // TODO: integrate fonts into database..
 
-  g_editor_commit_mono = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 15.0F);
-  g_editor_commit_mono_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 16.0F);
-  g_editor_commit_mono_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 18.0F);
-  g_editor_commit_mono_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 20.0F);
-  g_editor_commit_mono_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 22.0F);
-  g_editor_commit_mono_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 24.0F);
-  g_editor_commit_mono_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 26.0F);
+  g_editor_commit_mono = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 15.0F);
+  g_editor_commit_mono_h6 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 16.0F);
+  g_editor_commit_mono_h5 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 18.0F);
+  g_editor_commit_mono_h4 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 20.0F);
+  g_editor_commit_mono_h3 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 22.0F);
+  g_editor_commit_mono_h2 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 24.0F);
+  g_editor_commit_mono_h1 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\commit-mono-latin-400-normal.ttf", 26.0F);
 
-  g_editor_material_symbols = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 15.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 18.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 22.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 25.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 30.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 34.0F, 0, icon_glyph_ranges);
-  g_editor_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 38.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 15.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h6 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 18.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h5 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 22.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h4 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 25.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h3 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 30.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h2 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 34.0F, 0, icon_glyph_ranges);
+  g_editor_material_symbols_h1 = io.Fonts->AddFontFromFileTTF(LB_ASSET_ROOT_DIR "\\font\\material-symbols-rounded-fill.ttf", 38.0F, 0, icon_glyph_ranges);
 
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -276,20 +278,20 @@ static void editor_create(eg_context_t *context) {
   ImNodes::PushColorStyle(ImNodesCol_GridLine, ED_SPARSE_GRAY_COLOR);
   ImNodes::PushColorStyle(ImNodesCol_GridLinePrimary, ED_SPARSE_GRAY_COLOR);
 
-  ImGui_ImplWin32_Init(context->window_handle);
+  ImGui_ImplWin32_Init(eg_context_window_handle(context));
 
   ImGui_ImplVulkan_InitInfo imgui_vulkan_init_info = {0};
-  imgui_vulkan_init_info.Instance = context->instance;
-  imgui_vulkan_init_info.PhysicalDevice = context->physical_device;
-  imgui_vulkan_init_info.Device = context->device;
-  imgui_vulkan_init_info.QueueFamily = context->graphic_queue_index;
-  imgui_vulkan_init_info.Queue = context->graphic_queue;
+  imgui_vulkan_init_info.Instance = eg_context_instance(context);
+  imgui_vulkan_init_info.PhysicalDevice = eg_context_physical_device(context);
+  imgui_vulkan_init_info.Device = device;
+  imgui_vulkan_init_info.QueueFamily = eg_context_primary_queue_index(context);
+  imgui_vulkan_init_info.Queue = eg_context_primary_queue(context);
   imgui_vulkan_init_info.PipelineCache = 0;
   imgui_vulkan_init_info.DescriptorPool = g_editor_descriptor_pool;
-  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = context->swapchain->main_render_pass;
+  imgui_vulkan_init_info.PipelineInfoMain.RenderPass = eg_swapchain_main_render_pass(swapchain);
   imgui_vulkan_init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-  imgui_vulkan_init_info.MinImageCount = context->surface_capabilities.minImageCount;
-  imgui_vulkan_init_info.ImageCount = (uint32_t)context->swapchain->image_count;
+  imgui_vulkan_init_info.MinImageCount = eg_context_surface_min_image_count(context);
+  imgui_vulkan_init_info.ImageCount = eg_swapchain_image_count(swapchain);
   imgui_vulkan_init_info.Allocator = 0;
   imgui_vulkan_init_info.CheckVkResultFn = 0;
 
@@ -302,9 +304,9 @@ static void editor_create(eg_context_t *context) {
 
   g_canvas_pcg = ed_canvas_view_create(context);
 
-  g_catalog_scene = ed_catalog_view_create(context, ASSET_TYPE_SCENE);
-  g_catalog_model = ed_catalog_view_create(context, ASSET_TYPE_MODEL);
-  g_catalog_pcg = ed_catalog_view_create(context, ASSET_TYPE_MODEL);
+  g_catalog_scene = ed_catalog_view_create(context, LB_ASSET_TYPE_SCENE);
+  g_catalog_model = ed_catalog_view_create(context, LB_ASSET_TYPE_MODEL);
+  g_catalog_pcg = ed_catalog_view_create(context, LB_ASSET_TYPE_MODEL);
 
   g_hierarchy_scene = ed_hierarchy_view_create(context);
   g_hierarchy_model = ed_hierarchy_view_create(context);
@@ -323,7 +325,11 @@ static void editor_refresh(eg_context_t *context) {
   ed_viewport_view_refresh(g_viewport_pcg);
 }
 static void editor_draw(eg_context_t *context) {
-  VkCommandBuffer command_buffer = context->renderer->command_buffer[context->renderer->frame_index];
+  eg_renderer_t *renderer = eg_context_renderer(context);
+
+  uint32_t frame_index = eg_renderer_frame_index(renderer);
+
+  VkCommandBuffer *command_buffer = eg_renderer_command_buffer(renderer);
 
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplWin32_NewFrame();
@@ -341,9 +347,11 @@ static void editor_draw(eg_context_t *context) {
 
   ImDrawData *draw_data = ImGui::GetDrawData();
 
-  ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer);
+  ImGui_ImplVulkan_RenderDrawData(draw_data, command_buffer[frame_index]);
 }
 static void editor_destroy(eg_context_t *context) {
+  VkDevice device = eg_context_device(context);
+
   ed_profiler_view_destroy(g_profiler_scene);
 
   ed_geometry_view_destroy(g_geometry_pcg);
@@ -381,7 +389,7 @@ static void editor_destroy(eg_context_t *context) {
   ImPlot::DestroyContext();
   ImGui::DestroyContext();
 
-  vkDestroyDescriptorPool(context->device, g_editor_descriptor_pool, 0);
+  vkDestroyDescriptorPool(device, g_editor_descriptor_pool, 0);
 }
 
 static int32_t ImGui_CreateSurfaceDummy(ImGuiViewport *viewport, ImU64 instance, const void *allocators, ImU64 *out_surface) {

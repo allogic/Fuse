@@ -1,6 +1,25 @@
 #include <engine/eg_pch.h>
 #include <engine/eg_image.h>
 
+typedef struct eg_image_t {
+  eg_context_t *context;
+  uint64_t size;
+  uint32_t width;
+  uint32_t height;
+  uint32_t depth;
+  uint32_t channels;
+  VkImageUsageFlags usage;
+  VkImageAspectFlags aspect_flags;
+  VkImageType type;
+  VkImageViewType view_type;
+  VkFormat format;
+  VkImageTiling tiling;
+  VkFilter filter;
+  VkImage handle;
+  VkDeviceMemory device_memory;
+  void *mapped_memory;
+} eg_image_t;
+
 eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t height, uint32_t depth, uint32_t channels, VkImageType type, VkImageViewType view_type, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_properties, VkImageAspectFlags aspect_flags, VkFormat format, VkImageTiling tiling, VkFilter filter) {
   eg_image_t *image = (eg_image_t *)lb_heap_alloc(sizeof(eg_image_t), 1, 0);
 
@@ -74,6 +93,8 @@ void eg_image_copy_to_image(eg_image_t *image, eg_image_t *target, VkCommandBuff
   vkCmdCopyImage(command_buffer, image->handle, VK_IMAGE_LAYOUT_UNDEFINED, target->handle, VK_IMAGE_LAYOUT_UNDEFINED, 1, &image_copy);
 }
 void eg_image_copy_to_buffer(eg_image_t *image, eg_buffer_t *target, VkCommandBuffer command_buffer) {
+  VkBuffer target_buffer_handle = eg_buffer_handle(target);
+
   VkBufferImageCopy buffer_image_copy = {0};
   buffer_image_copy.bufferOffset = 0;
   buffer_image_copy.bufferRowLength = 0;
@@ -91,7 +112,7 @@ void eg_image_copy_to_buffer(eg_image_t *image, eg_buffer_t *target, VkCommandBu
 
   // TODO: insert layout transition checks..
 
-  vkCmdCopyImageToBuffer(command_buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target->handle, 1, &buffer_image_copy);
+  vkCmdCopyImageToBuffer(command_buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target_buffer_handle, 1, &buffer_image_copy);
 }
 void eg_image_destroy(eg_image_t *image) {
   VkDevice device = eg_context_device(image->context);
@@ -105,6 +126,25 @@ void eg_image_destroy(eg_image_t *image) {
   vkDestroyImage(device, image->handle, 0);
 
   lb_heap_free(image);
+}
+
+VkImageAspectFlags eg_image_aspect_flags(eg_image_t *image) {
+  return image->aspect_flags;
+}
+VkImage eg_image_handle(eg_image_t *image) {
+  return image->handle;
+}
+uint32_t eg_image_width(eg_image_t *image) {
+  return image->width;
+}
+uint32_t eg_image_height(eg_image_t *image) {
+  return image->height;
+}
+uint32_t eg_image_depth(eg_image_t *image) {
+  return image->depth;
+}
+void *eg_image_mapped_memory(eg_image_t *image) {
+  return image->mapped_memory;
 }
 
 VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format) {
@@ -184,8 +224,10 @@ eg_image_t *eg_image_create_2d(eg_context_t *context, void *buffer, uint32_t wid
   eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
   eg_image_t *target_image = eg_image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, format, tiling, filter);
 
+  void *staging_buffer_mapped_memory = eg_buffer_mapped_memory(staging_buffer);
+
   eg_buffer_map(staging_buffer);
-  memcpy(staging_buffer->mapped_memory, buffer, buffer_size);
+  memcpy(staging_buffer_mapped_memory, buffer, buffer_size);
   eg_buffer_unmap(staging_buffer);
 
   // TODO

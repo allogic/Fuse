@@ -12,6 +12,13 @@ void eg_image_copy_to_image(eg_image_t *image, eg_image_t *target, VkCommandBuff
 void eg_image_copy_to_buffer(eg_image_t *image, eg_buffer_t *target, VkCommandBuffer command_buffer);
 void eg_image_destroy(eg_image_t *image);
 
+VkImageAspectFlags eg_image_aspect_flags(eg_image_t *image);
+VkImage eg_image_handle(eg_image_t *image);
+uint32_t eg_image_width(eg_image_t *image);
+uint32_t eg_image_height(eg_image_t *image);
+uint32_t eg_image_depth(eg_image_t *image);
+void *eg_image_mapped_memory(eg_image_t *image);
+
 VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format);
 VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter filter);
 void eg_image_layout_transition(eg_context_t *context, VkImage image, VkCommandBuffer command_buffer, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags aspect_mask);

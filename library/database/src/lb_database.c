@@ -1,12 +1,40 @@
 #include <database/lb_pch.h>
 #include <database/lb_database.h>
 
+static void lb_database_create_swapchain_tables(void);
+static void lb_database_create_renderer_tables(void);
+static void lb_database_create_pipeline_tables(void);
+static void lb_database_create_scene_tables(void);
+static void lb_database_create_model_tables(void);
+static void lb_database_create_graph_tables(void);
+
+static void lb_database_create_default_swapchain_assets(void);
+static void lb_database_create_default_renderer_assets(void);
+static void lb_database_create_default_pipeline_assets(void);
+static void lb_database_create_default_scene_assets(void);
+static void lb_database_create_default_model_assets(void);
+static void lb_database_create_default_graph_assets(void);
+
 static int64_t lb_database_get_sequence_index_by_name(char const *table_name);
 
 static sqlite3 *s_database_handle = 0;
 
 void lb_database_create(void) {
   LB_SQL_CHECK(sqlite3_open(LB_FILE_PATH, &s_database_handle));
+
+  lb_database_create_swapchain_tables();
+  lb_database_create_renderer_tables();
+  lb_database_create_pipeline_tables();
+  lb_database_create_scene_tables();
+  lb_database_create_model_tables();
+  lb_database_create_graph_tables();
+
+  lb_database_create_default_swapchain_assets();
+  lb_database_create_default_renderer_assets();
+  lb_database_create_default_pipeline_assets();
+  lb_database_create_default_scene_assets();
+  lb_database_create_default_model_assets();
+  lb_database_create_default_graph_assets();
 }
 void lb_database_destroy(void) {
   LB_SQL_CHECK(sqlite3_close(s_database_handle));
@@ -138,10 +166,12 @@ lb_swapchain_asset_t lb_database_load_swapchain_asset_by_id(lb_swapchain_asset_i
     lb_swapchain_asset_id_t id = sqlite3_column_int64(stmt, 0);
     char const *name = sqlite3_column_text(stmt, 1);
     int32_t image_count = sqlite3_column_int(stmt, 2);
+    uint8_t is_default = sqlite3_column_int(stmt, 3);
 
     swapchain_asset.id = id;
     strcpy(swapchain_asset.name, name);
     swapchain_asset.image_count = image_count;
+    swapchain_asset.is_default = is_default;
   }
 
   sqlite3_finalize(stmt);
@@ -416,18 +446,11 @@ lb_pipeline_resource_t lb_database_load_pipeline_resource_by_id(lb_pipeline_asse
     char const *fragment_shader_file_path = sqlite3_column_text(stmt, 2);
     char const *compute_shader_file_path = sqlite3_column_text(stmt, 3);
 
-    uint64_t vertex_shader_file_path_size = vertex_shader_file_path ? strlen(vertex_shader_file_path) + 1 : 0;
-    uint64_t fragment_shader_file_path_size = fragment_shader_file_path ? strlen(fragment_shader_file_path) + 1 : 0;
-    uint64_t compute_shader_file_path_size = compute_shader_file_path ? strlen(compute_shader_file_path) + 1 : 0;
-
     pipeline_resource.id = id;
     pipeline_resource.pipeline_asset_id = pipeline_asset_id;
     strcpy(pipeline_resource.vertex_shader_file_path, vertex_shader_file_path);
     strcpy(pipeline_resource.fragment_shader_file_path, fragment_shader_file_path);
     strcpy(pipeline_resource.compute_shader_file_path, compute_shader_file_path);
-    pipeline_resource.vertex_shader_file_path_size = vertex_shader_file_path_size;
-    pipeline_resource.fragment_shader_file_path_size = fragment_shader_file_path_size;
-    pipeline_resource.compute_shader_file_path_size = compute_shader_file_path_size;
   }
 
   sqlite3_finalize(stmt);
@@ -527,7 +550,7 @@ lb_vector_t *lb_database_load_all_pipeline_descriptor_bindings_by_id(lb_pipeline
   return pipeline_descriptor_bindings;
 }
 
-lb_vector_t *lb_database_load_all_models(void) {
+lb_vector_t *lb_database_load_all_model_assets(void) {
   lb_vector_t *model_assets = lb_vector_create(sizeof(lb_model_asset_t));
 
   lb_string_t *sql = lb_string_create();
@@ -765,6 +788,34 @@ lb_vector_t *lb_database_load_all_scene_assets(void) {
 
   return scene_assets;
 }
+lb_scene_asset_t lb_database_load_scene_asset_by_id(lb_scene_asset_id_t scene_asset_id) {
+  lb_scene_asset_t scene_asset = {0};
+
+  lb_string_t *sql = lb_string_create();
+
+  lb_string_appendf(sql, "SELECT SCENE_ASSET.ID, SCENE_ASSET.NAME\n");
+  lb_string_appendf(sql, "FROM SCENE_ASSET\n");
+  lb_string_appendf(sql, "WHERE SCENE_ASSET.ID = %lld\n", scene_asset_id);
+
+  sqlite3_stmt *stmt = 0;
+
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    lb_scene_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+
+    scene_asset.id = id;
+    strcpy(scene_asset.name, name);
+  }
+
+  sqlite3_finalize(stmt);
+
+  lb_string_destroy(sql);
+
+  return scene_asset;
+}
 
 lb_graph_asset_t lb_database_load_graph_asset_by_id(lb_graph_asset_id_t graph_asset_id) {
   lb_graph_asset_t graph_asset = {0};
@@ -887,7 +938,7 @@ void lb_database_store_pipeline_resource(lb_pipeline_resource_t *pipeline_resour
 
   lb_string_appendf(sql, "INSERT INTO PIPELINE_RESOURCE (PIPELINE_ASSET_ID, VERTEX_SHADER_FILE_PATH, FRAGMENT_SHADER_FILE_PATH, COMPUTE_SHADER_FILE_PATH)\n");
   lb_string_appendf(sql, "VALUES (?, ?, ?, ?)\n");
-  lb_string_appendf(sql, "ON CONFLICT (PIPELINE_ID) DO UPDATE SET\n");
+  lb_string_appendf(sql, "ON CONFLICT (PIPELINE_ASSET_ID) DO UPDATE SET\n");
   lb_string_appendf(sql, "VERTEX_SHADER_FILE_PATH = EXCLUDED.VERTEX_SHADER_FILE_PATH,\n");
   lb_string_appendf(sql, "FRAGMENT_SHADER_FILE_PATH = EXCLUDED.FRAGMENT_SHADER_FILE_PATH,\n");
   lb_string_appendf(sql, "COMPUTE_SHADER_FILE_PATH = EXCLUDED.COMPUTE_SHADER_FILE_PATH\n");
@@ -916,7 +967,7 @@ void lb_database_store_pipeline_vertex_input_binding(lb_pipeline_vertex_input_bi
 
   lb_string_appendf(sql, "INSERT INTO PIPELINE_VERTEX_INPUT_BINDING (PIPELINE_ASSET_ID, NAME, LOCATION, SIZE, COMPONENT_COUNT, FORMAT, INPUT_RATE)\n");
   lb_string_appendf(sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
-  lb_string_appendf(sql, "ON CONFLICT (PIPELINE_ID, LOCATION) DO UPDATE SET\n");
+  lb_string_appendf(sql, "ON CONFLICT (PIPELINE_ASSET_ID, LOCATION) DO UPDATE SET\n");
   lb_string_appendf(sql, "INPUT_RATE = EXCLUDED.INPUT_RATE\n");
 
   sqlite3_stmt *stmt = 0;
@@ -946,8 +997,8 @@ void lb_database_store_pipeline_descriptor_binding(lb_pipeline_descriptor_bindin
 
   lb_string_appendf(sql, "INSERT INTO PIPELINE_DESCRIPTOR_BINDING (PIPELINE_ASSET_ID, NAME, BINDING, DESCRIPTOR_TYPE, DESCRIPTOR_COUNT, STAGE_FLAGS, AUTO_BUFFER)\n");
   lb_string_appendf(sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
-  lb_string_appendf(sql, "ON CONFLICT (PIPELINE_ID, BINDING) DO UPDATE SET\n");
-  lb_string_appendf(sql, "STAGE_FLAGS = EXCLUDED.STAGE_FLAGS | PIPELINE_DESCRIPTOR_BINDINGS.STAGE_FLAGS,\n");
+  lb_string_appendf(sql, "ON CONFLICT (PIPELINE_ASSET_ID, BINDING) DO UPDATE SET\n");
+  lb_string_appendf(sql, "STAGE_FLAGS = EXCLUDED.STAGE_FLAGS | PIPELINE_DESCRIPTOR_BINDING.STAGE_FLAGS,\n");
   lb_string_appendf(sql, "AUTO_BUFFER = EXCLUDED.AUTO_BUFFER\n");
 
   sqlite3_stmt *stmt = 0;
@@ -1001,7 +1052,7 @@ void lb_database_store_model_resource(lb_model_resource_t *model_resource) {
 
   lb_string_appendf(sql, "INSERT INTO MODEL_RESOURCE (MODEL_ASSET_ID, MODEL_FILE_PATH)\n");
   lb_string_appendf(sql, "VALUES (?, ?)\n");
-  lb_string_appendf(sql, "ON CONFLICT (MODEL_ID) DO UPDATE SET\n");
+  lb_string_appendf(sql, "ON CONFLICT (MODEL_ASSET_ID) DO UPDATE SET\n");
   lb_string_appendf(sql, "MODEL_FILE_PATH = EXCLUDED.MODEL_FILE_PATH\n");
 
   sqlite3_stmt *stmt = 0;
@@ -1026,7 +1077,7 @@ void lb_database_store_model_mesh(lb_model_mesh_t *model_mesh) {
 
   lb_string_appendf(sql, "INSERT INTO MODEL_MESH (MODEL_ASSET_ID, NAME)\n");
   lb_string_appendf(sql, "VALUES (?, ?)\n");
-  lb_string_appendf(sql, "ON CONFLICT (MODEL_ID) DO NOTHING\n");
+  lb_string_appendf(sql, "ON CONFLICT (MODEL_ASSET_ID) DO NOTHING\n");
 
   sqlite3_stmt *stmt = 0;
 
@@ -1168,7 +1219,7 @@ void lb_database_store_graph_asset(lb_graph_asset_t *graph_asset) {
   }
 }
 
-void lb_database_destroy_swapchain(lb_swapchain_asset_t *swapchain_asset) {
+void lb_database_destroy_swapchain_asset(lb_swapchain_asset_t *swapchain_asset) {
   // TODO
 }
 void lb_database_destroy_swapchain_assets(lb_vector_t *swapchain_assets) {
@@ -1237,6 +1288,9 @@ void lb_database_destroy_attribute_buffer(lb_attribute_buffer_t *attribute_buffe
   lb_heap_free(attribute_buffer->data);
 }
 
+void lb_database_destroy_scene_asset(lb_scene_asset_t *scene_asset) {
+  // TODO
+}
 void lb_database_destroy_scene_assets(lb_vector_t *scene_assets) {
   // TODO
 
@@ -1247,6 +1301,411 @@ void lb_database_destroy_graph_assets(lb_vector_t *graph_assets) {
   // TODO
 
   lb_vector_destroy(graph_assets);
+}
+
+static void lb_database_create_swapchain_tables(void) {
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS SWAPCHAIN_ASSET (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "IMAGE_COUNT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "IS_DEFAULT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "UNIQUE (NAME)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+}
+static void lb_database_create_renderer_tables(void) {
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS RENDERER_ASSET (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "FRAMES_IN_FLIGHT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "IS_DEFAULT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "UNIQUE (NAME)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+}
+static void lb_database_create_pipeline_tables(void) {
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_ASSET (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "TYPE INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "LINK_INDEX INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "AUTO_CREATE_PIPELINE INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "AUTO_CREATE_VERTEX_INPUT_BUFFER INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "AUTO_LINK_DESCRIPTOR_BINDINGS INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "INTERLEAVED_VERTEX_INPUT_BUFFER INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "UNIQUE (NAME)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_RESOURCE (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "VERTEX_SHADER_FILE_PATH VARCHAR(255),\n");
+    lb_string_appendf(sql, "FRAGMENT_SHADER_FILE_PATH VARCHAR(255),\n");
+    lb_string_appendf(sql, "COMPUTE_SHADER_FILE_PATH VARCHAR(255),\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
+    lb_string_appendf(sql, "UNIQUE (PIPELINE_ASSET_ID)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_VERTEX_INPUT_BINDING (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "LOCATION INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "SIZE INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "COMPONENT_COUNT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "FORMAT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "INPUT_RATE INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
+    lb_string_appendf(sql, "UNIQUE (PIPELINE_ASSET_ID, LOCATION)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_DESCRIPTOR_BINDING (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "BINDING INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "DESCRIPTOR_TYPE INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "DESCRIPTOR_COUNT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "STAGE_FLAGS INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "AUTO_BUFFER INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
+    lb_string_appendf(sql, "UNIQUE (PIPELINE_ASSET_ID, BINDING)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+}
+static void lb_database_create_scene_tables(void) {
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS SCENE_ASSET (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "IS_DEFAULT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "UNIQUE (NAME)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+}
+static void lb_database_create_model_tables(void) {
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS MODEL_ASSET (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "UNIQUE (NAME)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS MODEL_RESOURCE (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "MODEL_ASSET_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "MODEL_FILE_PATH VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (MODEL_ASSET_ID) REFERENCES MODEL_ASSET(ID)\n");
+    lb_string_appendf(sql, "UNIQUE (MODEL_ASSET_ID)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS MODEL_MESH (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "MODEL_ASSET_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (MODEL_ASSET_ID) REFERENCES MODEL_ASSET(ID)\n");
+    lb_string_appendf(sql, "UNIQUE (MODEL_ASSET_ID)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS MESH_PRIMITIVE (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "MODEL_MESH_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (MODEL_MESH_ID) REFERENCES MODEL_MESH(ID)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS MESH_ATTRIBUTE (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "MESH_PRIMITIVE_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "TYPE INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "COUNT INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (MESH_PRIMITIVE_ID) REFERENCES MESH_PRIMITIVE(ID)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS ATTRIBUTE_BUFFER (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "MESH_ATTRIBUTE_ID INTEGER NOT NULL,\n");
+    lb_string_appendf(sql, "DATA BLOB NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "FOREIGN KEY (MESH_ATTRIBUTE_ID) REFERENCES MESH_ATTRIBUTE(ID)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+}
+static void lb_database_create_graph_tables(void) {
+  {
+    lb_string_t *sql = lb_string_create();
+
+    lb_string_appendf(sql, "CREATE TABLE IF NOT EXISTS GRAPH_ASSET (\n");
+    lb_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
+    lb_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    lb_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
+    lb_string_appendf(sql, "UNIQUE (NAME)\n");
+    lb_string_appendf(sql, ")\n");
+
+    sqlite3_stmt *stmt = 0;
+
+    LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+    LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+    sqlite3_finalize(stmt);
+
+    lb_string_destroy(sql);
+  }
+}
+
+static void lb_database_create_default_swapchain_assets(void) {
+  lb_string_t *sql = lb_string_create();
+
+  lb_string_appendf(sql, "INSERT INTO SWAPCHAIN_ASSET (NAME, IMAGE_COUNT, IS_DEFAULT) VALUES\n");
+  lb_string_appendf(sql, "('default', 1, 1)\n");
+  lb_string_appendf(sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
+  lb_string_appendf(sql, "IMAGE_COUNT = EXCLUDED.IMAGE_COUNT,\n");
+  lb_string_appendf(sql, "IS_DEFAULT = EXCLUDED.IS_DEFAULT\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+  LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+  sqlite3_finalize(stmt);
+
+  lb_string_destroy(sql);
+}
+static void lb_database_create_default_renderer_assets(void) {
+  lb_string_t *sql = lb_string_create();
+
+  lb_string_appendf(sql, "INSERT INTO RENDERER_ASSET (NAME, FRAMES_IN_FLIGHT, IS_DEFAULT) VALUES\n");
+  lb_string_appendf(sql, "('default', 1, 1)\n");
+  lb_string_appendf(sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
+  lb_string_appendf(sql, "FRAMES_IN_FLIGHT = EXCLUDED.FRAMES_IN_FLIGHT,\n");
+  lb_string_appendf(sql, "IS_DEFAULT = EXCLUDED.IS_DEFAULT\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+  LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+  sqlite3_finalize(stmt);
+
+  lb_string_destroy(sql);
+}
+static void lb_database_create_default_pipeline_assets(void) {
+  // TODO
+}
+static void lb_database_create_default_scene_assets(void) {
+  lb_string_t *sql = lb_string_create();
+
+  lb_string_appendf(sql, "INSERT INTO SCENE_ASSET (NAME, IS_DEFAULT) VALUES\n");
+  lb_string_appendf(sql, "('default', 1)\n");
+  lb_string_appendf(sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
+  lb_string_appendf(sql, "IS_DEFAULT = EXCLUDED.IS_DEFAULT\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  LB_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, lb_string_buffer(sql), -1, &stmt, 0));
+
+  LB_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
+
+  sqlite3_finalize(stmt);
+
+  lb_string_destroy(sql);
+}
+static void lb_database_create_default_model_assets(void) {
+  // TODO
+}
+static void lb_database_create_default_graph_assets(void) {
+  // TODO
 }
 
 static int64_t lb_database_get_sequence_index_by_name(char const *table_name) {

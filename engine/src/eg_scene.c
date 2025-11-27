@@ -4,12 +4,24 @@
 #include <engine/system/eg_controller.h>
 #include <engine/system/eg_rigidbody.h>
 
+struct eg_scene_t {
+  eg_context_t *context;
+  lb_scene_asset_t asset;
+  ecs_world_t *world;
+  ecs_entity_t root;
+  ecs_entity_t player;
+  ecs_entity_t controller_system;
+  ecs_entity_t rigidbody_system;
+};
+
 static void eg_scene_create_root(eg_scene_t *scene);
 static void eg_scene_create_player(eg_scene_t *scene);
 
-eg_scene_t *eg_scene_create(eg_context_t *context) {
+eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_asset_id) {
   eg_scene_t *scene = (eg_scene_t *)lb_heap_alloc(sizeof(eg_scene_t), 1, 0);
 
+  scene->context = context;
+  scene->asset = lb_database_load_scene_asset_by_id(scene_asset_id);
   scene->world = ecs_init_w_args(0, 0);
 
   ECS_COMPONENT_DEFINE(scene->world, eg_transform_t);
@@ -44,7 +56,19 @@ void eg_scene_update(eg_scene_t *scene) {
 void eg_scene_destroy(eg_scene_t *scene) {
   ecs_fini(scene->world);
 
+  lb_database_destroy_scene_asset(&scene->asset);
+
   lb_heap_free(scene);
+}
+
+ecs_world_t *eg_scene_world(eg_scene_t *scene) {
+  return scene->world;
+}
+ecs_entity_t eg_scene_root(eg_scene_t *scene) {
+  return scene->root;
+}
+ecs_entity_t eg_scene_player(eg_scene_t *scene) {
+  return scene->player;
 }
 
 eg_camera_t const *eg_scene_camera(eg_scene_t *scene, ecs_entity_t entity) {

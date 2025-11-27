@@ -2,18 +2,28 @@
 #include <engine/eg_buffer.h>
 #include <engine/eg_context.h>
 
+struct eg_buffer_t {
+  eg_context_t *context;
+  uint64_t size;
+  VkBufferUsageFlags usage;
+  VkBuffer handle;
+  VkDeviceMemory device_memory;
+  void *mapped_memory;
+};
+
 eg_buffer_t *eg_buffer_create(eg_context_t *context, uint64_t buffer_size, VkBufferUsageFlags buffer_usage_flags, VkMemoryPropertyFlags memory_properties) {
   eg_buffer_t *buffer = (eg_buffer_t *)lb_heap_alloc(sizeof(eg_buffer_t), 1, 0);
 
   buffer->context = context;
   buffer->size = buffer_size;
+  buffer->usage = buffer_usage_flags;
 
   VkDevice device = eg_context_device(buffer->context);
 
   VkBufferCreateInfo buffer_create_info = {0};
   buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  buffer_create_info.size = buffer_size;
-  buffer_create_info.usage = buffer_usage_flags;
+  buffer_create_info.size = buffer->size;
+  buffer_create_info.usage = buffer->usage;
   buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   EG_VULKAN_CHECK(vkCreateBuffer(device, &buffer_create_info, 0, &buffer->handle));
@@ -53,24 +63,30 @@ void eg_buffer_copy_to_buffer(eg_buffer_t *buffer, eg_buffer_t *target, VkComman
   vkCmdCopyBuffer(command_buffer, buffer->handle, target->handle, 1, &buffer_copy);
 }
 void eg_buffer_copy_to_image(eg_buffer_t *buffer, eg_image_t *target, VkCommandBuffer command_buffer) {
+  VkImageAspectFlags target_image_aspect_flags = eg_image_aspect_flags(target);
+  VkImage target_image_handle = eg_image_handle(target);
+  uint32_t target_image_width = eg_image_width(target);
+  uint32_t target_image_height = eg_image_height(target);
+  uint32_t target_image_depth = eg_image_depth(target);
+
   VkBufferImageCopy buffer_image_copy = {0};
   buffer_image_copy.bufferOffset = 0;
   buffer_image_copy.bufferRowLength = 0;
   buffer_image_copy.bufferImageHeight = 0;
-  buffer_image_copy.imageSubresource.aspectMask = target->aspect_flags;
+  buffer_image_copy.imageSubresource.aspectMask = target_image_aspect_flags;
   buffer_image_copy.imageSubresource.mipLevel = 0;
   buffer_image_copy.imageSubresource.baseArrayLayer = 0;
   buffer_image_copy.imageSubresource.layerCount = 1;
   buffer_image_copy.imageOffset.x = 0;
   buffer_image_copy.imageOffset.y = 0;
   buffer_image_copy.imageOffset.z = 0;
-  buffer_image_copy.imageExtent.width = target->width;
-  buffer_image_copy.imageExtent.height = target->height;
-  buffer_image_copy.imageExtent.depth = target->depth;
+  buffer_image_copy.imageExtent.width = target_image_width;
+  buffer_image_copy.imageExtent.height = target_image_height;
+  buffer_image_copy.imageExtent.depth = target_image_depth;
 
   // TODO: insert layout transition checks..
 
-  vkCmdCopyBufferToImage(command_buffer, buffer->handle, target->handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy);
+  vkCmdCopyBufferToImage(command_buffer, buffer->handle, target_image_handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_image_copy);
 }
 void eg_buffer_destroy(eg_buffer_t *buffer) {
   VkDevice device = eg_context_device(buffer->context);
@@ -84,6 +100,13 @@ void eg_buffer_destroy(eg_buffer_t *buffer) {
   vkDestroyBuffer(device, buffer->handle, 0);
 
   lb_heap_free(buffer);
+}
+
+VkBuffer eg_buffer_handle(eg_buffer_t *buffer) {
+  return buffer->handle;
+}
+void *eg_buffer_mapped_memory(eg_buffer_t *buffer) {
+  return buffer->mapped_memory;
 }
 
 eg_buffer_t *eg_buffer_create_vertex(eg_context_t *context, void *buffer, uint64_t buffer_size) {

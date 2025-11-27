@@ -4,7 +4,7 @@
 #include <editor/view/ed_profiler.h>
 
 ed_profiler_view_t *ed_profiler_view_create(eg_context_t *context) {
-  ed_profiler_view_t *profiler = (ed_profiler_view_t *)heap_alloc(sizeof(ed_profiler_view_t), 1, 0);
+  ed_profiler_view_t *profiler = (ed_profiler_view_t *)lb_heap_alloc(sizeof(ed_profiler_view_t), 1, 0);
 
   profiler->base.context = context;
   profiler->base.is_dirty = 0;
@@ -53,7 +53,9 @@ void ed_profiler_view_draw(ed_profiler_view_t *profiler) {
     ImPlot::SetupAxes(0, 0, x_axis_flags, y_axis_flags);
     ImPlot::SetupLegend(ImPlotLocation_NorthWest, ImPlotLegendFlags_Outside);
 
-    ImPlot::SetupAxisLimits(ImAxis_X1, profiler->base.context->time - history, profiler->base.context->time, ImGuiCond_Always);
+    float time = eg_context_time(profiler->base.context);
+
+    ImPlot::SetupAxisLimits(ImAxis_X1, time - history, time, ImGuiCond_Always);
     ImPlot::SetupAxisLimits(ImAxis_Y1, -0.005F, 1.0F / 30.0F + 0.01F);
 
     ImPlot::SetNextLineStyle(ImVec4(0.5F, 0.0F, 0.0F, 1.0F));
@@ -89,5 +91,5 @@ void ed_profiler_view_draw(ed_profiler_view_t *profiler) {
   ImPlot::PopStyleColor(3);
 }
 void ed_profiler_view_destroy(ed_profiler_view_t *profiler) {
-  heap_free(profiler);
+  lb_heap_free(profiler);
 }

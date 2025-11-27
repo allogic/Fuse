@@ -12,6 +12,9 @@ void eg_buffer_copy_to_buffer(eg_buffer_t *buffer, eg_buffer_t *target, VkComman
 void eg_buffer_copy_to_image(eg_buffer_t *buffer, eg_image_t *target, VkCommandBuffer command_buffer);
 void eg_buffer_destroy(eg_buffer_t *buffer);
 
+VkBuffer eg_buffer_handle(eg_buffer_t *buffer);
+void *eg_buffer_mapped_memory(eg_buffer_t *buffer);
+
 eg_buffer_t *eg_buffer_create_vertex(eg_context_t *context, void *buffer, uint64_t buffer_size);
 eg_buffer_t *eg_buffer_create_index(eg_context_t *context, void *buffer, uint64_t buffer_size);
 eg_buffer_t *eg_buffer_create_uniform(eg_context_t *context, void *buffer, uint64_t buffer_size);

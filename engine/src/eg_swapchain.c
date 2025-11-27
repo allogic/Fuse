@@ -6,7 +6,6 @@ struct eg_swapchain_t {
   eg_context_t *context;
   lb_swapchain_asset_t asset;
   uint8_t is_dirty;
-  uint32_t min_image_count;
   uint32_t image_count;
   VkSwapchainKHR handle;
   VkRenderPass main_render_pass;
@@ -31,14 +30,17 @@ static void eg_swapchain_destroy_frame_buffer(eg_swapchain_t *swapchain);
 void eg_swapchain_create(eg_context_t *context, lb_swapchain_asset_id_t swapchain_asset_id) {
   eg_swapchain_t *swapchain = (eg_swapchain_t *)lb_heap_alloc(sizeof(eg_swapchain_t), 1, 0);
 
-  eg_context_set_swapchain(context, swapchain);
-
   swapchain->context = context;
+
+  eg_context_set_swapchain(swapchain->context, swapchain);
+
+  uint32_t min_image_count = eg_context_surface_min_image_count(swapchain->context);
+  uint32_t max_image_count = eg_context_surface_max_image_count(swapchain->context);
+
   swapchain->asset = lb_database_load_swapchain_asset_by_id(swapchain_asset_id);
   swapchain->image_count = swapchain->asset.image_count;
-  swapchain->image_count = LB_MAX(swapchain->image_count, swapchain->min_image_count);
-  swapchain->image_count = LB_MIN(swapchain->image_count, swapchain->min_image_count);
-  swapchain->min_image_count = eg_context_surface_min_image_count(swapchain->context);
+  swapchain->image_count = LB_MAX(swapchain->image_count, min_image_count);
+  swapchain->image_count = LB_MIN(swapchain->image_count, max_image_count);
 
   VkDevice device = eg_context_device(swapchain->context);
   VkSurfaceKHR surface = eg_context_surface(swapchain->context);
@@ -52,7 +54,7 @@ void eg_swapchain_create(eg_context_t *context, lb_swapchain_asset_id_t swapchai
   VkSwapchainCreateInfoKHR swapchain_create_info = {0};
   swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
   swapchain_create_info.surface = surface;
-  swapchain_create_info.minImageCount = (uint32_t)swapchain->image_count;
+  swapchain_create_info.minImageCount = swapchain->image_count;
   swapchain_create_info.imageFormat = surface_image_color_format;
   swapchain_create_info.imageColorSpace = surface_image_color_space;
   swapchain_create_info.imageExtent.width = window_width;
@@ -131,14 +133,17 @@ void eg_swapchain_destroy(eg_swapchain_t *swapchain) {
 uint8_t eg_swapchain_is_dirty(eg_swapchain_t *swapchain) {
   return swapchain->is_dirty;
 }
-uint32_t eg_swapchain_min_image_count(eg_swapchain_t *swapchain) {
-  return swapchain->min_image_count;
-}
 uint32_t eg_swapchain_image_count(eg_swapchain_t *swapchain) {
   return swapchain->image_count;
 }
 VkSwapchainKHR eg_swapchain_handle(eg_swapchain_t *swapchain) {
   return swapchain->handle;
+}
+VkRenderPass eg_swapchain_main_render_pass(eg_swapchain_t *swapchain) {
+  return swapchain->main_render_pass;
+}
+VkFramebuffer eg_swapchain_frame_buffer(eg_swapchain_t *swapchain, uint32_t index) {
+  return swapchain->frame_buffer[index];
 }
 
 void eg_swapchain_set_dirty(eg_swapchain_t *swapchain, uint8_t is_dirty) {
@@ -207,7 +212,7 @@ static void eg_swapchain_create_main_render_pass(eg_swapchain_t *swapchain) {
 }
 static void eg_swapchain_create_color_images(eg_swapchain_t *swapchain) {
   VkDevice device = eg_context_device(swapchain->context);
-  VkFormat image_format = eg_context_surface_image_format(swapchain->context);
+  VkFormat image_format = eg_context_surface_image_color_format(swapchain->context);
 
   EG_VULKAN_CHECK(vkGetSwapchainImagesKHR(device, swapchain->handle, (uint32_t *)&swapchain->image_count, swapchain->color_image));
 

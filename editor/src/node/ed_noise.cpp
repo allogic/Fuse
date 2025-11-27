@@ -3,6 +3,7 @@
 
 #include <editor/node/ed_noise.h>
 
+/*
 ed_noise_node_t *ed_noise_node_create(ed_canvas_t *canvas) {
   ed_noise_node_t *node = (ed_noise_node_t *)heap_alloc(sizeof(ed_noise_node_t), 1, 0);
 
@@ -31,3 +32,4 @@ void ed_noise_node_draw(ed_noise_node_t *node) {
 void ed_noise_node_destroy(ed_noise_node_t *node) {
   heap_free(node);
 }
+*/

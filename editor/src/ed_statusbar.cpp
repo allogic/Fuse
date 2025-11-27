@@ -3,8 +3,12 @@
 #include <editor/ed_statusbar.h>
 
 void ed_statusbar_draw(eg_context_t *context) {
-  ImGui::SetNextWindowPos(ImVec2(0.0F, (float)context->window_height - (float)context->window_statusbar_height));
-  ImGui::SetNextWindowSize(ImVec2((float)context->window_width, (float)context->window_statusbar_height));
+  uint32_t window_width = eg_context_window_width(context);
+  uint32_t window_height = eg_context_window_height(context);
+  uint32_t window_statusbar_height = eg_context_statusbar_height(context);
+
+  ImGui::SetNextWindowPos(ImVec2(0.0F, (float)window_height - (float)window_statusbar_height));
+  ImGui::SetNextWindowSize(ImVec2((float)window_width, (float)window_statusbar_height));
 
   ImGui::PushStyleColor(ImGuiCol_Button, ED_DARK_GREY);
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ED_LIGHT_GRAY_COLOR);

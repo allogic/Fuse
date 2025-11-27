@@ -150,49 +150,14 @@ typedef struct eg_world_settings_t {
 
 typedef struct eg_context_t eg_context_t;
 typedef struct eg_swapchain_t eg_swapchain_t;
-
-typedef struct eg_viewport_t {
-  eg_context_t *context;
-  uint64_t link_index;
-  uint32_t width;
-  uint32_t height;
-  VkImage *color_image;
-  VkDeviceMemory *color_device_memory;
-  VkImageView *color_image_view;
-  VkSampler *color_sampler;
-  VkImage *depth_image;
-  VkDeviceMemory *depth_device_memory;
-  VkImageView *depth_image_view;
-  VkSampler *depth_sampler;
-  VkFramebuffer *frame_buffer;
-} eg_viewport_t;
-
-typedef struct eg_buffer_t {
-  eg_context_t *context;
-  uint64_t size;
-  VkBuffer handle;
-  VkDeviceMemory device_memory;
-  void *mapped_memory;
-} eg_buffer_t;
-
-typedef struct eg_image_t {
-  eg_context_t *context;
-  uint64_t size;
-  uint32_t width;
-  uint32_t height;
-  uint32_t depth;
-  uint32_t channels;
-  VkImageUsageFlags usage;
-  VkImageAspectFlags aspect_flags;
-  VkImageType type;
-  VkImageViewType view_type;
-  VkFormat format;
-  VkImageTiling tiling;
-  VkFilter filter;
-  VkImage handle;
-  VkDeviceMemory device_memory;
-  void *mapped_memory;
-} eg_image_t;
+typedef struct eg_viewport_t eg_viewport_t;
+typedef struct eg_renderer_t eg_renderer_t;
+typedef struct eg_graphic_pipeline_t eg_graphic_pipeline_t;
+typedef struct eg_compute_pipeline_t eg_compute_pipeline_t;
+typedef struct eg_buffer_t eg_buffer_t;
+typedef struct eg_image_t eg_image_t;
+typedef struct eg_scene_t eg_scene_t;
+typedef struct eg_terrain_t eg_terrain_t;
 
 typedef struct eg_time_info_t {
   float time;
@@ -227,82 +192,9 @@ typedef struct eg_brdf_vertex_t {
   lb_vector4_t color_channel_0;
 } eg_brdf_vertex_t;
 
-typedef struct eg_scene_t {
-  eg_context_t *context;
-  ecs_world_t *world;
-  ecs_entity_t root;
-  ecs_entity_t player;
-  ecs_entity_t controller_system;
-  ecs_entity_t rigidbody_system;
-} eg_scene_t;
-
 typedef enum eg_renderer_pipeline_link_type_t {
   EG_RENDERER_PIPELINE_LINK_TYPE_DEBUG,
   EG_RENDERER_PIPELINE_LINK_TYPE_PBR,
 } eg_renderer_pipeline_link_type_t;
-
-typedef struct eg_renderer_t eg_renderer_t;
-
-typedef struct eg_graphic_pipeline_t {
-  eg_context_t *context;
-  lb_pipeline_asset_t asset;
-  lb_pipeline_resource_t resource;
-  lb_vector_t *vertex_input_bindings;
-  lb_vector_t *descriptor_bindings;
-  uint64_t vertex_input_binding_count;
-  uint64_t descriptor_binding_count;
-  uint64_t descriptor_pool_size_count;
-
-  uint64_t allocated_descriptor_set_count;
-  uint64_t descriptor_set_layout_count;
-  uint64_t descriptor_set_count;
-  uint64_t write_descriptor_set_count;
-
-  VkBuffer **vertex_input_binding_buffers_per_frame;
-  uint64_t **vertex_input_binding_offsets_per_frame;
-  VkBuffer **descriptor_binding_buffers_per_frame;
-  VkBuffer *index_buffer_per_frame;
-  lb_map_t **auto_link_descriptor_binding_buffers_per_frame;
-  VkVertexInputBindingDescription *vertex_input_binding_descriptions;
-  VkVertexInputAttributeDescription *vertex_input_attribute_descriptions;
-  VkDescriptorPoolSize *descriptor_pool_sizes;
-  VkDescriptorSetLayoutBinding *descriptor_set_layout_bindings;
-  VkDescriptorSetLayout *descriptor_set_layouts;
-  VkDescriptorSet *descriptor_sets;
-  VkWriteDescriptorSet *write_descriptor_sets;
-  VkDescriptorPool descriptor_pool;
-  VkDescriptorSetLayout descriptor_set_layout;
-  VkPipelineLayout pipeline_layout;
-  VkPipeline handle;
-} eg_graphic_pipeline_t;
-typedef struct eg_compute_pipeline_t {
-  eg_context_t *context;
-  lb_pipeline_asset_t asset;
-  lb_pipeline_resource_t resource;
-  lb_vector_t *descriptor_bindings;
-  uint64_t descriptor_binding_count;
-  uint64_t descriptor_pool_size_count;
-
-  uint64_t allocated_descriptor_set_count;
-  uint64_t descriptor_set_layout_count;
-  uint64_t descriptor_set_count;
-  uint64_t write_descriptor_set_count;
-
-  VkBuffer **descriptor_binding_buffers_per_frame;
-  lb_map_t **auto_link_descriptor_binding_buffers_per_frame;
-  VkDescriptorPoolSize *descriptor_pool_sizes;
-  VkDescriptorSetLayoutBinding *descriptor_set_layout_bindings;
-  VkDescriptorSetLayout *descriptor_set_layouts;
-  VkDescriptorSet *descriptor_sets;
-  VkWriteDescriptorSet *write_descriptor_sets;
-  VkDescriptorPool descriptor_pool;
-  VkDescriptorSetLayout descriptor_set_layout;
-  VkPipelineLayout pipeline_layout;
-  VkPipeline handle;
-} eg_compute_pipeline_t;
-
-typedef struct eg_terrain_t {
-  eg_context_t *context;
-} eg_terrain_t;
 
 #endif // EG_FWD_H

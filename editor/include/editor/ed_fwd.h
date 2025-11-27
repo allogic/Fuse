@@ -44,9 +44,9 @@ typedef struct ed_canvas_view_t {
   uint8_t create_node_is_pending;
   float next_node_screen_position_y;
   float next_node_screen_position_x;
-  node_type_t next_node_type;
   ed_graph_t graph;
-  vector_t selected_nodes;
+  lb_node_type_t next_node_type;
+  lb_vector_t *selected_nodes;
 } ed_canvas_view_t;
 typedef struct ed_viewport_view_t {
   ed_view_t base;
@@ -62,8 +62,8 @@ typedef struct ed_viewport_view_t {
 typedef struct ed_catalog_view_t {
   ed_view_t base;
   int64_t selected_asset;
-  asset_type_t asset_type;
-  vector_t assets;
+  lb_asset_type_t asset_type;
+  lb_vector_t *assets;
 } ed_catalog_view_t;
 typedef struct ed_geometry_view_t {
   ed_view_t base;

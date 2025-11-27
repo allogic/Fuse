@@ -1,6 +1,8 @@
 #define CGLTF_IMPLEMENTATION
+#include <cgltf/cgltf.h>
 
 #define STB_JSON_IMPLEMENTATION
+#include <stb_json/stb_json.h>
 
 #include <importer/lb_pch.h>
 #include <importer/lb_importer.h>
@@ -12,8 +14,8 @@ void lb_importer_import_default_assets(void) {
   lb_graphic_pipeline_import_settings_t debug_line_import_settings = {0};
 
   debug_line_import_settings.pipeline_name = "debug_line";
-  debug_line_import_settings.vertex_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\debug_line_vert.spv ";
-  debug_line_import_settings.fragment_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\debug_line_frag.spv ";
+  debug_line_import_settings.vertex_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\debug_line_vert.spv";
+  debug_line_import_settings.fragment_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\debug_line_frag.spv";
   debug_line_import_settings.auto_create_pipeline = 1;
   debug_line_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
   debug_line_import_settings.auto_link_descriptor_bindings = 1;
@@ -24,8 +26,8 @@ void lb_importer_import_default_assets(void) {
   lb_graphic_pipeline_import_settings_t principled_brdf_import_settings = {0};
 
   principled_brdf_import_settings.pipeline_name = "principled_brdf";
-  principled_brdf_import_settings.vertex_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\principled_brdf_vert.spv ";
-  principled_brdf_import_settings.fragment_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\principled_brdf_frag.spv ";
+  principled_brdf_import_settings.vertex_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\principled_brdf_vert.spv";
+  principled_brdf_import_settings.fragment_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\principled_brdf_frag.spv";
   principled_brdf_import_settings.auto_create_pipeline = 1;
   principled_brdf_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
   principled_brdf_import_settings.auto_link_descriptor_bindings = 1;
@@ -36,8 +38,8 @@ void lb_importer_import_default_assets(void) {
   lb_graphic_pipeline_import_settings_t terrain_import_settings = {0};
 
   terrain_import_settings.pipeline_name = "terrain";
-  terrain_import_settings.vertex_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\environment_terrain_vert.spv ";
-  terrain_import_settings.fragment_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\environment_terrain_frag.spv ";
+  terrain_import_settings.vertex_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\environment_terrain_vert.spv";
+  terrain_import_settings.fragment_shader_file_path = LB_ASSET_ROOT_DIR "\\shader\\environment_terrain_frag.spv";
   terrain_import_settings.auto_create_pipeline = 0;
   terrain_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
   terrain_import_settings.auto_link_descriptor_bindings = 1;

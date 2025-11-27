@@ -9,9 +9,10 @@ void eg_swapchain_create(eg_context_t *context, lb_swapchain_asset_id_t swapchai
 void eg_swapchain_destroy(eg_swapchain_t *swapchain);
 
 uint8_t eg_swapchain_is_dirty(eg_swapchain_t *swapchain);
-uint32_t eg_swapchain_min_image_count(eg_swapchain_t *swapchain);
 uint32_t eg_swapchain_image_count(eg_swapchain_t *swapchain);
 VkSwapchainKHR eg_swapchain_handle(eg_swapchain_t *swapchain);
+VkRenderPass eg_swapchain_main_render_pass(eg_swapchain_t *swapchain);
+VkFramebuffer eg_swapchain_frame_buffer(eg_swapchain_t *swapchain, uint32_t index);
 
 void eg_swapchain_set_dirty(eg_swapchain_t *swapchain, uint8_t is_dirty);
 

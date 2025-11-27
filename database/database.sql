@@ -1,6 +1,0 @@
-.read 'swapchain.sql'
-.read 'renderer.sql'
-.read 'pipeline.sql'
-.read 'model.sql'
-.read 'scene.sql'
-.read 'graph.sql'

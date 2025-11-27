@@ -130,6 +130,7 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
   context->window_height = height;
   context->primary_queue_index = -1;
   context->present_queue_index = -1;
+  context->prefered_image_depth_format = VK_FORMAT_D32_SFLOAT; // TODO
   context->world_settings = world_settings;
 
   eg_context_create_window(context);
@@ -151,6 +152,8 @@ eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor
 
   eg_swapchain_create(context, context->world_settings.default_swapchain_asset_id);
   eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
+
+  context->scene = eg_scene_create(context, context->world_settings.default_scene_asset_id);
 
   return context;
 }
@@ -244,6 +247,7 @@ void eg_context_run(eg_context_t *context) {
   }
 }
 void eg_context_destroy(eg_context_t *context) {
+  eg_scene_destroy(context->scene);
   eg_renderer_destroy(context->renderer);
   eg_swapchain_destroy(context->swapchain);
 
@@ -258,6 +262,9 @@ void eg_context_destroy(eg_context_t *context) {
   lb_database_destroy();
 }
 
+HWND eg_context_window_handle(eg_context_t *context) {
+  return context->window_handle;
+}
 uint8_t eg_context_is_editor_mode(eg_context_t *context) {
   return context->is_editor_mode;
 }
@@ -273,8 +280,17 @@ float eg_context_time(eg_context_t *context) {
 float eg_context_delta_time(eg_context_t *context) {
   return (float)context->delta_time;
 }
+VkInstance eg_context_instance(eg_context_t *context) {
+  return context->instance;
+}
+VkPhysicalDevice eg_context_physical_device(eg_context_t *context) {
+  return context->physical_device;
+}
 VkDevice eg_context_device(eg_context_t *context) {
   return context->device;
+}
+VkCommandPool eg_context_command_pool(eg_context_t *context) {
+  return context->command_pool;
 }
 int32_t eg_context_primary_queue_index(eg_context_t *context) {
   return context->primary_queue_index;
@@ -293,6 +309,9 @@ VkSurfaceKHR eg_context_surface(eg_context_t *context) {
 }
 uint32_t eg_context_surface_min_image_count(eg_context_t *context) {
   return context->surface_capabilities.minImageCount;
+}
+uint32_t eg_context_surface_max_image_count(eg_context_t *context) {
+  return context->surface_capabilities.maxImageCount;
 }
 VkSurfaceTransformFlagBitsKHR eg_context_surface_transform(eg_context_t *context) {
   return context->surface_capabilities.currentTransform;
@@ -315,8 +334,17 @@ uint32_t eg_context_window_width(eg_context_t *context) {
 uint32_t eg_context_window_height(eg_context_t *context) {
   return context->window_height;
 }
+uint32_t eg_context_titlebar_height(eg_context_t *context) {
+  return context->window_titlebar_height;
+}
+uint32_t eg_context_statusbar_height(eg_context_t *context) {
+  return context->window_statusbar_height;
+}
 float eg_context_max_anisotropy(eg_context_t *context) {
   return context->physical_device_properties.limits.maxSamplerAnisotropy;
+}
+eg_viewport_t **eg_context_viewports(eg_context_t *context) {
+  return context->viewport;
 }
 eg_swapchain_t *eg_context_swapchain(eg_context_t *context) {
   return context->swapchain;
@@ -324,7 +352,23 @@ eg_swapchain_t *eg_context_swapchain(eg_context_t *context) {
 eg_renderer_t *eg_context_renderer(eg_context_t *context) {
   return context->renderer;
 }
+eg_scene_t *eg_context_scene(eg_context_t *context) {
+  return context->scene;
+}
 
+void eg_context_set_running(eg_context_t *context, uint8_t is_running) {
+  context->is_window_running = is_running;
+}
+void eg_context_set_viewport(eg_context_t *context, eg_viewport_t *viewport, uint64_t *viewport_index) {
+  while (context->viewport[*viewport_index]) {
+
+    (*viewport_index)++;
+  }
+
+  LB_ASSERT((*viewport_index) < 0xFF, "Invalid viewport index");
+
+  context->viewport[*viewport_index] = viewport;
+}
 void eg_context_set_swapchain(eg_context_t *context, eg_swapchain_t *swapchain) {
   context->swapchain = swapchain;
 }

@@ -3,6 +3,7 @@
 
 #include <editor/node/ed_mesh.h>
 
+/*
 ed_mesh_node_t *ed_mesh_node_create(ed_canvas_t *canvas) {
   ed_mesh_node_t *node = (ed_mesh_node_t *)heap_alloc(sizeof(ed_mesh_node_t), 1, 0);
 
@@ -41,3 +42,4 @@ void ed_mesh_node_destroy(ed_mesh_node_t *node) {
 
   heap_free(node);
 }
+*/

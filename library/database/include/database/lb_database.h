@@ -38,6 +38,7 @@ lb_vector_t *lb_database_load_all_mesh_attributes_by_id(lb_mesh_primitive_id_t m
 lb_attribute_buffer_t lb_database_load_attribute_buffer_by_id(lb_mesh_attribute_id_t mesh_attribute_id);
 
 lb_vector_t *lb_database_load_all_scene_assets(void);
+lb_scene_asset_t lb_database_load_scene_asset_by_id(lb_scene_asset_id_t scene_asset_id);
 
 lb_graph_asset_t lb_database_load_graph_asset_by_id(lb_graph_asset_id_t graph_asset_id);
 
@@ -84,6 +85,7 @@ void lb_database_destroy_mesh_attributes(lb_vector_t *mesh_attributes);
 
 void lb_database_destroy_attribute_buffer(lb_attribute_buffer_t *attribute_buffer);
 
+void lb_database_destroy_scene_asset(lb_scene_asset_t *scene_asset);
 void lb_database_destroy_scene_assets(lb_vector_t *scene_assets);
 
 void lb_database_destroy_graph_assets(lb_vector_t *graph_assets);

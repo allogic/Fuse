@@ -13,8 +13,8 @@ static void ed_catalog_view_draw_scene(ed_catalog_view_t *catalog, uint64_t asse
 
 static void ed_catalog_view_draw_asset_buttons(ed_catalog_view_t *catalog);
 
-ed_catalog_view_t *ed_catalog_view_create(eg_context_t *context, asset_type_t asset_type) {
-  ed_catalog_view_t *catalog = (ed_catalog_view_t *)heap_alloc(sizeof(ed_catalog_view_t), 1, 0);
+ed_catalog_view_t *ed_catalog_view_create(eg_context_t *context, lb_asset_type_t asset_type) {
+  ed_catalog_view_t *catalog = (ed_catalog_view_t *)lb_heap_alloc(sizeof(ed_catalog_view_t), 1, 0);
 
   catalog->base.context = context;
   catalog->base.is_dirty = 0;
@@ -25,33 +25,33 @@ ed_catalog_view_t *ed_catalog_view_create(eg_context_t *context, asset_type_t as
   catalog->asset_type = asset_type;
 
   switch (catalog->asset_type) {
-    case ASSET_TYPE_SWAPCHAIN: {
+    case LB_ASSET_TYPE_SWAPCHAIN: {
 
-      catalog->assets = database_load_swapchain_assets();
-
-      break;
-    }
-    case ASSET_TYPE_RENDERER: {
-
-      catalog->assets = database_load_renderer_assets();
+      catalog->assets = lb_database_load_all_swapchain_assets();
 
       break;
     }
-    case ASSET_TYPE_PIPELINE: {
+    case LB_ASSET_TYPE_RENDERER: {
 
-      catalog->assets = database_load_pipeline_assets();
-
-      break;
-    }
-    case ASSET_TYPE_MODEL: {
-
-      catalog->assets = database_load_model_assets();
+      catalog->assets = lb_database_load_all_renderer_assets();
 
       break;
     }
-    case ASSET_TYPE_SCENE: {
+    case LB_ASSET_TYPE_PIPELINE: {
 
-      catalog->assets = database_load_scene_assets();
+      catalog->assets = lb_database_load_all_pipeline_assets();
+
+      break;
+    }
+    case LB_ASSET_TYPE_MODEL: {
+
+      catalog->assets = lb_database_load_all_model_assets();
+
+      break;
+    }
+    case LB_ASSET_TYPE_SCENE: {
+
+      catalog->assets = lb_database_load_all_scene_assets();
 
       break;
     }
@@ -61,66 +61,66 @@ ed_catalog_view_t *ed_catalog_view_create(eg_context_t *context, asset_type_t as
 }
 void ed_catalog_view_refresh(ed_catalog_view_t *catalog) {
   switch (catalog->asset_type) {
-    case ASSET_TYPE_SWAPCHAIN: {
+    case LB_ASSET_TYPE_SWAPCHAIN: {
 
-      database_destroy_swapchain_assets(&catalog->assets);
-
-      break;
-    }
-    case ASSET_TYPE_RENDERER: {
-
-      database_destroy_renderer_assets(&catalog->assets);
+      lb_database_destroy_swapchain_assets(catalog->assets);
 
       break;
     }
-    case ASSET_TYPE_PIPELINE: {
+    case LB_ASSET_TYPE_RENDERER: {
 
-      database_destroy_pipeline_assets(&catalog->assets);
-
-      break;
-    }
-    case ASSET_TYPE_MODEL: {
-
-      database_destroy_model_assets(&catalog->assets);
+      lb_database_destroy_renderer_assets(catalog->assets);
 
       break;
     }
-    case ASSET_TYPE_SCENE: {
+    case LB_ASSET_TYPE_PIPELINE: {
 
-      database_destroy_scene_assets(&catalog->assets);
+      lb_database_destroy_pipeline_assets(catalog->assets);
+
+      break;
+    }
+    case LB_ASSET_TYPE_MODEL: {
+
+      lb_database_destroy_model_assets(catalog->assets);
+
+      break;
+    }
+    case LB_ASSET_TYPE_SCENE: {
+
+      lb_database_destroy_scene_assets(catalog->assets);
 
       break;
     }
   }
 
   switch (catalog->asset_type) {
-    case ASSET_TYPE_SWAPCHAIN: {
+    case LB_ASSET_TYPE_SWAPCHAIN: {
 
-      catalog->assets = database_load_swapchain_assets();
-
-      break;
-    }
-    case ASSET_TYPE_RENDERER: {
-
-      catalog->assets = database_load_renderer_assets();
+      catalog->assets = lb_database_load_all_swapchain_assets();
 
       break;
     }
-    case ASSET_TYPE_PIPELINE: {
+    case LB_ASSET_TYPE_RENDERER: {
 
-      catalog->assets = database_load_pipeline_assets();
-
-      break;
-    }
-    case ASSET_TYPE_MODEL: {
-
-      catalog->assets = database_load_model_assets();
+      catalog->assets = lb_database_load_all_renderer_assets();
 
       break;
     }
-    case ASSET_TYPE_SCENE: {
+    case LB_ASSET_TYPE_PIPELINE: {
 
-      catalog->assets = database_load_scene_assets();
+      catalog->assets = lb_database_load_all_pipeline_assets();
+
+      break;
+    }
+    case LB_ASSET_TYPE_MODEL: {
+
+      catalog->assets = lb_database_load_all_model_assets();
+
+      break;
+    }
+    case LB_ASSET_TYPE_SCENE: {
+
+      catalog->assets = lb_database_load_all_scene_assets();
 
       break;
     }
@@ -141,36 +141,36 @@ void ed_catalog_view_draw(ed_catalog_view_t *catalog) {
     ImGui::TableHeadersRow();
 
     uint64_t asset_index = 0;
-    uint64_t asset_count = vector_count(&catalog->assets);
+    uint64_t asset_count = lb_vector_count(catalog->assets);
 
     while (asset_index < asset_count) {
 
       switch (catalog->asset_type) {
-        case ASSET_TYPE_SWAPCHAIN: {
+        case LB_ASSET_TYPE_SWAPCHAIN: {
 
           ed_catalog_view_draw_swapchain(catalog, asset_index);
 
           break;
         }
-        case ASSET_TYPE_RENDERER: {
+        case LB_ASSET_TYPE_RENDERER: {
 
           ed_catalog_view_draw_renderer(catalog, asset_index);
 
           break;
         }
-        case ASSET_TYPE_PIPELINE: {
+        case LB_ASSET_TYPE_PIPELINE: {
 
           ed_catalog_view_draw_pipeline(catalog, asset_index);
 
           break;
         }
-        case ASSET_TYPE_MODEL: {
+        case LB_ASSET_TYPE_MODEL: {
 
           ed_catalog_view_draw_model(catalog, asset_index);
 
           break;
         }
-        case ASSET_TYPE_SCENE: {
+        case LB_ASSET_TYPE_SCENE: {
 
           ed_catalog_view_draw_scene(catalog, asset_index);
 
@@ -186,43 +186,43 @@ void ed_catalog_view_draw(ed_catalog_view_t *catalog) {
 }
 void ed_catalog_view_destroy(ed_catalog_view_t *catalog) {
   switch (catalog->asset_type) {
-    case ASSET_TYPE_SWAPCHAIN: {
+    case LB_ASSET_TYPE_SWAPCHAIN: {
 
-      database_destroy_swapchain_assets(&catalog->assets);
-
-      break;
-    }
-    case ASSET_TYPE_RENDERER: {
-
-      database_destroy_renderer_assets(&catalog->assets);
+      lb_database_destroy_swapchain_assets(catalog->assets);
 
       break;
     }
-    case ASSET_TYPE_PIPELINE: {
+    case LB_ASSET_TYPE_RENDERER: {
 
-      database_destroy_pipeline_assets(&catalog->assets);
-
-      break;
-    }
-    case ASSET_TYPE_MODEL: {
-
-      database_destroy_model_assets(&catalog->assets);
+      lb_database_destroy_renderer_assets(catalog->assets);
 
       break;
     }
-    case ASSET_TYPE_SCENE: {
+    case LB_ASSET_TYPE_PIPELINE: {
 
-      database_destroy_scene_assets(&catalog->assets);
+      lb_database_destroy_pipeline_assets(catalog->assets);
+
+      break;
+    }
+    case LB_ASSET_TYPE_MODEL: {
+
+      lb_database_destroy_model_assets(catalog->assets);
+
+      break;
+    }
+    case LB_ASSET_TYPE_SCENE: {
+
+      lb_database_destroy_scene_assets(catalog->assets);
 
       break;
     }
   }
 
-  heap_free(catalog);
+  lb_heap_free(catalog);
 }
 
 static void ed_catalog_view_draw_swapchain(ed_catalog_view_t *catalog, uint64_t asset_index) {
-  swapchain_asset_t *swapchain_asset = (swapchain_asset_t *)vector_at(&catalog->assets, asset_index);
+  lb_swapchain_asset_t *swapchain_asset = (lb_swapchain_asset_t *)lb_vector_at(catalog->assets, asset_index);
 
   ImGui::TableNextRow();
 
@@ -235,7 +235,7 @@ static void ed_catalog_view_draw_swapchain(ed_catalog_view_t *catalog, uint64_t 
   }
 }
 static void ed_catalog_view_draw_renderer(ed_catalog_view_t *catalog, uint64_t asset_index) {
-  renderer_asset_t *renderer_asset = (renderer_asset_t *)vector_at(&catalog->assets, asset_index);
+  lb_renderer_asset_t *renderer_asset = (lb_renderer_asset_t *)lb_vector_at(catalog->assets, asset_index);
 
   ImGui::TableNextRow();
 
@@ -248,7 +248,7 @@ static void ed_catalog_view_draw_renderer(ed_catalog_view_t *catalog, uint64_t a
   }
 }
 static void ed_catalog_view_draw_pipeline(ed_catalog_view_t *catalog, uint64_t asset_index) {
-  pipeline_asset_t *pipeline_asset = (pipeline_asset_t *)vector_at(&catalog->assets, asset_index);
+  lb_pipeline_asset_t *pipeline_asset = (lb_pipeline_asset_t *)lb_vector_at(catalog->assets, asset_index);
 
   ImGui::TableNextRow();
 
@@ -261,7 +261,7 @@ static void ed_catalog_view_draw_pipeline(ed_catalog_view_t *catalog, uint64_t a
   }
 }
 static void ed_catalog_view_draw_model(ed_catalog_view_t *catalog, uint64_t asset_index) {
-  model_asset_t *model_asset = (model_asset_t *)vector_at(&catalog->assets, asset_index);
+  lb_model_asset_t *model_asset = (lb_model_asset_t *)lb_vector_at(catalog->assets, asset_index);
 
   ImGui::TableNextRow();
 
@@ -274,7 +274,7 @@ static void ed_catalog_view_draw_model(ed_catalog_view_t *catalog, uint64_t asse
   }
 }
 static void ed_catalog_view_draw_scene(ed_catalog_view_t *catalog, uint64_t asset_index) {
-  scene_asset_t *scene_asset = (scene_asset_t *)vector_at(&catalog->assets, asset_index);
+  lb_scene_asset_t *scene_asset = (lb_scene_asset_t *)lb_vector_at(catalog->assets, asset_index);
 
   ImGui::TableNextRow();
 

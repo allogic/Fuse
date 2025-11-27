@@ -3,7 +3,8 @@
 
 #include <editor/node/ed_output.h>
 
-ed_output_node_t *ed_output_node_create(ed_canvas_t *canvas) {
+/*
+ed_output_node_t *ed_output_node_create(ed_graph_t *graph) {
   ed_output_node_t *node = (ed_output_node_t *)heap_alloc(sizeof(ed_output_node_t), 1, 0);
 
   node->base.context = canvas->context;
@@ -31,3 +32,4 @@ void ed_output_node_draw(ed_output_node_t *node) {
 void ed_output_node_destroy(ed_output_node_t *node) {
   heap_free(node);
 }
+*/

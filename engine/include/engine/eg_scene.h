@@ -5,9 +5,13 @@
 extern "C" {
 #endif // __cplusplus
 
-eg_scene_t *eg_scene_create(eg_context_t *context);
+eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_asset_id);
 void eg_scene_update(eg_scene_t *scene);
 void eg_scene_destroy(eg_scene_t *scene);
+
+ecs_world_t *eg_scene_world(eg_scene_t *scene);
+ecs_entity_t eg_scene_root(eg_scene_t *scene);
+ecs_entity_t eg_scene_player(eg_scene_t *scene);
 
 eg_camera_t const *eg_scene_camera(eg_scene_t *scene, ecs_entity_t entity);
 eg_camera_t *eg_scene_camera_mut(eg_scene_t *scene, ecs_entity_t entity);

@@ -7,10 +7,6 @@
 
 #include <spirv_reflect/spirv_reflect.h>
 
-#include <cgltf/cgltf.h>
-
-#include <stb_json/stb_json.h>
-
 #include <importer/lb_macros.h>
 #include <importer/lb_config.h>
 #include <importer/lb_fwd.h>

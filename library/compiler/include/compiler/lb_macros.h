@@ -1,0 +1,4 @@
+#ifndef LB_COMPILER_MACROS_H
+#define LB_COMPILER_MACROS_H
+
+#endif // LB_COMPILER_MACROS_H

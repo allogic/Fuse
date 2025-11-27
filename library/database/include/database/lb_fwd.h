@@ -29,6 +29,16 @@ typedef int64_t lb_mesh_node_id_t;
 typedef int64_t lb_noise_node_id_t;
 typedef int64_t lb_output_node_id_t;
 
+typedef enum lb_asset_type_t {
+  LB_ASSET_TYPE_SWAPCHAIN,
+  LB_ASSET_TYPE_RENDERER,
+  LB_ASSET_TYPE_PIPELINE,
+  LB_ASSET_TYPE_MODEL,
+  LB_ASSET_TYPE_SCENE,
+  LB_ASSET_TYPE_GRAPH,
+  LB_ASSET_TYPE_COUNT,
+} lb_asset_type_t;
+
 typedef enum lb_pipeline_type_t {
   LB_PIPELINE_TYPE_GRAPHIC,
   LB_PIPELINE_TYPE_COMPUTE,
@@ -72,9 +82,6 @@ typedef struct lb_pipeline_resource_t {
   char vertex_shader_file_path[LB_FILE_PATH_SIZE];
   char fragment_shader_file_path[LB_FILE_PATH_SIZE];
   char compute_shader_file_path[LB_FILE_PATH_SIZE];
-  uint64_t vertex_shader_file_path_size;
-  uint64_t fragment_shader_file_path_size;
-  uint64_t compute_shader_file_path_size;
 } lb_pipeline_resource_t;
 typedef struct lb_pipeline_vertex_input_binding_t {
   lb_pipeline_vertex_input_binding_id_t id;

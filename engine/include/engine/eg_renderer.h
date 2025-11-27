@@ -11,6 +11,11 @@ void eg_renderer_draw(eg_renderer_t *renderer);
 void eg_renderer_destroy(eg_renderer_t *renderer);
 
 uint8_t eg_renderer_is_dirty(eg_renderer_t *renderer);
+uint32_t eg_renderer_frames_in_flight(eg_renderer_t *renderer);
+uint32_t eg_renderer_frame_index(eg_renderer_t *renderer);
+uint32_t eg_renderer_image_index(eg_renderer_t *renderer);
+VkRenderPass eg_renderer_gbuffer_render_pass(eg_renderer_t *renderer);
+VkCommandBuffer *eg_renderer_command_buffer(eg_renderer_t *renderer);
 
 void eg_renderer_set_dirty(eg_renderer_t *renderer, uint8_t is_dirty);
 
