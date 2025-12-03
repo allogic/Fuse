@@ -5,6 +5,7 @@
 #include <editor/node/ed_noise.h>
 #include <editor/node/ed_output.h>
 
+/*
 ed_graph_t ed_graph_create(eg_context_t *context, char const *name) {
   ed_graph_t graph = {0};
 
@@ -54,3 +55,4 @@ void ed_graph_destroy(ed_graph_t *graph) {
   //
   // vector_destroy(&graph->nodes);
 }
+*/

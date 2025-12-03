@@ -1,6 +1,7 @@
 #include <editor/ed_pch.h>
 #include <editor/ed_node.h>
 
+/*
 void ed_node_draw_input(int attribute_id, const char *attribute_label) {
   ImNodes::BeginInputAttribute(attribute_id);
 
@@ -21,3 +22,4 @@ void ed_node_draw_output(int attribute_id, const char *attribute_label) {
 
   ImNodes::EndOutputAttribute();
 }
+*/

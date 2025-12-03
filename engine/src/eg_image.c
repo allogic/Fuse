@@ -1,8 +1,6 @@
 #include <engine/eg_pch.h>
-#include <engine/eg_image.h>
 
 typedef struct eg_image_t {
-  eg_context_t *context;
   uint64_t size;
   uint32_t width;
   uint32_t height;
@@ -20,10 +18,9 @@ typedef struct eg_image_t {
   void *mapped_memory;
 } eg_image_t;
 
-eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t height, uint32_t depth, uint32_t channels, VkImageType type, VkImageViewType view_type, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_properties, VkImageAspectFlags aspect_flags, VkFormat format, VkImageTiling tiling, VkFilter filter) {
-  eg_image_t *image = (eg_image_t *)lb_heap_alloc(sizeof(eg_image_t), 1, 0);
+eg_image_t *eg_image_create(uint32_t width, uint32_t height, uint32_t depth, uint32_t channels, VkImageType type, VkImageViewType view_type, VkImageUsageFlags usage, VkMemoryPropertyFlags memory_properties, VkImageAspectFlags aspect_flags, VkFormat format, VkImageTiling tiling, VkFilter filter) {
+  eg_image_t *image = (eg_image_t *)eg_heap_alloc(sizeof(eg_image_t), 1, 0);
 
-  image->context = context;
   image->size = width * height * depth * channels;
   image->width = width;
   image->height = height;
@@ -36,8 +33,6 @@ eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t heig
   image->format = format;
   image->tiling = tiling;
   image->filter = filter;
-
-  VkDevice device = eg_context_device(image->context);
 
   VkImageCreateInfo image_create_info = {0};
   image_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -54,31 +49,27 @@ eg_image_t *eg_image_create(eg_context_t *context, uint32_t width, uint32_t heig
   image_create_info.samples = VK_SAMPLE_COUNT_1_BIT;
   image_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  EG_VULKAN_CHECK(vkCreateImage(device, &image_create_info, 0, &image->handle));
+  EG_VULKAN_CHECK(vkCreateImage(eg_context_device(), &image_create_info, 0, &image->handle));
 
   VkMemoryRequirements memory_requirements = {0};
 
-  vkGetImageMemoryRequirements(device, image->handle, &memory_requirements);
+  vkGetImageMemoryRequirements(eg_context_device(), image->handle, &memory_requirements);
 
   VkMemoryAllocateInfo memory_allocate_info = {0};
   memory_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   memory_allocate_info.allocationSize = memory_requirements.size;
-  memory_allocate_info.memoryTypeIndex = eg_context_find_memory_type(image->context, memory_requirements.memoryTypeBits, memory_properties);
+  memory_allocate_info.memoryTypeIndex = eg_context_find_memory_type(memory_requirements.memoryTypeBits, memory_properties);
 
-  EG_VULKAN_CHECK(vkAllocateMemory(device, &memory_allocate_info, 0, &image->device_memory));
-  EG_VULKAN_CHECK(vkBindImageMemory(device, image->handle, image->device_memory, 0));
+  EG_VULKAN_CHECK(vkAllocateMemory(eg_context_device(), &memory_allocate_info, 0, &image->device_memory));
+  EG_VULKAN_CHECK(vkBindImageMemory(eg_context_device(), image->handle, image->device_memory, 0));
 
   return image;
 }
 void eg_image_map(eg_image_t *image) {
-  VkDevice device = eg_context_device(image->context);
-
-  EG_VULKAN_CHECK(vkMapMemory(device, image->device_memory, 0, image->size, 0, &image->mapped_memory));
+  EG_VULKAN_CHECK(vkMapMemory(eg_context_device(), image->device_memory, 0, image->size, 0, &image->mapped_memory));
 }
 void eg_image_unmap(eg_image_t *image) {
-  VkDevice device = eg_context_device(image->context);
-
-  vkUnmapMemory(device, image->device_memory);
+  vkUnmapMemory(eg_context_device(), image->device_memory);
 
   image->mapped_memory = 0;
 }
@@ -115,17 +106,15 @@ void eg_image_copy_to_buffer(eg_image_t *image, eg_buffer_t *target, VkCommandBu
   vkCmdCopyImageToBuffer(command_buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target_buffer_handle, 1, &buffer_image_copy);
 }
 void eg_image_destroy(eg_image_t *image) {
-  VkDevice device = eg_context_device(image->context);
-
   if (image->mapped_memory) {
-    vkUnmapMemory(device, image->device_memory);
+    vkUnmapMemory(eg_context_device(), image->device_memory);
   }
 
-  vkFreeMemory(device, image->device_memory, 0);
+  vkFreeMemory(eg_context_device(), image->device_memory, 0);
 
-  vkDestroyImage(device, image->handle, 0);
+  vkDestroyImage(eg_context_device(), image->handle, 0);
 
-  lb_heap_free(image);
+  eg_heap_free(image);
 }
 
 VkImageAspectFlags eg_image_aspect_flags(eg_image_t *image) {
@@ -147,10 +136,8 @@ void *eg_image_mapped_memory(eg_image_t *image) {
   return image->mapped_memory;
 }
 
-VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format) {
+VkImageView eg_image_create_view(VkImage image, VkImageViewType view_type, VkImageAspectFlags aspect_flags, VkFormat format) {
   VkImageView image_view = 0;
-
-  VkDevice device = eg_context_device(context);
 
   VkImageViewCreateInfo image_view_create_info = {0};
   image_view_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -163,15 +150,12 @@ VkImageView eg_image_create_view(eg_context_t *context, VkImage image, VkImageVi
   image_view_create_info.subresourceRange.baseArrayLayer = 0;
   image_view_create_info.subresourceRange.layerCount = 1;
 
-  EG_VULKAN_CHECK(vkCreateImageView(device, &image_view_create_info, 0, &image_view));
+  EG_VULKAN_CHECK(vkCreateImageView(eg_context_device(), &image_view_create_info, 0, &image_view));
 
   return image_view;
 }
-VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter filter) {
+VkSampler eg_image_create_sampler(VkImage image, VkFilter filter) {
   VkSampler sampler = 0;
-
-  VkDevice device = eg_context_device(context);
-  float max_anisotropy = eg_context_max_anisotropy(context);
 
   VkSamplerCreateInfo sampler_create_info = {0};
   sampler_create_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -181,7 +165,7 @@ VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter
   sampler_create_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   sampler_create_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   sampler_create_info.anisotropyEnable = 1;
-  sampler_create_info.maxAnisotropy = max_anisotropy;
+  sampler_create_info.maxAnisotropy = eg_context_max_anisotropy();
   sampler_create_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
   sampler_create_info.unnormalizedCoordinates = 0;
   sampler_create_info.compareEnable = 0;
@@ -191,11 +175,11 @@ VkSampler eg_image_create_sampler(eg_context_t *context, VkImage image, VkFilter
   sampler_create_info.minLod = 0.0F;
   sampler_create_info.maxLod = 0.0F;
 
-  EG_VULKAN_CHECK(vkCreateSampler(device, &sampler_create_info, 0, &sampler));
+  EG_VULKAN_CHECK(vkCreateSampler(eg_context_device(), &sampler_create_info, 0, &sampler));
 
   return sampler;
 }
-void eg_image_layout_transition(eg_context_t *context, VkImage image, VkCommandBuffer command_buffer, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags aspect_mask) {
+void eg_image_layout_transition(VkImage image, VkCommandBuffer command_buffer, VkImageLayout old_layout, VkImageLayout new_layout, VkImageAspectFlags aspect_mask) {
   VkImageMemoryBarrier image_memory_barrier = {0};
   image_memory_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   image_memory_barrier.oldLayout = old_layout;
@@ -218,11 +202,11 @@ void eg_image_layout_transition(eg_context_t *context, VkImage image, VkCommandB
     0, 0, 0, 0, 0, 1, &image_memory_barrier);
 }
 
-eg_image_t *eg_image_create_2d(eg_context_t *context, void *buffer, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
+eg_image_t *eg_image_create_2d(void *buffer, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
   uint64_t buffer_size = width * height;
 
-  eg_buffer_t *staging_buffer = eg_buffer_create(context, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  eg_image_t *target_image = eg_image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, format, tiling, filter);
+  eg_buffer_t *staging_buffer = eg_buffer_create(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  eg_image_t *target_image = eg_image_create(width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT, format, tiling, filter);
 
   void *staging_buffer_mapped_memory = eg_buffer_mapped_memory(staging_buffer);
 
@@ -231,14 +215,14 @@ eg_image_t *eg_image_create_2d(eg_context_t *context, void *buffer, uint32_t wid
   eg_buffer_unmap(staging_buffer);
 
   // TODO
-  VkCommandBuffer command_buffer = eg_context_begin_command_buffer(context);
+  VkCommandBuffer command_buffer = eg_context_begin_command_buffer();
   // targetImage->LayoutTransition(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
   eg_buffer_copy_to_image(staging_buffer, target_image, command_buffer);
   // targetImage->LayoutTransition(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
-  eg_context_end_command_buffer(context, command_buffer);
+  eg_context_end_command_buffer(command_buffer);
 
   return target_image;
 }
-eg_image_t *eg_image_create_2d_depth_stencil(eg_context_t *context, uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
-  return eg_image_create(context, width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, format, tiling, filter);
+eg_image_t *eg_image_create_2d_depth_stencil(uint32_t width, uint32_t height, uint32_t channels, VkFormat format, VkImageTiling tiling, VkFilter filter) {
+  return eg_image_create(width, height, 1, channels, VK_IMAGE_TYPE_2D, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, format, tiling, filter);
 }

@@ -6,48 +6,50 @@ extern "C" {
 #endif // __cplusplus
 
 typedef struct eg_transform_t {
-  lb_vector3_t local_position;
-  lb_quaternion_t local_rotation;
-  lb_vector3_t local_scale;
-  lb_vector3_t world_position;
-  lb_quaternion_t world_rotation;
-  lb_vector3_t world_scale;
+  eg_vector3_t local_position;
+  eg_quaternion_t local_rotation;
+  eg_vector3_t local_scale;
+  eg_vector3_t world_position;
+  eg_quaternion_t world_rotation;
+  eg_vector3_t world_scale;
 } eg_transform_t;
 
 ECS_COMPONENT_DECLARE(eg_transform_t);
 
-void eg_transform_init(eg_transform_t *transform);
-lb_matrix4_t eg_transform_matrix(eg_transform_t *transform);
+void eg_transform_create(eg_transform_t *transform);
+void eg_transform_destroy(eg_transform_t *transform);
+
+eg_matrix4_t eg_transform_matrix(eg_transform_t *transform);
 
 void eg_transform_compute_world_position(ecs_world_t *world, ecs_entity_t entity);
 void eg_transform_compute_world_rotation(ecs_world_t *world, ecs_entity_t entity);
 void eg_transform_compute_world_scale(ecs_world_t *world, ecs_entity_t entity);
 
-__forceinline lb_vector3_t eg_transform_local_right(eg_transform_t const *transform);
-__forceinline lb_vector3_t eg_transform_local_up(eg_transform_t const *transform);
-__forceinline lb_vector3_t eg_transform_local_front(eg_transform_t const *transform);
-__forceinline lb_vector3_t eg_transform_local_left(eg_transform_t const *transform);
-__forceinline lb_vector3_t eg_transform_local_down(eg_transform_t const *transform);
-__forceinline lb_vector3_t eg_transform_local_back(eg_transform_t const *transform);
+__forceinline eg_vector3_t eg_transform_local_right(eg_transform_t const *transform);
+__forceinline eg_vector3_t eg_transform_local_up(eg_transform_t const *transform);
+__forceinline eg_vector3_t eg_transform_local_front(eg_transform_t const *transform);
+__forceinline eg_vector3_t eg_transform_local_left(eg_transform_t const *transform);
+__forceinline eg_vector3_t eg_transform_local_down(eg_transform_t const *transform);
+__forceinline eg_vector3_t eg_transform_local_back(eg_transform_t const *transform);
 
-__forceinline void eg_transform_set_position(eg_transform_t *transform, lb_vector3_t position);
+__forceinline void eg_transform_set_position(eg_transform_t *transform, eg_vector3_t position);
 __forceinline void eg_transform_set_position_xyz(eg_transform_t *transform, float x, float y, float z);
-__forceinline void eg_transform_set_relative_position(eg_transform_t *transform, eg_transform_t *reference, lb_vector3_t position);
+__forceinline void eg_transform_set_relative_position(eg_transform_t *transform, eg_transform_t *reference, eg_vector3_t position);
 __forceinline void eg_transform_set_relative_position_xyz(eg_transform_t *transform, eg_transform_t *reference, float x, float y, float z);
 
-__forceinline void eg_transform_set_rotation(eg_transform_t *transform, lb_quaternion_t rotation);
+__forceinline void eg_transform_set_rotation(eg_transform_t *transform, eg_quaternion_t rotation);
 __forceinline void eg_transform_set_rotation_xyzw(eg_transform_t *transform, float x, float y, float z, float w);
-__forceinline void eg_transform_set_relative_rotation(eg_transform_t *transform, eg_transform_t *reference, lb_quaternion_t rotation);
+__forceinline void eg_transform_set_relative_rotation(eg_transform_t *transform, eg_transform_t *reference, eg_quaternion_t rotation);
 __forceinline void eg_transform_set_relative_rotation_xyzw(eg_transform_t *transform, eg_transform_t *reference, float x, float y, float z, float w);
 
-__forceinline void eg_transform_set_euler_angles(eg_transform_t *transform, lb_vector3_t euler_angles);
+__forceinline void eg_transform_set_euler_angles(eg_transform_t *transform, eg_vector3_t euler_angles);
 __forceinline void eg_transform_set_euler_angles_pyr(eg_transform_t *transform, float p, float y, float r);
-__forceinline void eg_transform_set_relative_euler_angles(eg_transform_t *transform, eg_transform_t *reference, lb_vector3_t euler_angles);
+__forceinline void eg_transform_set_relative_euler_angles(eg_transform_t *transform, eg_transform_t *reference, eg_vector3_t euler_angles);
 __forceinline void eg_transform_set_relative_euler_angles_pyr(eg_transform_t *transform, eg_transform_t *reference, float p, float y, float r);
 
-__forceinline void eg_transform_set_scale(eg_transform_t *transform, lb_vector3_t scale);
+__forceinline void eg_transform_set_scale(eg_transform_t *transform, eg_vector3_t scale);
 __forceinline void eg_transform_set_scale_xyz(eg_transform_t *transform, float x, float y, float z);
-__forceinline void eg_transform_set_relative_scale(eg_transform_t *transform, eg_transform_t *reference, lb_vector3_t scale);
+__forceinline void eg_transform_set_relative_scale(eg_transform_t *transform, eg_transform_t *reference, eg_vector3_t scale);
 __forceinline void eg_transform_set_relative_scale_xyz(eg_transform_t *transform, eg_transform_t *reference, float x, float y, float z);
 
 #ifdef __cplusplus

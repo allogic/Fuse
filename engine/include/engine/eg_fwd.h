@@ -1,6 +1,34 @@
 #ifndef EG_FWD_H
 #define EG_FWD_H
 
+typedef int64_t eg_swapchain_asset_id_t;
+
+typedef int64_t eg_renderer_asset_id_t;
+
+typedef int64_t eg_pipeline_asset_id_t;
+typedef int64_t eg_pipeline_resource_id_t;
+typedef int64_t eg_pipeline_vertex_input_binding_id_t;
+typedef int64_t eg_pipeline_descriptor_binding_id_t;
+
+typedef int64_t eg_model_asset_id_t;
+typedef int64_t eg_model_resource_id_t;
+typedef int64_t eg_model_mesh_id_t;
+
+typedef int64_t eg_mesh_primitive_id_t;
+typedef int64_t eg_mesh_attribute_id_t;
+
+typedef int64_t eg_attribute_data_id_t;
+
+typedef int64_t eg_scene_asset_id_t;
+
+typedef int64_t eg_graph_asset_id_t;
+
+typedef int64_t eg_node_asset_id_t;
+
+typedef int64_t eg_mesh_node_id_t;
+typedef int64_t eg_noise_node_id_t;
+typedef int64_t eg_output_node_id_t;
+
 typedef enum eg_key_state_t {
   EG_KEY_STATE_UP,
   EG_KEY_STATE_PRESSED,
@@ -137,10 +165,53 @@ typedef struct eg_cpu_frame_sample_t {
 } eg_cpu_frame_sample_t;
 
 typedef struct eg_world_settings_t {
-  lb_scene_asset_id_t default_scene_asset_id;
-  lb_swapchain_asset_id_t default_swapchain_asset_id;
-  lb_renderer_asset_id_t default_renderer_asset_id;
+  eg_scene_asset_id_t default_scene_asset_id;
+  eg_swapchain_asset_id_t default_swapchain_asset_id;
+  eg_renderer_asset_id_t default_renderer_asset_id;
 } eg_world_settings_t;
+
+typedef struct eg_vector2_t {
+  float x;
+  float y;
+} eg_vector2_t;
+typedef struct eg_ivector2_t {
+  int32_t x;
+  int32_t y;
+} eg_ivector2_t;
+typedef struct eg_vector3_t {
+  float x;
+  float y;
+  float z;
+} eg_vector3_t;
+typedef struct eg_ivector3_t {
+  int32_t x;
+  int32_t y;
+  int32_t z;
+} eg_ivector3_t;
+typedef struct eg_vector4_t {
+  float x;
+  float y;
+  float z;
+  float w;
+} eg_vector4_t;
+typedef struct eg_ivector4_t {
+  int32_t x;
+  int32_t y;
+  int32_t z;
+  int32_t w;
+} eg_ivector4_t;
+typedef struct eg_quaternion_t {
+  float x;
+  float y;
+  float z;
+  float w;
+} eg_quaternion_t;
+typedef struct eg_matrix4_t {
+  float m00, m01, m02, m03;
+  float m10, m11, m12, m13;
+  float m20, m21, m22, m23;
+  float m30, m31, m32, m33;
+} eg_matrix4_t;
 
 typedef struct eg_context_t eg_context_t;
 typedef struct eg_swapchain_t eg_swapchain_t;
@@ -152,54 +223,232 @@ typedef struct eg_buffer_t eg_buffer_t;
 typedef struct eg_image_t eg_image_t;
 typedef struct eg_scene_t eg_scene_t;
 typedef struct eg_terrain_t eg_terrain_t;
+typedef struct eg_string_t eg_string_t;
+typedef struct eg_set_t eg_set_t;
+typedef struct eg_set_record_t eg_set_record_t;
+typedef struct eg_set_iter_t eg_set_iter_t;
+typedef struct eg_map_t eg_map_t;
+typedef struct eg_map_record_t eg_map_record_t;
+typedef struct eg_map_iter_t eg_map_iter_t;
+typedef struct eg_vector_t eg_vector_t;
 
-typedef void (*eg_editor_create_proc_t)(eg_context_t *context);
-typedef void (*eg_editor_refresh_proc_t)(eg_context_t *context);
-typedef void (*eg_editor_draw_proc_t)(eg_context_t *context);
-typedef void (*eg_editor_destroy_proc_t)(eg_context_t *context);
+typedef void (*eg_editor_create_proc_t)(void);
+typedef void (*eg_editor_refresh_proc_t)(void);
+typedef void (*eg_editor_draw_proc_t)(void);
+typedef void (*eg_editor_destroy_proc_t)(void);
 typedef LRESULT (*eg_editor_message_proc_t)(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
 
-typedef void (*eg_script_create_proc_t)(eg_context_t *context);
-typedef void (*eg_script_update_proc_t)(eg_context_t *context);
-typedef void (*eg_script_fixed_update_proc_t)(eg_context_t *context);
-typedef void (*eg_script_destroy_proc_t)(eg_context_t *context);
+typedef void (*eg_script_create_proc_t)(void);
+typedef void (*eg_script_update_proc_t)(void);
+typedef void (*eg_script_fixed_update_proc_t)(void);
+typedef void (*eg_script_destroy_proc_t)(void);
 
 typedef struct eg_time_info_t {
   float time;
   float delta_time;
 } eg_time_info_t;
 typedef struct eg_screen_info_t {
-  lb_vector2_t resolution;
+  eg_vector2_t resolution;
 } eg_screen_info_t;
 typedef struct eg_camera_info_t {
-  lb_vector3_t position;
+  eg_vector3_t position;
   int32_t reserved;
-  lb_matrix4_t view;
-  lb_matrix4_t projection;
-  lb_matrix4_t view_projection;
-  lb_matrix4_t view_projection_inv;
+  eg_matrix4_t view;
+  eg_matrix4_t projection;
+  eg_matrix4_t view_projection;
+  eg_matrix4_t view_projection_inv;
 } eg_camera_info_t;
 
 typedef struct eg_debug_vertex_t {
-  lb_vector3_t position;
-  lb_vector4_t color;
+  eg_vector3_t position;
+  eg_vector4_t color;
 } eg_debug_vertex_t;
 typedef struct eg_terrain_vertex_t {
-  lb_vector3_t position;
-  lb_vector3_t normal;
-  lb_vector4_t color;
+  eg_vector3_t position;
+  eg_vector3_t normal;
+  eg_vector4_t color;
 } eg_terrain_vertex_t;
 typedef struct eg_brdf_vertex_t {
-  lb_vector3_t position;
-  lb_vector3_t normal;
-  lb_vector3_t tangent;
-  lb_vector2_t texcoord_channel_0;
-  lb_vector4_t color_channel_0;
+  eg_vector3_t position;
+  eg_vector3_t normal;
+  eg_vector3_t tangent;
+  eg_vector2_t texcoord_channel_0;
+  eg_vector4_t color_channel_0;
 } eg_brdf_vertex_t;
 
 typedef enum eg_renderer_pipeline_link_type_t {
   EG_RENDERER_PIPELINE_LINK_TYPE_DEBUG,
   EG_RENDERER_PIPELINE_LINK_TYPE_PBR,
 } eg_renderer_pipeline_link_type_t;
+
+typedef struct eg_graphic_pipeline_import_settings_t {
+  char pipeline_name[0xFF];
+  char vertex_shader_file_path[0xFF];
+  char fragment_shader_file_path[0xFF];
+  uint8_t auto_create_pipeline;
+  uint8_t auto_create_vertex_input_buffer;
+  uint8_t auto_link_descriptor_bindings;
+  uint8_t interleaved_vertex_input;
+} eg_graphic_pipeline_import_settings_t;
+
+typedef struct eg_compute_pipeline_import_settings_t {
+  char pipeline_name[0xFF];
+  char compute_shader_file_path[0xFF];
+} eg_compute_pipeline_import_settings_t;
+
+typedef struct eg_model_import_settings_t {
+  char model_name[0xFF];
+  char model_file_path[0xFF];
+} eg_model_import_settings_t;
+
+typedef enum eg_asset_type_t {
+  LB_ASSET_TYPE_SWAPCHAIN,
+  LB_ASSET_TYPE_RENDERER,
+  LB_ASSET_TYPE_PIPELINE,
+  LB_ASSET_TYPE_MODEL,
+  LB_ASSET_TYPE_SCENE,
+  LB_ASSET_TYPE_GRAPH,
+  LB_ASSET_TYPE_COUNT,
+} eg_asset_type_t;
+
+typedef enum eg_pipeline_type_t {
+  LB_PIPELINE_TYPE_GRAPHIC,
+  LB_PIPELINE_TYPE_COMPUTE,
+  LB_PIPELINE_TYPE_COUNT,
+} eg_pipeline_type_t;
+
+typedef enum eg_node_type_t {
+  LB_NODE_TYPE_MESH,
+  LB_NODE_TYPE_NOISE,
+  LB_NODE_TYPE_OUTPUT,
+  LB_NODE_TYPE_COUNT,
+} eg_node_type_t;
+
+typedef struct eg_swapchain_asset_t {
+  eg_swapchain_asset_id_t id;
+  char name[0xFF];
+  uint32_t image_count;
+  uint8_t is_default;
+} eg_swapchain_asset_t;
+
+typedef struct eg_renderer_asset_t {
+  eg_renderer_asset_id_t id;
+  char name[0xFF];
+  uint32_t frames_in_flight;
+  uint8_t is_default;
+} eg_renderer_asset_t;
+
+typedef struct eg_pipeline_asset_t {
+  eg_pipeline_asset_id_t id;
+  char name[0xFF];
+  eg_pipeline_type_t type;
+  uint32_t link_index;
+  uint8_t auto_create_pipeline;
+  uint8_t auto_create_vertex_input_buffer; // TODO: experimental..
+  uint8_t auto_link_descriptor_bindings;
+  uint8_t interleaved_vertex_input_buffer;
+} eg_pipeline_asset_t;
+typedef struct eg_pipeline_resource_t {
+  eg_pipeline_resource_id_t id;
+  eg_pipeline_asset_id_t pipeline_asset_id;
+  char vertex_shader_file_path[0xFF];
+  char fragment_shader_file_path[0xFF];
+  char compute_shader_file_path[0xFF];
+} eg_pipeline_resource_t;
+typedef struct eg_pipeline_vertex_input_binding_t {
+  eg_pipeline_vertex_input_binding_id_t id;
+  eg_pipeline_asset_id_t pipeline_asset_id;
+  char name[0xFF];
+  uint32_t location;
+  uint32_t size;
+  uint32_t component_count;
+  uint32_t format;
+  uint32_t input_rate;
+} eg_pipeline_vertex_input_binding_t;
+typedef struct eg_pipeline_descriptor_binding_t {
+  eg_pipeline_descriptor_binding_id_t id;
+  eg_pipeline_asset_id_t pipeline_asset_id;
+  char name[0xFF];
+  uint32_t binding;
+  uint32_t descriptor_type;
+  uint32_t descriptor_count;
+  uint32_t stage_flags;
+  uint8_t auto_buffer;
+} eg_pipeline_descriptor_binding_t;
+
+typedef struct eg_model_asset_t {
+  eg_model_asset_id_t id;
+  char name[0xFF];
+} eg_model_asset_t;
+typedef struct eg_model_resource_t {
+  eg_model_resource_id_t id;
+  eg_model_asset_id_t model_asset_id;
+  char model_file_path[0xFF];
+} eg_model_resource_t;
+typedef struct eg_model_mesh_t {
+  eg_model_mesh_id_t id;
+  eg_model_asset_id_t model_asset_id;
+  char name[0xFF];
+} eg_model_mesh_t;
+
+typedef struct eg_mesh_primitive_t {
+  eg_mesh_primitive_id_t id;
+  eg_model_mesh_id_t model_mesh_id;
+  char name[0xFF];
+} eg_mesh_primitive_t;
+typedef struct eg_mesh_attribute_t {
+  eg_mesh_attribute_id_t id;
+  eg_mesh_primitive_id_t mesh_primitive_id;
+  char name[0xFF];
+  uint32_t type;
+  uint64_t count;
+} eg_mesh_attribute_t;
+
+typedef struct eg_attribute_buffer_t {
+  eg_attribute_data_id_t id;
+  eg_mesh_attribute_id_t mesh_attribute_id;
+  uint8_t *data;
+  uint64_t data_size;
+} eg_attribute_buffer_t;
+
+typedef struct eg_scene_asset_t {
+  eg_scene_asset_id_t id;
+  char name[0xFF];
+} eg_scene_asset_t;
+
+typedef struct eg_graph_asset_t {
+  eg_graph_asset_id_t id;
+  char name[0xFF];
+  uint64_t name_size;
+  uint32_t unique_node_id;
+  uint32_t unique_pin_id;
+  uint32_t unique_link_id;
+} eg_graph_asset_t;
+
+typedef struct eg_noise_node_t {
+  eg_noise_node_id_t id;
+  uint32_t factor_pin_id;
+  float position_x;
+  float position_y;
+} eg_noise_node_t;
+typedef struct eg_mesh_node_t {
+  eg_mesh_node_id_t id;
+  uint32_t mesh_pin_id;
+  float position_x;
+  float position_y;
+} eg_mesh_node_t;
+typedef struct eg_output_node_t {
+  eg_output_node_id_t id;
+  uint32_t mesh_pin_id;
+  float position_x;
+  float position_y;
+} eg_output_node_t;
+
+typedef struct eg_hit3_t {
+  uint8_t collision;
+  eg_vector3_t point;
+  eg_vector3_t normal;
+  float penetration;
+} eg_hit3_t;
 
 #endif // EG_FWD_H

@@ -14,7 +14,8 @@ typedef struct eg_script_t {
 
 ECS_COMPONENT_DECLARE(eg_script_t);
 
-void eg_script_init(eg_script_t *script);
+void eg_script_create(eg_script_t *script);
+void eg_script_destroy(eg_script_t *script);
 
 #ifdef __cplusplus
 }

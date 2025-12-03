@@ -1,12 +1,10 @@
 #include <engine/eg_pch.h>
-#include <engine/eg_scene.h>
 
 #include <engine/system/eg_controller.h>
 #include <engine/system/eg_rigidbody.h>
 
 struct eg_scene_t {
-  eg_context_t *context;
-  lb_scene_asset_t asset;
+  eg_scene_asset_t asset;
   ecs_world_t *world;
   ecs_entity_t root;
   ecs_entity_t player;
@@ -17,11 +15,12 @@ struct eg_scene_t {
 static void eg_scene_create_root(eg_scene_t *scene);
 static void eg_scene_create_player(eg_scene_t *scene);
 
-eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_asset_id) {
-  eg_scene_t *scene = (eg_scene_t *)lb_heap_alloc(sizeof(eg_scene_t), 1, 0);
+void eg_scene_create(eg_scene_asset_id_t scene_asset_id) {
+  eg_scene_t *scene = (eg_scene_t *)eg_heap_alloc(sizeof(eg_scene_t), 1, 0);
 
-  scene->context = context;
-  scene->asset = lb_database_load_scene_asset_by_id(scene_asset_id);
+  eg_context_set_scene(scene);
+
+  scene->asset = eg_database_load_scene_asset_by_id(scene_asset_id);
   scene->world = ecs_init_w_args(0, 0);
 
   ECS_COMPONENT_DEFINE(scene->world, eg_camera_t);
@@ -30,16 +29,16 @@ eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_ass
   ECS_COMPONENT_DEFINE(scene->world, eg_script_t);
   ECS_COMPONENT_DEFINE(scene->world, eg_transform_t);
 
-  scene->controller_system = ecs_system(scene->world, {.ctx = context,
-                                                       .entity = ecs_entity(scene->world, {.name = "controller system"}),
+  scene->controller_system = ecs_system(scene->world, {.ctx = 0,
+                                                       .entity = ecs_entity(scene->world, {.name = "controller_system"}),
                                                        .query.terms = {
                                                          {.id = ecs_id(eg_transform_t)},
                                                          {.id = ecs_id(eg_rigidbody_t)},
                                                          {.id = ecs_id(eg_editor_controller_t)}},
                                                        .run = eg_editor_controller_update});
 
-  scene->rigidbody_system = ecs_system(scene->world, {.ctx = context,
-                                                      .entity = ecs_entity(scene->world, {.name = "rigidbody system"}),
+  scene->rigidbody_system = ecs_system(scene->world, {.ctx = 0,
+                                                      .entity = ecs_entity(scene->world, {.name = "rigidbody_system"}),
                                                       .query.terms = {
                                                         {.id = ecs_id(eg_transform_t)},
                                                         {.id = ecs_id(eg_rigidbody_t)}},
@@ -47,8 +46,6 @@ eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_ass
 
   eg_scene_create_root(scene);
   eg_scene_create_player(scene);
-
-  return scene;
 }
 void eg_scene_update(eg_scene_t *scene) {
   ecs_run(scene->world, scene->controller_system, 0.0F, 0);
@@ -57,9 +54,9 @@ void eg_scene_update(eg_scene_t *scene) {
 void eg_scene_destroy(eg_scene_t *scene) {
   ecs_fini(scene->world);
 
-  lb_database_destroy_scene_asset(&scene->asset);
+  eg_database_destroy_scene_asset(&scene->asset);
 
-  lb_heap_free(scene);
+  eg_heap_free(scene);
 }
 
 ecs_world_t *eg_scene_world(eg_scene_t *scene) {
@@ -123,12 +120,12 @@ static void eg_scene_create_player(eg_scene_t *scene) {
   eg_camera_t *camera = ecs_get_mut(scene->world, scene->player, eg_camera_t);
   eg_editor_controller_t *editor_controller = ecs_get_mut(scene->world, scene->player, eg_editor_controller_t);
 
-  eg_transform_init(transform);
+  eg_transform_create(transform);
   eg_transform_set_position_xyz(transform, 0.0F, 0.0F, -10.0F);
 
-  eg_rigidbody_init(rigidbody);
+  eg_rigidbody_create(rigidbody);
 
-  eg_camera_init(camera);
+  eg_camera_create(camera);
 
-  eg_editor_controller_init(editor_controller);
+  eg_editor_controller_create(editor_controller);
 }

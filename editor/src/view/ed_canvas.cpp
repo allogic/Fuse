@@ -1,5 +1,4 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_main.h>
 #include <editor/ed_graph.h>
 
 #include <editor/view/ed_canvas.h>
@@ -8,6 +7,7 @@
 #include <editor/node/ed_noise.h>
 #include <editor/node/ed_output.h>
 
+/*
 static void ed_canvas_view_handle_pending_node_transactions(ed_canvas_view_t *canvas);
 static void ed_canvas_view_handle_pending_view_resets(ed_canvas_view_t *canvas);
 static void ed_canvas_view_handle_node_selection(ed_canvas_view_t *canvas);
@@ -15,7 +15,7 @@ static void ed_canvas_view_handle_node_selection(ed_canvas_view_t *canvas);
 static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas);
 
 ed_canvas_view_t *ed_canvas_view_create(eg_context_t *context) {
-  ed_canvas_view_t *canvas = (ed_canvas_view_t *)lb_heap_alloc(sizeof(ed_canvas_view_t), 1, 0);
+  ed_canvas_view_t *canvas = (ed_canvas_view_t *)eg_heap_alloc(sizeof(ed_canvas_view_t), 1, 0);
 
   canvas->base.context = context;
   canvas->base.is_dirty = 0;
@@ -27,17 +27,16 @@ ed_canvas_view_t *ed_canvas_view_create(eg_context_t *context) {
   canvas->next_node_screen_position_x = 0.0F;
   canvas->next_node_screen_position_y = 0.0F;
   canvas->graph = ed_graph_create(context, "kek W");
-  canvas->next_node_type = LB_NODE_TYPE_COUNT;
-  canvas->selected_nodes = lb_vector_create(sizeof(uint32_t));
+  canvas->next_node_type = EG_NODE_TYPE_COUNT;
+  canvas->selected_nodes = eg_vector_create(sizeof(uint32_t));
 
   return canvas;
 }
 void ed_canvas_view_draw(ed_canvas_view_t *canvas) {
   ImNodes::BeginNodeEditor();
 
-  /*
   uint64_t node_index = 0;
-  uint64_t node_count = lb_vector_count(&canvas->graph);
+  uint64_t node_count = eg_vector_count(&canvas->graph);
 
   while (node_index < node_count) {
 
@@ -68,20 +67,19 @@ void ed_canvas_view_draw(ed_canvas_view_t *canvas) {
   }
 
   ed_canvas_view_draw_context_menu(canvas);
-  */
 
-  ImNodes::EndNodeEditor();
+ImNodes::EndNodeEditor();
 
-  ed_canvas_view_handle_pending_node_transactions(canvas);
-  ed_canvas_view_handle_pending_view_resets(canvas);
-  ed_canvas_view_handle_node_selection(canvas);
+ed_canvas_view_handle_pending_node_transactions(canvas);
+ed_canvas_view_handle_pending_view_resets(canvas);
+ed_canvas_view_handle_node_selection(canvas);
 }
 void ed_canvas_view_destroy(ed_canvas_view_t *canvas) {
   ed_graph_destroy(&canvas->graph);
 
-  lb_vector_destroy(canvas->selected_nodes);
+  eg_vector_destroy(canvas->selected_nodes);
 
-  lb_heap_free(canvas);
+  eg_heap_free(canvas);
 }
 
 static void ed_canvas_view_handle_pending_node_transactions(ed_canvas_view_t *canvas) {
@@ -137,7 +135,7 @@ static void ed_canvas_view_handle_node_selection(ed_canvas_view_t *canvas) {
   // }
 }
 
-static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas) {
+static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas){
   // if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
   //     ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
   //
@@ -167,3 +165,4 @@ static void ed_canvas_view_draw_context_menu(ed_canvas_view_t *canvas) {
   //   ImGui::EndPopup();
   // }
 }
+*/

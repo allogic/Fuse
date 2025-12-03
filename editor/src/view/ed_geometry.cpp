@@ -1,10 +1,10 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_main.h>
 
 #include <editor/view/ed_geometry.h>
 
+/*
 ed_geometry_view_t *ed_geometry_view_create(eg_context_t *context) {
-  ed_geometry_view_t *geometry = (ed_geometry_view_t *)lb_heap_alloc(sizeof(ed_geometry_view_t), 1, 0);
+  ed_geometry_view_t *geometry = (ed_geometry_view_t *)eg_heap_alloc(sizeof(ed_geometry_view_t), 1, 0);
 
   geometry->base.context = context;
   geometry->base.is_dirty = 0;
@@ -107,5 +107,6 @@ void ed_geometry_view_draw(ed_geometry_view_t *geometry) {
   }
 }
 void ed_geometry_view_destroy(ed_geometry_view_t *geometry) {
-  lb_heap_free(geometry);
+  eg_heap_free(geometry);
 }
+*/

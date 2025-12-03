@@ -1,8 +1,4 @@
 #include <engine/eg_pch.h>
-#include <engine/eg_context.h>
-#include <engine/eg_swapchain.h>
-#include <engine/eg_renderer.h>
-#include <engine/eg_viewport.h>
 
 struct eg_context_t {
   HMODULE module_handle;
@@ -51,8 +47,6 @@ struct eg_context_t {
 #endif // BUILD_DEBUG
   eg_world_settings_t world_settings;
   eg_viewport_t *viewport[0xFF];
-  eg_swapchain_t *swapchain;
-  eg_renderer_t *renderer;
   eg_scene_t *scene;
 };
 
@@ -62,25 +56,27 @@ static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, 
 static VkBool32 eg_context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const *callback_data, void *user_data);
 #endif // BUILD_DEBUG
 
-static void eg_context_create_window(eg_context_t *context);
-static void eg_context_create_instance(eg_context_t *context);
-static void eg_context_create_surface(eg_context_t *context);
-static void eg_context_create_device(eg_context_t *context);
-static void eg_context_create_command_pool(eg_context_t *context);
+static void eg_context_create_window(void);
+static void eg_context_create_instance(void);
+static void eg_context_create_surface(void);
+static void eg_context_create_device(void);
+static void eg_context_create_command_pool(void);
 
-static void eg_context_destroy_window(eg_context_t *context);
-static void eg_context_destroy_instance(eg_context_t *context);
-static void eg_context_destroy_surface(eg_context_t *context);
-static void eg_context_destroy_device(eg_context_t *context);
-static void eg_context_destroy_command_pool(eg_context_t *context);
+static void eg_context_destroy_window(void);
+static void eg_context_destroy_instance(void);
+static void eg_context_destroy_surface(void);
+static void eg_context_destroy_device(void);
+static void eg_context_destroy_command_pool(void);
 
-static void eg_context_check_surface_capabilities(eg_context_t *context);
-static void eg_context_check_physical_device_extensions(eg_context_t *context);
+static void eg_context_check_surface_capabilities(void);
+static void eg_context_check_physical_device_extensions(void);
 
-static void eg_context_resize_surface(eg_context_t *context);
+static void eg_context_resize_surface(void);
 
-static void eg_context_find_physical_device(eg_context_t *context);
-static void eg_context_find_physical_device_queue_families(eg_context_t *context);
+static void eg_context_find_physical_device(void);
+static void eg_context_find_physical_device_queue_families(void);
+
+static eg_context_t *s_context_current = 0;
 
 static char const *s_context_window_class = "FUSE_CLASS";
 static char const *s_context_window_name = "FUSE";
@@ -110,71 +106,73 @@ eg_editor_draw_proc_t g_context_editor_draw_proc = 0;
 eg_editor_destroy_proc_t g_context_editor_destroy_proc = 0;
 eg_editor_message_proc_t g_context_editor_message_proc = 0;
 
-eg_context_t *eg_context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
-  lb_database_create();
+eg_context_t *eg_context_current(void) {
+  return s_context_current;
+}
+
+void eg_context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
+  eg_database_create();
 
   eg_world_settings_t world_settings = {0};
 
-  world_settings.default_scene_asset_id = lb_database_load_default_scene_asset_id();
-  world_settings.default_swapchain_asset_id = lb_database_load_default_swapchain_asset_id();
-  world_settings.default_renderer_asset_id = lb_database_load_default_renderer_asset_id();
+  world_settings.default_scene_asset_id = eg_database_load_default_scene_asset_id();
+  world_settings.default_swapchain_asset_id = eg_database_load_default_swapchain_asset_id();
+  world_settings.default_renderer_asset_id = eg_database_load_default_renderer_asset_id();
 
-  eg_context_t *context = (eg_context_t *)lb_heap_alloc(sizeof(eg_context_t), 1, 0);
+  s_context_current = (eg_context_t *)eg_heap_alloc(sizeof(eg_context_t), 1, 0);
 
-  context->is_editor_mode = is_editor_mode;
-  context->is_window_running = 1;
-  context->window_titlebar_height = 65;
-  context->window_statusbar_height = 30;
-  context->window_border_width = 1;
-  context->window_width = width;
-  context->window_height = height;
-  context->primary_queue_index = -1;
-  context->present_queue_index = -1;
-  context->prefered_image_depth_format = VK_FORMAT_D32_SFLOAT; // TODO
-  context->world_settings = world_settings;
+  s_context_current->is_editor_mode = is_editor_mode;
+  s_context_current->is_window_running = 1;
+  s_context_current->window_titlebar_height = 65;
+  s_context_current->window_statusbar_height = 30;
+  s_context_current->window_border_width = 1;
+  s_context_current->window_width = width;
+  s_context_current->window_height = height;
+  s_context_current->primary_queue_index = -1;
+  s_context_current->present_queue_index = -1;
+  s_context_current->prefered_image_depth_format = VK_FORMAT_D32_SFLOAT; // TODO
+  s_context_current->world_settings = world_settings;
 
-  eg_context_create_window(context);
-  eg_context_create_instance(context);
-  eg_context_create_surface(context);
+  eg_context_create_window();
+  eg_context_create_instance();
+  eg_context_create_surface();
 
-  eg_context_find_physical_device(context);
-  eg_context_find_physical_device_queue_families(context);
+  eg_context_find_physical_device();
+  eg_context_find_physical_device_queue_families();
 
-  eg_context_check_physical_device_extensions(context);
+  eg_context_check_physical_device_extensions();
 
-  eg_context_create_device(context);
+  eg_context_create_device();
 
-  eg_context_check_surface_capabilities(context);
+  eg_context_check_surface_capabilities();
 
-  eg_context_resize_surface(context);
+  eg_context_resize_surface();
 
-  eg_context_create_command_pool(context);
+  eg_context_create_command_pool();
 
-  eg_swapchain_create(context, context->world_settings.default_swapchain_asset_id);
-  eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
+  eg_renderpass_create_main();
+  eg_renderpass_create_gbuffer();
 
-  context->scene = eg_scene_create(context, context->world_settings.default_scene_asset_id);
-
-  return context;
+  eg_swapchain_create(world_settings.default_swapchain_asset_id);
+  eg_renderer_create(world_settings.default_renderer_asset_id);
+  eg_scene_create(world_settings.default_scene_asset_id);
 }
-void eg_context_run(eg_context_t *context) {
-  QueryPerformanceFrequency(&context->time_freq);
+void eg_context_run(void) {
+  QueryPerformanceFrequency(&s_context_current->time_freq);
 
-  EG_PROFILER_INIT(context);
+  while (s_context_current->is_window_running) {
 
-  while (context->is_window_running) {
-
-    context->mouse_wheel_delta = 0;
+    s_context_current->mouse_wheel_delta = 0;
 
     uint8_t keyboard_key_index = 0;
     uint8_t keyboard_key_count = 0xFF;
 
     while (keyboard_key_index < keyboard_key_count) {
 
-      if (context->event_keyboard_key_states[keyboard_key_index] == EG_KEY_STATE_PRESSED) {
-        context->event_keyboard_key_states[keyboard_key_index] = EG_KEY_STATE_DOWN;
-      } else if (context->event_keyboard_key_states[keyboard_key_index] == EG_KEY_STATE_RELEASED) {
-        context->event_keyboard_key_states[keyboard_key_index] = EG_KEY_STATE_UP;
+      if (s_context_current->event_keyboard_key_states[keyboard_key_index] == EG_KEY_STATE_PRESSED) {
+        s_context_current->event_keyboard_key_states[keyboard_key_index] = EG_KEY_STATE_DOWN;
+      } else if (s_context_current->event_keyboard_key_states[keyboard_key_index] == EG_KEY_STATE_RELEASED) {
+        s_context_current->event_keyboard_key_states[keyboard_key_index] = EG_KEY_STATE_UP;
       }
 
       keyboard_key_index++;
@@ -185,225 +183,218 @@ void eg_context_run(eg_context_t *context) {
 
     while (mouse_key_index < mouse_key_count) {
 
-      if (context->event_mouse_key_states[mouse_key_index] == EG_KEY_STATE_PRESSED) {
-        context->event_mouse_key_states[mouse_key_index] = EG_KEY_STATE_DOWN;
-      } else if (context->event_mouse_key_states[mouse_key_index] == EG_KEY_STATE_RELEASED) {
-        context->event_mouse_key_states[mouse_key_index] = EG_KEY_STATE_UP;
+      if (s_context_current->event_mouse_key_states[mouse_key_index] == EG_KEY_STATE_PRESSED) {
+        s_context_current->event_mouse_key_states[mouse_key_index] = EG_KEY_STATE_DOWN;
+      } else if (s_context_current->event_mouse_key_states[mouse_key_index] == EG_KEY_STATE_RELEASED) {
+        s_context_current->event_mouse_key_states[mouse_key_index] = EG_KEY_STATE_UP;
       }
 
       mouse_key_index++;
     }
 
-    if (eg_swapchain_is_dirty(context->swapchain)) {
+    if (eg_swapchain_is_dirty()) {
 
-      eg_swapchain_set_dirty(context->swapchain, 0);
+      eg_swapchain_set_dirty(0);
 
-      eg_renderer_destroy(context->renderer);
-      eg_swapchain_destroy(context->swapchain);
+      eg_renderer_destroy();
+      eg_swapchain_destroy();
 
-      eg_context_resize_surface(context);
+      eg_context_resize_surface();
 
-      eg_swapchain_create(context, context->world_settings.default_swapchain_asset_id);
-      eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
+      eg_swapchain_create(s_context_current->world_settings.default_swapchain_asset_id);
+      eg_renderer_create(s_context_current->world_settings.default_renderer_asset_id);
     }
 
-    if (eg_renderer_is_dirty(context->renderer)) {
+    if (eg_renderer_is_dirty()) {
 
-      eg_renderer_set_dirty(context->renderer, 0);
+      eg_renderer_set_dirty(0);
 
-      eg_renderer_destroy(context->renderer);
+      eg_renderer_destroy();
 
-      eg_renderer_create(context, context->world_settings.default_renderer_asset_id);
+      eg_renderer_create(s_context_current->world_settings.default_renderer_asset_id);
     }
 
-    while (PeekMessageA(&context->window_message, 0, 0, 0, PM_REMOVE)) {
+    while (PeekMessageA(&s_context_current->window_message, 0, 0, 0, PM_REMOVE)) {
 
-      TranslateMessage(&context->window_message);
-      DispatchMessageA(&context->window_message);
+      TranslateMessage(&s_context_current->window_message);
+      DispatchMessageA(&s_context_current->window_message);
     }
 
-    QueryPerformanceCounter(&context->time_start); // TODO: measure whole loop..?
+    QueryPerformanceCounter(&s_context_current->time_start); // TODO: measure whole loop..?
 
-    eg_scene_update(context->scene);
+    eg_scene_update(s_context_current->scene);
 
-    eg_renderer_update(context->renderer); // TODO: remove this..
-    eg_renderer_draw(context->renderer);
+    eg_renderer_update(); // TODO: remove this..
+    eg_renderer_draw();
 
-    QueryPerformanceCounter(&context->time_end); // TODO: measure whole loop..?
+    QueryPerformanceCounter(&s_context_current->time_end); // TODO: measure whole loop..?
 
-    EG_PROFILER_INC_FRAME();
+    s_context_current->delta_time = ((double)(s_context_current->time_end.QuadPart - s_context_current->time_start.QuadPart)) / ((double)s_context_current->time_freq.QuadPart);
+    s_context_current->time += s_context_current->delta_time;
 
-    context->delta_time = ((double)(context->time_end.QuadPart - context->time_start.QuadPart)) / ((double)context->time_freq.QuadPart);
-    context->time += context->delta_time;
+    s_context_current->elapsed_time_since_fps_count_update += s_context_current->delta_time;
+    s_context_current->fps_counter++;
+    s_context_current->frame_index++;
 
-    context->elapsed_time_since_fps_count_update += context->delta_time;
-    context->fps_counter++;
-    context->frame_index++;
+    if (s_context_current->elapsed_time_since_fps_count_update > 1.0) {
 
-    if (context->elapsed_time_since_fps_count_update > 1.0) {
-      context->elapsed_time_since_fps_count_update = 0.0;
-      context->fps_counter = 0;
+      s_context_current->elapsed_time_since_fps_count_update = 0.0;
+      s_context_current->fps_counter = 0;
     }
   }
 }
-void eg_context_destroy(eg_context_t *context) {
-  eg_scene_destroy(context->scene);
-  eg_renderer_destroy(context->renderer);
-  eg_swapchain_destroy(context->swapchain);
+void eg_context_destroy(void) {
+  eg_scene_destroy(s_context_current->scene);
+  eg_renderer_destroy();
+  eg_swapchain_destroy();
 
-  eg_context_destroy_command_pool(context);
-  eg_context_destroy_device(context);
-  eg_context_destroy_surface(context);
-  eg_context_destroy_instance(context);
-  eg_context_destroy_window(context);
+  eg_renderpass_destroy_gbuffer();
+  eg_renderpass_destroy_main();
 
-  lb_heap_free(context);
+  eg_context_destroy_command_pool();
+  eg_context_destroy_device();
+  eg_context_destroy_surface();
+  eg_context_destroy_instance();
+  eg_context_destroy_window();
 
-  lb_database_destroy();
-}
+  eg_heap_free(s_context_current);
 
-HWND eg_context_window_handle(eg_context_t *context) {
-  return context->window_handle;
-}
-uint8_t eg_context_is_editor_mode(eg_context_t *context) {
-  return context->is_editor_mode;
-}
-uint32_t eg_context_mouse_position_x(eg_context_t *context) {
-  return context->mouse_position_x;
-}
-uint32_t eg_context_mouse_position_y(eg_context_t *context) {
-  return context->mouse_position_y;
-}
-float eg_context_time(eg_context_t *context) {
-  return (float)context->time;
-}
-float eg_context_delta_time(eg_context_t *context) {
-  return (float)context->delta_time;
-}
-VkInstance eg_context_instance(eg_context_t *context) {
-  return context->instance;
-}
-VkPhysicalDevice eg_context_physical_device(eg_context_t *context) {
-  return context->physical_device;
-}
-VkDevice eg_context_device(eg_context_t *context) {
-  return context->device;
-}
-VkCommandPool eg_context_command_pool(eg_context_t *context) {
-  return context->command_pool;
-}
-int32_t eg_context_primary_queue_index(eg_context_t *context) {
-  return context->primary_queue_index;
-}
-int32_t eg_context_present_queue_index(eg_context_t *context) {
-  return context->present_queue_index;
-}
-VkQueue eg_context_primary_queue(eg_context_t *context) {
-  return context->primary_queue;
-}
-VkQueue eg_context_present_queue(eg_context_t *context) {
-  return context->present_queue;
-}
-VkSurfaceKHR eg_context_surface(eg_context_t *context) {
-  return context->surface;
-}
-uint32_t eg_context_surface_min_image_count(eg_context_t *context) {
-  return context->surface_capabilities.minImageCount;
-}
-uint32_t eg_context_surface_max_image_count(eg_context_t *context) {
-  return context->surface_capabilities.maxImageCount;
-}
-VkSurfaceTransformFlagBitsKHR eg_context_surface_transform(eg_context_t *context) {
-  return context->surface_capabilities.currentTransform;
-}
-VkPresentModeKHR eg_context_surface_present_mode(eg_context_t *context) {
-  return context->prefered_present_mode;
-}
-VkFormat eg_context_surface_image_color_format(eg_context_t *context) {
-  return context->prefered_surface_format.format;
-}
-VkFormat eg_context_surface_image_depth_format(eg_context_t *context) {
-  return context->prefered_image_depth_format;
-}
-VkColorSpaceKHR eg_context_surface_image_color_space(eg_context_t *context) {
-  return context->prefered_surface_format.colorSpace;
-}
-uint32_t eg_context_window_width(eg_context_t *context) {
-  return context->window_width;
-}
-uint32_t eg_context_window_height(eg_context_t *context) {
-  return context->window_height;
-}
-uint32_t eg_context_titlebar_height(eg_context_t *context) {
-  return context->window_titlebar_height;
-}
-uint32_t eg_context_statusbar_height(eg_context_t *context) {
-  return context->window_statusbar_height;
-}
-float eg_context_max_anisotropy(eg_context_t *context) {
-  return context->physical_device_properties.limits.maxSamplerAnisotropy;
-}
-eg_viewport_t **eg_context_viewports(eg_context_t *context) {
-  return context->viewport;
-}
-eg_swapchain_t *eg_context_swapchain(eg_context_t *context) {
-  return context->swapchain;
-}
-eg_renderer_t *eg_context_renderer(eg_context_t *context) {
-  return context->renderer;
-}
-eg_scene_t *eg_context_scene(eg_context_t *context) {
-  return context->scene;
+  eg_database_destroy();
 }
 
-void eg_context_set_running(eg_context_t *context, uint8_t is_running) {
-  context->is_window_running = is_running;
+HWND eg_context_window_handle(void) {
+  return s_context_current->window_handle;
 }
-void eg_context_set_viewport(eg_context_t *context, eg_viewport_t *viewport, uint64_t *viewport_index) {
-  while (context->viewport[*viewport_index]) {
+uint8_t eg_context_is_editor_mode(void) {
+  return s_context_current->is_editor_mode;
+}
+uint32_t eg_context_mouse_position_x(void) {
+  return s_context_current->mouse_position_x;
+}
+uint32_t eg_context_mouse_position_y(void) {
+  return s_context_current->mouse_position_y;
+}
+float eg_context_time(void) {
+  return (float)s_context_current->time;
+}
+float eg_context_delta_time(void) {
+  return (float)s_context_current->delta_time;
+}
+VkInstance eg_context_instance(void) {
+  return s_context_current->instance;
+}
+VkPhysicalDevice eg_context_physical_device(void) {
+  return s_context_current->physical_device;
+}
+VkDevice eg_context_device(void) {
+  return s_context_current->device;
+}
+VkCommandPool eg_context_command_pool(void) {
+  return s_context_current->command_pool;
+}
+int32_t eg_context_primary_queue_index(void) {
+  return s_context_current->primary_queue_index;
+}
+int32_t eg_context_present_queue_index(void) {
+  return s_context_current->present_queue_index;
+}
+VkQueue eg_context_primary_queue(void) {
+  return s_context_current->primary_queue;
+}
+VkQueue eg_context_present_queue(void) {
+  return s_context_current->present_queue;
+}
+VkSurfaceKHR eg_context_surface(void) {
+  return s_context_current->surface;
+}
+uint32_t eg_context_surface_min_image_count(void) {
+  return s_context_current->surface_capabilities.minImageCount;
+}
+uint32_t eg_context_surface_max_image_count(void) {
+  return s_context_current->surface_capabilities.maxImageCount;
+}
+VkSurfaceTransformFlagBitsKHR eg_context_surface_transform(void) {
+  return s_context_current->surface_capabilities.currentTransform;
+}
+VkPresentModeKHR eg_context_surface_present_mode(void) {
+  return s_context_current->prefered_present_mode;
+}
+VkFormat eg_context_surface_image_color_format(void) {
+  return s_context_current->prefered_surface_format.format;
+}
+VkFormat eg_context_surface_image_depth_format(void) {
+  return s_context_current->prefered_image_depth_format;
+}
+VkColorSpaceKHR eg_context_surface_image_color_space(void) {
+  return s_context_current->prefered_surface_format.colorSpace;
+}
+uint32_t eg_context_window_width(void) {
+  return s_context_current->window_width;
+}
+uint32_t eg_context_window_height(void) {
+  return s_context_current->window_height;
+}
+uint32_t eg_context_titlebar_height(void) {
+  return s_context_current->window_titlebar_height;
+}
+uint32_t eg_context_statusbar_height(void) {
+  return s_context_current->window_statusbar_height;
+}
+float eg_context_max_anisotropy(void) {
+  return s_context_current->physical_device_properties.limits.maxSamplerAnisotropy;
+}
+eg_viewport_t **eg_context_viewports(void) {
+  return s_context_current->viewport;
+}
+eg_scene_t *eg_context_scene(void) {
+  return s_context_current->scene;
+}
+
+void eg_context_set_running(uint8_t is_running) {
+  s_context_current->is_window_running = is_running;
+}
+void eg_context_set_viewport(eg_viewport_t *viewport, uint64_t *viewport_index) {
+  while (s_context_current->viewport[*viewport_index]) {
 
     (*viewport_index)++;
   }
 
-  LB_ASSERT((*viewport_index) < 0xFF, "Invalid viewport index");
+  EG_ASSERT((*viewport_index) < 0xFF, "Invalid viewport index");
 
-  context->viewport[*viewport_index] = viewport;
+  s_context_current->viewport[*viewport_index] = viewport;
 }
-void eg_context_set_swapchain(eg_context_t *context, eg_swapchain_t *swapchain) {
-  context->swapchain = swapchain;
-}
-void eg_context_set_renderer(eg_context_t *context, eg_renderer_t *renderer) {
-  context->renderer = renderer;
+void eg_context_set_scene(eg_scene_t *scene) {
+  s_context_current->scene = scene;
 }
 
-uint8_t eg_context_is_keyboard_key_pressed(eg_context_t *context, eg_keyboard_key_t key) {
-  return context->event_keyboard_key_states[key] == EG_KEY_STATE_PRESSED;
+uint8_t eg_context_is_keyboard_key_pressed(eg_keyboard_key_t key) {
+  return s_context_current->event_keyboard_key_states[key] == EG_KEY_STATE_PRESSED;
 }
-uint8_t eg_context_is_keyboard_key_held(eg_context_t *context, eg_keyboard_key_t key) {
-  return (context->event_keyboard_key_states[key] == EG_KEY_STATE_DOWN) || (context->event_keyboard_key_states[key] == EG_KEY_STATE_PRESSED);
+uint8_t eg_context_is_keyboard_key_held(eg_keyboard_key_t key) {
+  return (s_context_current->event_keyboard_key_states[key] == EG_KEY_STATE_DOWN) || (s_context_current->event_keyboard_key_states[key] == EG_KEY_STATE_PRESSED);
 }
-uint8_t eg_context_is_keyboard_key_released(eg_context_t *context, eg_keyboard_key_t key) {
-  return context->event_keyboard_key_states[key] == EG_KEY_STATE_RELEASED;
-}
-
-uint8_t eg_context_is_mouse_key_pressed(eg_context_t *context, eg_mouse_key_t key) {
-  return context->event_mouse_key_states[key] == EG_KEY_STATE_PRESSED;
-}
-uint8_t eg_context_is_mouse_key_held(eg_context_t *context, eg_mouse_key_t key) {
-  return (context->event_mouse_key_states[key] == EG_KEY_STATE_DOWN) || (context->event_mouse_key_states[key] == EG_KEY_STATE_PRESSED);
-}
-uint8_t eg_context_is_mouse_key_released(eg_context_t *context, eg_mouse_key_t key) {
-  return context->event_mouse_key_states[key] == EG_KEY_STATE_RELEASED;
+uint8_t eg_context_is_keyboard_key_released(eg_keyboard_key_t key) {
+  return s_context_current->event_keyboard_key_states[key] == EG_KEY_STATE_RELEASED;
 }
 
-int32_t eg_context_find_memory_type(eg_context_t *context, uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
+uint8_t eg_context_is_mouse_key_pressed(eg_mouse_key_t key) {
+  return s_context_current->event_mouse_key_states[key] == EG_KEY_STATE_PRESSED;
+}
+uint8_t eg_context_is_mouse_key_held(eg_mouse_key_t key) {
+  return (s_context_current->event_mouse_key_states[key] == EG_KEY_STATE_DOWN) || (s_context_current->event_mouse_key_states[key] == EG_KEY_STATE_PRESSED);
+}
+uint8_t eg_context_is_mouse_key_released(eg_mouse_key_t key) {
+  return s_context_current->event_mouse_key_states[key] == EG_KEY_STATE_RELEASED;
+}
+
+int32_t eg_context_find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags memory_property_flags) {
   int32_t memory_type = -1;
 
   uint32_t memory_type_index = 0;
 
-  while (memory_type_index < context->physical_device_memory_properties.memoryTypeCount) {
+  while (memory_type_index < s_context_current->physical_device_memory_properties.memoryTypeCount) {
 
-    if ((type_filter & (1 << memory_type_index)) && ((context->physical_device_memory_properties.memoryTypes[memory_type_index].propertyFlags & memory_property_flags) == memory_property_flags)) {
+    if ((type_filter & (1 << memory_type_index)) && ((s_context_current->physical_device_memory_properties.memoryTypes[memory_type_index].propertyFlags & memory_property_flags) == memory_property_flags)) {
       memory_type = (int32_t)memory_type_index;
 
       break;
@@ -415,16 +406,16 @@ int32_t eg_context_find_memory_type(eg_context_t *context, uint32_t type_filter,
   return memory_type;
 }
 
-VkCommandBuffer eg_context_begin_command_buffer(eg_context_t *context) {
+VkCommandBuffer eg_context_begin_command_buffer(void) {
   VkCommandBuffer command_buffer = 0;
 
   VkCommandBufferAllocateInfo command_buffer_allocate_info = {0};
   command_buffer_allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   command_buffer_allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  command_buffer_allocate_info.commandPool = context->command_pool;
+  command_buffer_allocate_info.commandPool = s_context_current->command_pool;
   command_buffer_allocate_info.commandBufferCount = 1;
 
-  EG_VULKAN_CHECK(vkAllocateCommandBuffers(context->device, &command_buffer_allocate_info, &command_buffer));
+  EG_VULKAN_CHECK(vkAllocateCommandBuffers(s_context_current->device, &command_buffer_allocate_info, &command_buffer));
 
   VkCommandBufferBeginInfo command_buffer_begin_info = {0};
   command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -434,7 +425,7 @@ VkCommandBuffer eg_context_begin_command_buffer(eg_context_t *context) {
 
   return command_buffer;
 }
-void eg_context_end_command_buffer(eg_context_t *context, VkCommandBuffer command_buffer) {
+void eg_context_end_command_buffer(VkCommandBuffer command_buffer) {
   EG_VULKAN_CHECK(vkEndCommandBuffer(command_buffer));
 
   VkSubmitInfo submit_info = {0};
@@ -442,10 +433,10 @@ void eg_context_end_command_buffer(eg_context_t *context, VkCommandBuffer comman
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffer;
 
-  EG_VULKAN_CHECK(vkQueueSubmit(context->primary_queue, 1, &submit_info, 0));
-  EG_VULKAN_CHECK(vkQueueWaitIdle(context->primary_queue));
+  EG_VULKAN_CHECK(vkQueueSubmit(s_context_current->primary_queue, 1, &submit_info, 0));
+  EG_VULKAN_CHECK(vkQueueWaitIdle(s_context_current->primary_queue));
 
-  vkFreeCommandBuffers(context->device, context->command_pool, 1, &command_buffer);
+  vkFreeCommandBuffers(s_context_current->device, s_context_current->command_pool, 1, &command_buffer);
 }
 
 static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param) {
@@ -674,10 +665,6 @@ static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, 
         return HTBOTTOM;
       }
 
-      // if (pt.y < WINDOW_TOPBAR_HEIGHT) {
-      //   return HTCAPTION;
-      // }
-
       return HTCLIENT;
     }
     default: {
@@ -697,8 +684,8 @@ static VkBool32 eg_context_vulkan_message_proc(VkDebugUtilsMessageSeverityFlagBi
 }
 #endif // BUILD_DEBUG
 
-static void eg_context_create_window(eg_context_t *context) {
-  context->module_handle = GetModuleHandleA(0);
+static void eg_context_create_window(void) {
+  s_context_current->module_handle = GetModuleHandleA(0);
 
   WNDCLASSEX window_class_ex = {0};
   window_class_ex.cbSize = sizeof(WNDCLASSEX);
@@ -706,7 +693,7 @@ static void eg_context_create_window(eg_context_t *context) {
   window_class_ex.lpfnWndProc = eg_context_window_message_proc;
   window_class_ex.cbClsExtra = 0;
   window_class_ex.cbWndExtra = 0;
-  window_class_ex.hInstance = context->module_handle;
+  window_class_ex.hInstance = s_context_current->module_handle;
   window_class_ex.hIcon = LoadIconA(0, IDI_APPLICATION);
   window_class_ex.hCursor = LoadCursorA(0, IDC_ARROW);
   window_class_ex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
@@ -718,17 +705,17 @@ static void eg_context_create_window(eg_context_t *context) {
 
   INT screen_width = GetSystemMetrics(SM_CXSCREEN);
   INT screen_height = GetSystemMetrics(SM_CYSCREEN);
-  INT window_position_x = (screen_width - context->window_width) / 2;
-  INT window_position_y = (screen_height - context->window_height) / 2;
+  INT window_position_x = (screen_width - s_context_current->window_width) / 2;
+  INT window_position_y = (screen_height - s_context_current->window_height) / 2;
 
   DWORD style = 0;
 
   style |= WS_POPUP;
   style |= WS_THICKFRAME;
 
-  context->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, style, window_position_x, window_position_y, context->window_width, context->window_height, 0, 0, context->module_handle, context);
+  s_context_current->window_handle = CreateWindowExA(0, s_context_window_class, s_context_window_name, style, window_position_x, window_position_y, s_context_current->window_width, s_context_current->window_height, 0, 0, s_context_current->module_handle, s_context_current);
 }
-static void eg_context_create_instance(eg_context_t *context) {
+static void eg_context_create_instance(void) {
   VkApplicationInfo app_info = {0};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   app_info.pApplicationName = "";
@@ -740,7 +727,7 @@ static void eg_context_create_instance(eg_context_t *context) {
   VkInstanceCreateInfo instance_create_info = {0};
   instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   instance_create_info.pApplicationInfo = &app_info;
-  instance_create_info.enabledExtensionCount = LB_ARRAY_COUNT(s_context_layer_extensions);
+  instance_create_info.enabledExtensionCount = EG_ARRAY_COUNT(s_context_layer_extensions);
   instance_create_info.ppEnabledExtensionNames = s_context_layer_extensions;
 
 #ifdef BUILD_DEBUG
@@ -751,39 +738,39 @@ static void eg_context_create_instance(eg_context_t *context) {
   debug_create_info.pfnUserCallback = eg_context_vulkan_message_proc;
 
   instance_create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debug_create_info;
-  instance_create_info.enabledLayerCount = LB_ARRAY_COUNT(s_context_validation_layers);
+  instance_create_info.enabledLayerCount = EG_ARRAY_COUNT(s_context_validation_layers);
   instance_create_info.ppEnabledLayerNames = s_context_validation_layers;
 #endif // BUILD_DEBUG
 
-  EG_VULKAN_CHECK(vkCreateInstance(&instance_create_info, 0, &context->instance));
+  EG_VULKAN_CHECK(vkCreateInstance(&instance_create_info, 0, &s_context_current->instance));
 
 #ifdef BUILD_DEBUG
-  context->create_debug_utils_messenger_proc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context->instance, "vkCreateDebugUtilsMessengerEXT");
-  context->destroy_debug_utils_messenger_proc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(context->instance, "vkDestroyDebugUtilsMessengerEXT");
+  s_context_current->create_debug_utils_messenger_proc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(s_context_current->instance, "vkCreateDebugUtilsMessengerEXT");
+  s_context_current->destroy_debug_utils_messenger_proc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(s_context_current->instance, "vkDestroyDebugUtilsMessengerEXT");
 
-  EG_VULKAN_CHECK(context->create_debug_utils_messenger_proc(context->instance, &debug_create_info, 0, &context->debug_messenger));
+  EG_VULKAN_CHECK(s_context_current->create_debug_utils_messenger_proc(s_context_current->instance, &debug_create_info, 0, &s_context_current->debug_messenger));
 #endif // BUILD_DEBUG
 }
-static void eg_context_create_surface(eg_context_t *context) {
+static void eg_context_create_surface(void) {
   VkWin32SurfaceCreateInfoKHR surface_create_info = {0};
   surface_create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-  surface_create_info.hwnd = context->window_handle;
-  surface_create_info.hinstance = context->module_handle;
+  surface_create_info.hwnd = s_context_current->window_handle;
+  surface_create_info.hinstance = s_context_current->module_handle;
 
-  EG_VULKAN_CHECK(vkCreateWin32SurfaceKHR(context->instance, &surface_create_info, 0, &context->surface));
+  EG_VULKAN_CHECK(vkCreateWin32SurfaceKHR(s_context_current->instance, &surface_create_info, 0, &s_context_current->surface));
 }
-static void eg_context_create_device(eg_context_t *context) {
+static void eg_context_create_device(void) {
   VkDeviceQueueCreateInfo device_queue_create_infos[2] = {0};
 
   float queue_priority = 1.0F;
 
   device_queue_create_infos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  device_queue_create_infos[0].queueFamilyIndex = context->primary_queue_index;
+  device_queue_create_infos[0].queueFamilyIndex = s_context_current->primary_queue_index;
   device_queue_create_infos[0].queueCount = 1;
   device_queue_create_infos[0].pQueuePriorities = &queue_priority;
 
   device_queue_create_infos[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  device_queue_create_infos[1].queueFamilyIndex = context->present_queue_index;
+  device_queue_create_infos[1].queueFamilyIndex = s_context_current->present_queue_index;
   device_queue_create_infos[1].queueCount = 1;
   device_queue_create_infos[1].pQueuePriorities = &queue_priority;
 
@@ -795,7 +782,7 @@ static void eg_context_create_device(eg_context_t *context) {
   physical_device_features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
   physical_device_features_2.pNext = &physical_device_descriptor_indexing_features;
 
-  vkGetPhysicalDeviceFeatures2(context->physical_device, &physical_device_features_2);
+  vkGetPhysicalDeviceFeatures2(s_context_current->physical_device, &physical_device_features_2);
 
   if (!physical_device_descriptor_indexing_features.runtimeDescriptorArray) {
     // TODO: properly handle the lack of unsupported features..
@@ -808,65 +795,65 @@ static void eg_context_create_device(eg_context_t *context) {
   VkDeviceCreateInfo device_create_info = {0};
   device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   device_create_info.pQueueCreateInfos = device_queue_create_infos;
-  device_create_info.queueCreateInfoCount = LB_ARRAY_COUNT(device_queue_create_infos);
+  device_create_info.queueCreateInfoCount = EG_ARRAY_COUNT(device_queue_create_infos);
   device_create_info.pEnabledFeatures = 0;
   device_create_info.ppEnabledExtensionNames = s_context_device_extensions;
-  device_create_info.enabledExtensionCount = LB_ARRAY_COUNT(s_context_device_extensions);
+  device_create_info.enabledExtensionCount = EG_ARRAY_COUNT(s_context_device_extensions);
   device_create_info.pNext = &physical_device_features_2;
 
 #ifdef BUILD_DEBUG
   device_create_info.ppEnabledLayerNames = s_context_validation_layers;
-  device_create_info.enabledLayerCount = LB_ARRAY_COUNT(s_context_validation_layers);
+  device_create_info.enabledLayerCount = EG_ARRAY_COUNT(s_context_validation_layers);
 #endif // BUILD_DEBUG
 
-  EG_VULKAN_CHECK(vkCreateDevice(context->physical_device, &device_create_info, 0, &context->device));
+  EG_VULKAN_CHECK(vkCreateDevice(s_context_current->physical_device, &device_create_info, 0, &s_context_current->device));
 
-  vkGetDeviceQueue(context->device, context->primary_queue_index, 0, &context->primary_queue);
-  vkGetDeviceQueue(context->device, context->present_queue_index, 0, &context->present_queue);
+  vkGetDeviceQueue(s_context_current->device, s_context_current->primary_queue_index, 0, &s_context_current->primary_queue);
+  vkGetDeviceQueue(s_context_current->device, s_context_current->present_queue_index, 0, &s_context_current->present_queue);
 }
-static void eg_context_create_command_pool(eg_context_t *context) {
+static void eg_context_create_command_pool(void) {
   VkCommandPoolCreateInfo command_pool_create_info = {0};
   command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  command_pool_create_info.queueFamilyIndex = context->primary_queue_index;
+  command_pool_create_info.queueFamilyIndex = s_context_current->primary_queue_index;
 
-  EG_VULKAN_CHECK(vkCreateCommandPool(context->device, &command_pool_create_info, 0, &context->command_pool));
+  EG_VULKAN_CHECK(vkCreateCommandPool(s_context_current->device, &command_pool_create_info, 0, &s_context_current->command_pool));
 }
 
-static void eg_context_destroy_window(eg_context_t *context) {
-  DestroyWindow(context->window_handle);
+static void eg_context_destroy_window(void) {
+  DestroyWindow(s_context_current->window_handle);
 
-  UnregisterClassA(s_context_window_class, context->module_handle);
+  UnregisterClassA(s_context_window_class, s_context_current->module_handle);
 }
-static void eg_context_destroy_instance(eg_context_t *context) {
+static void eg_context_destroy_instance(void) {
 #ifdef BUILD_DEBUG
-  context->destroy_debug_utils_messenger_proc(context->instance, context->debug_messenger, 0);
+  s_context_current->destroy_debug_utils_messenger_proc(s_context_current->instance, s_context_current->debug_messenger, 0);
 #endif // BUILD_DEBUG
 
-  vkDestroyInstance(context->instance, 0);
+  vkDestroyInstance(s_context_current->instance, 0);
 }
-static void eg_context_destroy_surface(eg_context_t *context) {
-  vkDestroySurfaceKHR(context->instance, context->surface, 0);
+static void eg_context_destroy_surface(void) {
+  vkDestroySurfaceKHR(s_context_current->instance, s_context_current->surface, 0);
 }
-static void eg_context_destroy_device(eg_context_t *context) {
-  vkDestroyDevice(context->device, 0);
+static void eg_context_destroy_device(void) {
+  vkDestroyDevice(s_context_current->device, 0);
 }
-static void eg_context_destroy_command_pool(eg_context_t *context) {
-  vkDestroyCommandPool(context->device, context->command_pool, 0);
+static void eg_context_destroy_command_pool(void) {
+  vkDestroyCommandPool(s_context_current->device, s_context_current->command_pool, 0);
 }
 
-static void eg_context_check_surface_capabilities(eg_context_t *context) {
+static void eg_context_check_surface_capabilities(void) {
   int32_t surface_format_count = 0;
-  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(context->physical_device, context->surface, &surface_format_count, 0));
+  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(s_context_current->physical_device, s_context_current->surface, &surface_format_count, 0));
 
-  VkSurfaceFormatKHR *surface_formats = (VkSurfaceFormatKHR *)lb_heap_alloc(sizeof(VkSurfaceFormatKHR) * surface_format_count, 0, 0);
-  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(context->physical_device, context->surface, &surface_format_count, surface_formats));
+  VkSurfaceFormatKHR *surface_formats = (VkSurfaceFormatKHR *)eg_heap_alloc(sizeof(VkSurfaceFormatKHR) * surface_format_count, 0, 0);
+  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceFormatsKHR(s_context_current->physical_device, s_context_current->surface, &surface_format_count, surface_formats));
 
   int32_t present_mode_count = 0;
-  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(context->physical_device, context->surface, &present_mode_count, 0));
+  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(s_context_current->physical_device, s_context_current->surface, &present_mode_count, 0));
 
-  VkPresentModeKHR *present_modes = (VkPresentModeKHR *)lb_heap_alloc(sizeof(VkPresentModeKHR) * present_mode_count, 0, 0);
-  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(context->physical_device, context->surface, &present_mode_count, present_modes));
+  VkPresentModeKHR *present_modes = (VkPresentModeKHR *)eg_heap_alloc(sizeof(VkPresentModeKHR) * present_mode_count, 0, 0);
+  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfacePresentModesKHR(s_context_current->physical_device, s_context_current->surface, &present_mode_count, present_modes));
 
   uint64_t surface_format_index = 0;
 
@@ -876,7 +863,7 @@ static void eg_context_check_surface_capabilities(eg_context_t *context) {
 
     if ((surface_format.format == VK_FORMAT_B8G8R8A8_UNORM) && (surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)) {
 
-      context->prefered_surface_format = surface_format;
+      s_context_current->prefered_surface_format = surface_format;
 
       break;
     }
@@ -892,7 +879,7 @@ static void eg_context_check_surface_capabilities(eg_context_t *context) {
 
     if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
 
-      context->prefered_present_mode = present_mode;
+      s_context_current->prefered_present_mode = present_mode;
 
       break;
     }
@@ -900,20 +887,20 @@ static void eg_context_check_surface_capabilities(eg_context_t *context) {
     present_mode_index++;
   }
 
-  lb_heap_free(surface_formats);
-  lb_heap_free(present_modes);
+  eg_heap_free(surface_formats);
+  eg_heap_free(present_modes);
 }
-static void eg_context_check_physical_device_extensions(eg_context_t *context) {
+static void eg_context_check_physical_device_extensions(void) {
   int32_t available_device_extension_count = 0;
-  EG_VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(context->physical_device, 0, &available_device_extension_count, 0));
+  EG_VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(s_context_current->physical_device, 0, &available_device_extension_count, 0));
 
-  VkExtensionProperties *available_device_extensions = (VkExtensionProperties *)lb_heap_alloc(sizeof(VkExtensionProperties) * available_device_extension_count, 0, 0);
-  EG_VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(context->physical_device, 0, &available_device_extension_count, available_device_extensions));
+  VkExtensionProperties *available_device_extensions = (VkExtensionProperties *)eg_heap_alloc(sizeof(VkExtensionProperties) * available_device_extension_count, 0, 0);
+  EG_VULKAN_CHECK(vkEnumerateDeviceExtensionProperties(s_context_current->physical_device, 0, &available_device_extension_count, available_device_extensions));
 
   printf("Device Extensions\n");
 
   uint64_t device_extension_index = 0;
-  uint64_t device_extension_count = LB_ARRAY_COUNT(s_context_device_extensions);
+  uint64_t device_extension_count = EG_ARRAY_COUNT(s_context_device_extensions);
 
   while (device_extension_index < device_extension_count) {
 
@@ -949,22 +936,22 @@ static void eg_context_check_physical_device_extensions(eg_context_t *context) {
 
   printf("\n");
 
-  lb_heap_free(available_device_extensions);
+  eg_heap_free(available_device_extensions);
 }
 
-static void eg_context_resize_surface(eg_context_t *context) {
-  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context->physical_device, context->surface, &context->surface_capabilities));
+static void eg_context_resize_surface(void) {
+  EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(s_context_current->physical_device, s_context_current->surface, &s_context_current->surface_capabilities));
 
-  context->window_width = context->surface_capabilities.currentExtent.width;
-  context->window_height = context->surface_capabilities.currentExtent.height;
+  s_context_current->window_width = s_context_current->surface_capabilities.currentExtent.width;
+  s_context_current->window_height = s_context_current->surface_capabilities.currentExtent.height;
 }
 
-static void eg_context_find_physical_device(eg_context_t *context) {
+static void eg_context_find_physical_device(void) {
   int32_t physical_device_count = 0;
-  EG_VULKAN_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, 0));
+  EG_VULKAN_CHECK(vkEnumeratePhysicalDevices(s_context_current->instance, &physical_device_count, 0));
 
-  VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)lb_heap_alloc(sizeof(VkPhysicalDevice) * physical_device_count, 0, 0);
-  EG_VULKAN_CHECK(vkEnumeratePhysicalDevices(context->instance, &physical_device_count, physical_devices));
+  VkPhysicalDevice *physical_devices = (VkPhysicalDevice *)eg_heap_alloc(sizeof(VkPhysicalDevice) * physical_device_count, 0, 0);
+  EG_VULKAN_CHECK(vkEnumeratePhysicalDevices(s_context_current->instance, &physical_device_count, physical_devices));
 
   uint64_t physical_device_index = 0;
 
@@ -972,17 +959,17 @@ static void eg_context_find_physical_device(eg_context_t *context) {
 
     VkPhysicalDevice physical_device = physical_devices[physical_device_index];
 
-    vkGetPhysicalDeviceProperties(physical_device, &context->physical_device_properties);
-    vkGetPhysicalDeviceFeatures(physical_device, &context->physical_device_features);
-    vkGetPhysicalDeviceMemoryProperties(physical_device, &context->physical_device_memory_properties);
+    vkGetPhysicalDeviceProperties(physical_device, &s_context_current->physical_device_properties);
+    vkGetPhysicalDeviceFeatures(physical_device, &s_context_current->physical_device_features);
+    vkGetPhysicalDeviceMemoryProperties(physical_device, &s_context_current->physical_device_memory_properties);
 
-    if (context->physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+    if (s_context_current->physical_device_properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 
-      if (context->physical_device_features.geometryShader &&
-          context->physical_device_features.samplerAnisotropy &&
-          context->physical_device_features.shaderFloat64) {
+      if (s_context_current->physical_device_features.geometryShader &&
+          s_context_current->physical_device_features.samplerAnisotropy &&
+          s_context_current->physical_device_features.shaderFloat64) {
 
-        context->physical_device = physical_device;
+        s_context_current->physical_device = physical_device;
 
         break;
       }
@@ -991,14 +978,14 @@ static void eg_context_find_physical_device(eg_context_t *context) {
     physical_device_index++;
   }
 
-  lb_heap_free(physical_devices);
+  eg_heap_free(physical_devices);
 }
-static void eg_context_find_physical_device_queue_families(eg_context_t *context) {
+static void eg_context_find_physical_device_queue_families(void) {
   int32_t queue_family_property_count = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(context->physical_device, &queue_family_property_count, 0);
+  vkGetPhysicalDeviceQueueFamilyProperties(s_context_current->physical_device, &queue_family_property_count, 0);
 
-  VkQueueFamilyProperties *queue_family_properties = (VkQueueFamilyProperties *)lb_heap_alloc(sizeof(VkQueueFamilyProperties) * queue_family_property_count, 0, 0);
-  vkGetPhysicalDeviceQueueFamilyProperties(context->physical_device, &queue_family_property_count, queue_family_properties);
+  VkQueueFamilyProperties *queue_family_properties = (VkQueueFamilyProperties *)eg_heap_alloc(sizeof(VkQueueFamilyProperties) * queue_family_property_count, 0, 0);
+  vkGetPhysicalDeviceQueueFamilyProperties(s_context_current->physical_device, &queue_family_property_count, queue_family_properties);
 
   uint64_t physical_device_queue_family_property_index = 0;
 
@@ -1013,28 +1000,28 @@ static void eg_context_find_physical_device_queue_families(eg_context_t *context
     graphic_support = properties.queueFlags & VK_QUEUE_GRAPHICS_BIT;
     compute_support = properties.queueFlags & VK_QUEUE_COMPUTE_BIT;
 
-    EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(context->physical_device, (uint32_t)physical_device_queue_family_property_index, context->surface, &present_support));
+    EG_VULKAN_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(s_context_current->physical_device, (uint32_t)physical_device_queue_family_property_index, s_context_current->surface, &present_support));
 
-    if (graphic_support && compute_support && (context->primary_queue_index == -1)) {
+    if (graphic_support && compute_support && (s_context_current->primary_queue_index == -1)) {
 
-      context->primary_queue_index = (uint32_t)physical_device_queue_family_property_index;
+      s_context_current->primary_queue_index = (uint32_t)physical_device_queue_family_property_index;
 
-    } else if (present_support && (context->present_queue_index == -1)) {
+    } else if (present_support && (s_context_current->present_queue_index == -1)) {
 
-      context->present_queue_index = (uint32_t)physical_device_queue_family_property_index;
+      s_context_current->present_queue_index = (uint32_t)physical_device_queue_family_property_index;
     }
 
-    if ((context->primary_queue_index != -1) && (context->present_queue_index != -1)) {
+    if ((s_context_current->primary_queue_index != -1) && (s_context_current->present_queue_index != -1)) {
       break;
     }
 
     physical_device_queue_family_property_index++;
   }
 
-  lb_heap_free(queue_family_properties);
+  eg_heap_free(queue_family_properties);
 
   printf("Queue Indices\n");
-  printf("  Primary Queue Index %d\n", context->primary_queue_index);
-  printf("  Present Queue Index %d\n", context->present_queue_index);
+  printf("  Primary Queue Index %d\n", s_context_current->primary_queue_index);
+  printf("  Present Queue Index %d\n", s_context_current->present_queue_index);
   printf("\n");
 }

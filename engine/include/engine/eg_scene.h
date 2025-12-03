@@ -5,7 +5,7 @@
 extern "C" {
 #endif // __cplusplus
 
-eg_scene_t *eg_scene_create(eg_context_t *context, lb_scene_asset_id_t scene_asset_id);
+void eg_scene_create(eg_scene_asset_id_t scene_asset_id);
 void eg_scene_update(eg_scene_t *scene);
 void eg_scene_destroy(eg_scene_t *scene);
 

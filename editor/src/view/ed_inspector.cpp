@@ -1,17 +1,17 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
 
 #include <editor/view/ed_inspector.h>
 #include <editor/view/ed_hierarchy.h>
 
+/*
 static void ed_inspector_view_draw_camera(eg_camera_t *camera);
 static void ed_inspector_view_draw_editor_controller(eg_editor_controller_t *editor_controller);
 static void ed_inspector_view_draw_rigidbody(eg_rigidbody_t *rigidbody);
 static void ed_inspector_view_draw_transform(eg_transform_t *transform);
 
 ed_inspector_view_t *ed_inspector_view_create(eg_context_t *context) {
-  ed_inspector_view_t *inspector = (ed_inspector_view_t *)lb_heap_alloc(sizeof(ed_inspector_view_t), 1, 0);
+  ed_inspector_view_t *inspector = (ed_inspector_view_t *)eg_heap_alloc(sizeof(ed_inspector_view_t), 1, 0);
 
   inspector->base.context = context;
   inspector->base.is_dirty = 0;
@@ -62,7 +62,7 @@ void ed_inspector_view_draw(ed_inspector_view_t *inspector) {
   }
 }
 void ed_inspector_view_destroy(ed_inspector_view_t *inspector) {
-  lb_heap_free(inspector);
+  eg_heap_free(inspector);
 }
 
 static void ed_inspector_view_draw_camera(eg_camera_t *camera) {
@@ -138,29 +138,29 @@ static void ed_inspector_view_draw_transform(eg_transform_t *transform) {
 
   if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding)) {
 
-    lb_vector3_t local_position = transform->local_position;
+    eg_vector3_t local_position = transform->local_position;
 
     if (ImGui::DragFloat3("Position", (float *)&local_position, 0.1F, 0.0F, 0.0F, "%.3F")) {
       eg_transform_set_position(transform, local_position);
     }
 
-    lb_quaternion_t local_rotation = transform->local_rotation;
+    eg_quaternion_t local_rotation = transform->local_rotation;
 
-    lb_vector3_t euler_angles_rad = lb_quaternion_to_euler_angles(local_rotation);
-    lb_vector3_t euler_angles_deg = {
-      lb_rad_to_deg(euler_angles_rad.x),
-      lb_rad_to_deg(euler_angles_rad.y),
-      lb_rad_to_deg(euler_angles_rad.z)};
+    eg_vector3_t euler_angles_rad = eg_quaternion_to_euler_angles(local_rotation);
+    eg_vector3_t euler_angles_deg = {
+      eg_rad_to_deg(euler_angles_rad.x),
+      eg_rad_to_deg(euler_angles_rad.y),
+      eg_rad_to_deg(euler_angles_rad.z)};
 
     if (ImGui::DragFloat3("Rotation", (float *)&euler_angles_deg, 0.1F, 0.0F, 0.0F, "%.3F", 0)) {
-      euler_angles_rad.x = lb_deg_to_rad(euler_angles_deg.x);
-      euler_angles_rad.y = lb_deg_to_rad(euler_angles_deg.y);
-      euler_angles_rad.z = lb_deg_to_rad(euler_angles_deg.z);
+      euler_angles_rad.x = eg_deg_to_rad(euler_angles_deg.x);
+      euler_angles_rad.y = eg_deg_to_rad(euler_angles_deg.y);
+      euler_angles_rad.z = eg_deg_to_rad(euler_angles_deg.z);
 
       eg_transform_set_euler_angles(transform, euler_angles_rad);
     }
 
-    lb_vector3_t local_scale = transform->local_scale;
+    eg_vector3_t local_scale = transform->local_scale;
 
     if (ImGui::DragFloat3("Scale", (float *)&local_scale, 0.1F, 0.0F, 0.0F, "%.3F", 0)) {
       eg_transform_set_scale(transform, local_scale);
@@ -171,3 +171,4 @@ static void ed_inspector_view_draw_transform(eg_transform_t *transform) {
 
   ImGui::PopItemWidth();
 }
+*/

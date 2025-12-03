@@ -5,16 +5,17 @@
 extern "C" {
 #endif // __cplusplus
 
-void eg_swapchain_create(eg_context_t *context, lb_swapchain_asset_id_t swapchain_asset_id);
-void eg_swapchain_destroy(eg_swapchain_t *swapchain);
+eg_swapchain_t *eg_swapchain_current(void);
 
-uint8_t eg_swapchain_is_dirty(eg_swapchain_t *swapchain);
-uint32_t eg_swapchain_image_count(eg_swapchain_t *swapchain);
-VkSwapchainKHR eg_swapchain_handle(eg_swapchain_t *swapchain);
-VkRenderPass eg_swapchain_main_render_pass(eg_swapchain_t *swapchain);
-VkFramebuffer eg_swapchain_frame_buffer(eg_swapchain_t *swapchain, uint32_t index);
+void eg_swapchain_create(eg_swapchain_asset_id_t swapchain_asset_id);
+void eg_swapchain_destroy(void);
 
-void eg_swapchain_set_dirty(eg_swapchain_t *swapchain, uint8_t is_dirty);
+uint8_t eg_swapchain_is_dirty(void);
+uint32_t eg_swapchain_image_count(void);
+VkSwapchainKHR eg_swapchain_handle(void);
+VkFramebuffer eg_swapchain_frame_buffer(uint32_t index);
+
+void eg_swapchain_set_dirty(uint8_t is_dirty);
 
 #ifdef __cplusplus
 }

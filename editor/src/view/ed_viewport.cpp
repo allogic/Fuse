@@ -1,67 +1,60 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_main.h>
 
 #include <editor/view/ed_viewport.h>
 
-static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport);
-static void ed_viewport_view_destroy_attachments(ed_viewport_view_t *viewport);
+extern char const *g_viewport_gbuffer_attachment_type_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
+  "Color",
+  "Depth",
+};
 
-ed_viewport_view_t *ed_viewport_view_create(eg_context_t *context) {
-  ed_viewport_view_t *viewport = (ed_viewport_view_t *)lb_heap_alloc(sizeof(ed_viewport_view_t), 1, 0);
+ed_viewport_t::ed_viewport_t(char const *name, uint8_t enable_controls) : ed_view_t(name),
+                                                                          m_enable_controls(enable_controls) {
+  uint32_t image_count = eg_swapchain_image_count();
 
-  eg_swapchain_t *swapchain = eg_context_swapchain(context);
+  m_gbuffer_color_attachment = (VkDescriptorSet *)eg_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
+  m_gbuffer_depth_attachment = (VkDescriptorSet *)eg_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
 
-  uint32_t image_count = eg_swapchain_image_count(swapchain);
-
-  viewport->base.context = context;
-  viewport->base.is_dirty = 0;
-  viewport->base.is_open = 1;
-  viewport->base.is_docked = 0;
-
-  viewport->width = 1;
-  viewport->height = 1;
-  viewport->prev_width = 1;
-  viewport->prev_height = 1;
-  viewport->handle = eg_viewport_create(context, 1, 1);
-  viewport->gbuffer_color_attachment = (VkDescriptorSet *)lb_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
-  viewport->gbuffer_depth_attachment = (VkDescriptorSet *)lb_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
-
-  ed_viewport_view_create_attachments(viewport);
-
-  return viewport;
+  create_attachments();
 }
-void ed_viewport_view_refresh(ed_viewport_view_t *viewport) {
-  if (viewport->base.is_dirty) {
+ed_viewport_t::~ed_viewport_t() {
+  destroy_attachments();
 
-    viewport->base.is_dirty = 0;
+  eg_viewport_destroy(m_viewport);
 
-    ed_viewport_view_destroy_attachments(viewport);
+  eg_heap_free(m_gbuffer_color_attachment);
+  eg_heap_free(m_gbuffer_depth_attachment);
+}
 
-    eg_viewport_resize(viewport->handle, viewport->width, viewport->height);
+void ed_viewport_t::refresh() {
+  if (m_is_dirty) {
 
-    ed_viewport_view_create_attachments(viewport);
+    m_is_dirty = 0;
+
+    destroy_attachments();
+
+    eg_viewport_resize(m_viewport, m_width, m_height);
+
+    create_attachments();
   }
 }
-void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls) {
-  eg_renderer_t *renderer = eg_context_renderer(viewport->base.context);
+void ed_viewport_t::draw() {
+  uint32_t image_index = eg_renderer_image_index();
 
-  uint32_t image_index = eg_renderer_image_index(renderer);
-
-  if (enable_controls) {
+  if (m_enable_controls) {
 
     ImGui::SetNextItemWidth(200.0F);
 
-    if (ImGui::BeginCombo("Attachment", g_viewport_gbuffer_attachment_names[viewport->gbuffer_attachment_type])) {
+    if (ImGui::BeginCombo("Attachment", g_viewport_gbuffer_attachment_type_names[m_gbuffer_attachment_type])) {
 
       uint64_t attachment_index = 0;
       uint64_t attachment_count = ED_GBUFFER_ATTACHMENT_TYPE_COUNT;
 
       while (attachment_index < attachment_count) {
 
-        uint8_t is_selected = (viewport->gbuffer_attachment_type == attachment_index);
+        uint8_t is_selected = (m_gbuffer_attachment_type == attachment_index);
 
-        if (ImGui::Selectable(g_viewport_gbuffer_attachment_names[attachment_index], is_selected)) {
-          viewport->gbuffer_attachment_type = (ed_gbuffer_attachment_type_t)attachment_index;
+        if (ImGui::Selectable(g_viewport_gbuffer_attachment_type_names[attachment_index], is_selected)) {
+          m_gbuffer_attachment_type = (ed_gbuffer_attachment_type_t)attachment_index;
         }
 
         if (is_selected) {
@@ -77,18 +70,21 @@ void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls
 
   ImVec2 window_size = ImGui::GetWindowSize();
 
-  if (enable_controls) {
+  if (m_enable_controls) {
     window_size.y -= 25.0F;
   }
 
-  viewport->width = window_size.x < 0 ? 1 : (uint32_t)window_size.x;
-  viewport->height = window_size.y < 0 ? 1 : (uint32_t)window_size.y;
-  viewport->base.is_dirty = ((viewport->width != viewport->prev_width) || (viewport->height != viewport->prev_height));
+  m_width = window_size.x < 0 ? 1 : (uint32_t)window_size.x;
+  m_height = window_size.y < 0 ? 1 : (uint32_t)window_size.y;
 
-  if (viewport->base.is_dirty) {
-    viewport->prev_width = viewport->width;
-    viewport->prev_height = viewport->height;
-    viewport->base.is_dirty = 1;
+  m_is_dirty = ((m_width != m_prev_width) || (m_height != m_prev_height));
+
+  if (m_is_dirty) {
+
+    m_is_dirty = 1;
+
+    m_prev_width = m_width;
+    m_prev_height = m_height;
   }
 
   ImVec2 image_position_min = ImGui::GetCursorScreenPos();
@@ -96,17 +92,17 @@ void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls
 
   VkDescriptorSet gbuffer_image = 0;
 
-  switch (viewport->gbuffer_attachment_type) {
+  switch (m_gbuffer_attachment_type) {
     case ED_GBUFFER_ATTACHMENT_TYPE_COLOR: {
 
-      gbuffer_image = viewport->gbuffer_color_attachment[image_index];
+      gbuffer_image = m_gbuffer_color_attachment[image_index];
 
       break;
     }
 
     case ED_GBUFFER_ATTACHMENT_TYPE_DEPTH: {
 
-      gbuffer_image = viewport->gbuffer_depth_attachment[image_index];
+      gbuffer_image = m_gbuffer_depth_attachment[image_index];
 
       break;
     }
@@ -116,50 +112,36 @@ void ed_viewport_view_draw(ed_viewport_view_t *viewport, uint8_t enable_controls
 
   draw_list->AddImageRounded(gbuffer_image, image_position_min, image_position_max, ImVec2(0.0F, 0.0F), ImVec2(1.0F, 1.0F), IM_COL32_WHITE, 1.0F);
 }
-void ed_viewport_view_destroy(ed_viewport_view_t *viewport) {
-  ed_viewport_view_destroy_attachments(viewport);
 
-  eg_viewport_destroy(viewport->handle);
-
-  lb_heap_free(viewport->gbuffer_color_attachment);
-  lb_heap_free(viewport->gbuffer_depth_attachment);
-
-  lb_heap_free(viewport);
-}
-
-static void ed_viewport_view_create_attachments(ed_viewport_view_t *viewport) {
-  eg_swapchain_t *swapchain = eg_context_swapchain(viewport->base.context);
-
+void ed_viewport_t::create_attachments() {
   uint32_t image_index = 0;
-  uint32_t image_count = eg_swapchain_image_count(swapchain);
+  uint32_t image_count = eg_swapchain_image_count();
 
   while (image_index < image_count) {
 
-    VkSampler gbuffer_color_sampler = eg_viewport_color_sampler(viewport->handle, image_index);
-    VkImageView gbuffer_color_image_view = eg_viewport_color_image_view(viewport->handle, image_index);
+    VkSampler gbuffer_color_sampler = eg_viewport_color_sampler(m_viewport, image_index);
+    VkImageView gbuffer_color_image_view = eg_viewport_color_image_view(m_viewport, image_index);
     VkImageLayout gbuffer_color_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    viewport->gbuffer_color_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_color_sampler, gbuffer_color_image_view, gbuffer_color_image_layout);
+    m_gbuffer_color_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_color_sampler, gbuffer_color_image_view, gbuffer_color_image_layout);
 
-    VkSampler gbuffer_depth_sampler = eg_viewport_depth_sampler(viewport->handle, image_index);
-    VkImageView gbuffer_depth_image_view = eg_viewport_depth_image_view(viewport->handle, image_index);
+    VkSampler gbuffer_depth_sampler = eg_viewport_depth_sampler(m_viewport, image_index);
+    VkImageView gbuffer_depth_image_view = eg_viewport_depth_image_view(m_viewport, image_index);
     VkImageLayout gbuffer_depth_image_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    viewport->gbuffer_depth_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_depth_sampler, gbuffer_depth_image_view, gbuffer_depth_image_layout);
+    m_gbuffer_depth_attachment[image_index] = ImGui_ImplVulkan_AddTexture(gbuffer_depth_sampler, gbuffer_depth_image_view, gbuffer_depth_image_layout);
 
     image_index++;
   }
 }
-static void ed_viewport_view_destroy_attachments(ed_viewport_view_t *viewport) {
-  eg_swapchain_t *swapchain = eg_context_swapchain(viewport->base.context);
-
+void ed_viewport_t::destroy_attachments() {
   uint32_t image_index = 0;
-  uint32_t image_count = eg_swapchain_image_count(swapchain);
+  uint32_t image_count = eg_swapchain_image_count();
 
   while (image_index < image_count) {
 
-    ImGui_ImplVulkan_RemoveTexture(viewport->gbuffer_color_attachment[image_index]);
-    ImGui_ImplVulkan_RemoveTexture(viewport->gbuffer_depth_attachment[image_index]);
+    ImGui_ImplVulkan_RemoveTexture(m_gbuffer_color_attachment[image_index]);
+    ImGui_ImplVulkan_RemoveTexture(m_gbuffer_depth_attachment[image_index]);
 
     image_index++;
   }

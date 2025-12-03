@@ -1,10 +1,10 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_main.h>
 
 #include <editor/view/ed_profiler.h>
 
+/*
 ed_profiler_view_t *ed_profiler_view_create(eg_context_t *context) {
-  ed_profiler_view_t *profiler = (ed_profiler_view_t *)lb_heap_alloc(sizeof(ed_profiler_view_t), 1, 0);
+  ed_profiler_view_t *profiler = (ed_profiler_view_t *)eg_heap_alloc(sizeof(ed_profiler_view_t), 1, 0);
 
   profiler->base.context = context;
   profiler->base.is_dirty = 0;
@@ -91,5 +91,6 @@ void ed_profiler_view_draw(ed_profiler_view_t *profiler) {
   ImPlot::PopStyleColor(3);
 }
 void ed_profiler_view_destroy(ed_profiler_view_t *profiler) {
-  lb_heap_free(profiler);
+  eg_heap_free(profiler);
 }
+*/

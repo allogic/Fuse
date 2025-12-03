@@ -1,6 +1,14 @@
 #ifndef ED_STATUSBAR_H
 #define ED_STATUSBAR_H
 
-void ed_statusbar_draw(eg_context_t *context);
+class ed_statusbar_t {
+public:
+  ed_statusbar_t();
+  virtual ~ed_statusbar_t();
+
+public:
+  virtual void refresh();
+  virtual void draw();
+};
 
 #endif // ED_STATUSBAR_H

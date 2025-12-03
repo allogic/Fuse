@@ -1,7 +1,4 @@
 #include <engine/eg_pch.h>
-#include <engine/eg_profiler.h>
-
-eg_context_t *g_profiler_context = 0;
 
 uint64_t g_profiler_frame_index = 0;
 

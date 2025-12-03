@@ -1,15 +1,15 @@
 #include <editor/ed_pch.h>
-#include <editor/ed_main.h>
 #include <editor/ed_titlebar.h>
 
 #include <editor/view/ed_hierarchy.h>
 
+/*
 static void ed_hierarchy_view_draw_tree(ed_hierarchy_view_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 static void ed_hierarchy_view_draw_context_menu(ed_hierarchy_view_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 static void ed_hierarchy_view_draw_entity_buttons(ed_hierarchy_view_t *hierarchy, ecs_world_t *world, ecs_entity_t entity);
 
 ed_hierarchy_view_t *ed_hierarchy_view_create(eg_context_t *context) {
-  ed_hierarchy_view_t *hierarchy = (ed_hierarchy_view_t *)lb_heap_alloc(sizeof(ed_hierarchy_view_t), 1, 0);
+  ed_hierarchy_view_t *hierarchy = (ed_hierarchy_view_t *)eg_heap_alloc(sizeof(ed_hierarchy_view_t), 1, 0);
 
   hierarchy->base.context = context;
   hierarchy->base.is_dirty = 0;
@@ -31,7 +31,7 @@ void ed_hierarchy_view_draw(ed_hierarchy_view_t *hierarchy) {
   ed_hierarchy_view_draw_tree(hierarchy, world, root);
 }
 void ed_hierarchy_view_destroy(ed_hierarchy_view_t *hierarchy) {
-  lb_heap_free(hierarchy);
+  eg_heap_free(hierarchy);
 }
 
 static void ed_hierarchy_view_draw_tree(ed_hierarchy_view_t *hierarchy, ecs_world_t *world, ecs_entity_t entity) {
@@ -131,3 +131,4 @@ static void ed_hierarchy_view_draw_entity_buttons(ed_hierarchy_view_t *hierarchy
   ImGui::PopFont();
   ImGui::PopStyleColor(3);
 }
+*/
