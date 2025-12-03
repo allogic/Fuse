@@ -53,7 +53,7 @@ struct eg_context_t {
   eg_viewport_t *viewport[0xFF];
   eg_scene_t *scene[0xFF];
   eg_viewport_t *main_viewport;
-  eg_viewport_t *main_scene;
+  eg_scene_t *main_scene;
 };
 
 static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);

@@ -40,6 +40,7 @@ eg_attribute_buffer_t eg_database_load_attribute_buffer_by_id(eg_mesh_attribute_
 eg_vector_t *eg_database_load_all_scene_assets(void);
 eg_scene_asset_t eg_database_load_scene_asset_by_id(eg_scene_asset_id_t scene_asset_id);
 
+eg_vector_t *eg_database_load_all_graph_assets(void);
 eg_graph_asset_t eg_database_load_graph_asset_by_id(eg_graph_asset_id_t graph_asset_id);
 
 void eg_database_store_swapchain_asset(eg_swapchain_asset_t *swapchain_asset);
@@ -88,6 +89,7 @@ void eg_database_destroy_attribute_buffer(eg_attribute_buffer_t *attribute_buffe
 void eg_database_destroy_scene_asset(eg_scene_asset_t *scene_asset);
 void eg_database_destroy_scene_assets(eg_vector_t *scene_assets);
 
+void eg_database_destroy_graph_asset(eg_graph_asset_t *graph_asset);
 void eg_database_destroy_graph_assets(eg_vector_t *graph_assets);
 
 #ifdef __cplusplus

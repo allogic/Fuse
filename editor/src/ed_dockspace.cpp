@@ -48,12 +48,12 @@ void ed_dockspace_t::draw() {
 
     ImGuiID viewport_id = dockspace_id;
     ImGuiID inspector_id = 0;
-    ImGuiID catalog_id = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15F, 0, &dockspace_id);
+    ImGuiID asset_id = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.15F, 0, &dockspace_id);
     ImGuiID right_id = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.25F, 0, &dockspace_id);
     ImGuiID hierarchy_id = ImGui::DockBuilderSplitNode(right_id, ImGuiDir_Up, 0.25F, 0, &inspector_id);
 
     ImGui::DockBuilderDockWindow(ED_VIEWPORT_WINDOW_ID, viewport_id);
-    ImGui::DockBuilderDockWindow(ED_CATALOG_WINDOW_ID, catalog_id);
+    ImGui::DockBuilderDockWindow(ED_ASSET_WINDOW_ID, asset_id);
     ImGui::DockBuilderDockWindow(ED_HIERARCHY_WINDOW_ID, hierarchy_id);
     ImGui::DockBuilderDockWindow(ED_INSPECTOR_WINDOW_ID, inspector_id);
 
@@ -64,7 +64,7 @@ void ed_dockspace_t::draw() {
 
   for (ed_view_t *view : m_views) {
 
-    begin_child(view);
+    begin_child(view, 5.0F);
 
     view->draw();
 
@@ -72,7 +72,7 @@ void ed_dockspace_t::draw() {
   }
 }
 
-void ed_dockspace_t::begin_child(ed_view_t *view) {
+void ed_dockspace_t::begin_child(ed_view_t *view, float border_size) {
   if (view->is_open()) {
 
     static ImGuiWindowFlags window_flags =
@@ -80,28 +80,29 @@ void ed_dockspace_t::begin_child(ed_view_t *view) {
       ImGuiWindowFlags_NoCollapse;
 
     bool is_open = view->is_open();
-    bool is_docked = ImGui::IsWindowDocked();
 
     ImGui::Begin(view->name(), &is_open, window_flags);
+
+    bool is_docked = ImGui::IsWindowDocked();
 
     view->set_open(is_open);
     view->set_docked(is_docked);
 
     if (view->is_docked()) {
 
-      ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_LIGHT_GRAY_COLOR);
-      ImGui::BeginChild(ED_DOCKSPACE_MAIN_FIRST_CHILD_ID);
+      ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_SHALLOW_GRAY_COLOR);
+      ImGui::BeginChild("first_child");
 
       ImVec2 second_window_size = ImGui::GetWindowSize();
-      ImVec2 second_cursor_position = ImVec2(1.0F, 1.0F);
+      ImVec2 second_cursor_position = ImVec2(border_size, border_size);
 
-      second_window_size.x -= 2.0F;
-      second_window_size.y -= 2.0F;
+      second_window_size.x -= border_size * 2.0F;
+      second_window_size.y -= border_size * 2.0F;
 
       ImGui::SetCursorPos(second_cursor_position);
 
       ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_DARK_GREY);
-      ImGui::BeginChild(ED_DOCKSPACE_MAIN_SECOND_CHILD_ID, second_window_size);
+      ImGui::BeginChild("second_child", second_window_size);
     }
   }
 }

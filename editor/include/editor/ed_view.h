@@ -15,8 +15,8 @@ public:
 
 public:
   inline void set_dirty(uint8_t is_dirty) { m_is_dirty = is_dirty; }
-  inline void set_open(uint8_t is_open) { m_is_dirty = is_open; }
-  inline void set_docked(uint8_t is_docked) { m_is_dirty = is_docked; }
+  inline void set_open(uint8_t is_open) { m_is_open = is_open; }
+  inline void set_docked(uint8_t is_docked) { m_is_docked = is_docked; }
 
 public:
   virtual void refresh() = 0;
@@ -27,7 +27,7 @@ protected:
 
   uint8_t m_is_dirty = 0;
   uint8_t m_is_open = 1;
-  uint8_t m_is_docked = 0;
+  uint8_t m_is_docked = 1;
 };
 
 #endif // ED_VIEW_H

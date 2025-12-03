@@ -21,19 +21,19 @@ static sqlite3 *s_database_handle = 0;
 void eg_database_create(void) {
   EG_SQL_CHECK(sqlite3_open("engine.db", &s_database_handle));
 
-  // eg_database_create_swapchain_tables();
-  // eg_database_create_renderer_tables();
-  // eg_database_create_pipeline_tables();
-  // eg_database_create_scene_tables();
-  // eg_database_create_model_tables();
-  // eg_database_create_graph_tables();
+  eg_database_create_swapchain_tables();
+  eg_database_create_renderer_tables();
+  eg_database_create_pipeline_tables();
+  eg_database_create_scene_tables();
+  eg_database_create_model_tables();
+  eg_database_create_graph_tables();
 
-  // eg_database_create_default_swapchain_assets();
-  // eg_database_create_default_renderer_assets();
-  // eg_database_create_default_pipeline_assets();
-  // eg_database_create_default_scene_assets();
-  // eg_database_create_default_model_assets();
-  // eg_database_create_default_graph_assets();
+  eg_database_create_default_swapchain_assets();
+  eg_database_create_default_renderer_assets();
+  eg_database_create_default_pipeline_assets();
+  eg_database_create_default_scene_assets();
+  eg_database_create_default_model_assets();
+  eg_database_create_default_graph_assets();
 }
 void eg_database_destroy(void) {
   EG_SQL_CHECK(sqlite3_close(s_database_handle));
@@ -816,6 +816,43 @@ eg_scene_asset_t eg_database_load_scene_asset_by_id(eg_scene_asset_id_t scene_as
   return scene_asset;
 }
 
+eg_vector_t *eg_database_load_all_graph_assets(void) {
+  eg_vector_t *graph_assets = eg_vector_create(sizeof(eg_graph_asset_t));
+
+  eg_string_t *sql = eg_string_create();
+
+  eg_string_appendf(sql, "SELECT GRAPH_ASSET.ID, GRAPH_ASSET.NAME, GRAPH_ASSET.UNIQUE_NODE_ID, GRAPH_ASSET.UNIQUE_PIN_ID, GRAPH_ASSET.UNIQUE_LINK_ID\n");
+  eg_string_appendf(sql, "FROM GRAPH_ASSET\n");
+
+  sqlite3_stmt *stmt = 0;
+
+  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
+
+  while (sqlite3_step(stmt) == SQLITE_ROW) {
+
+    eg_graph_asset_t graph_asset = {0};
+
+    eg_scene_asset_id_t id = sqlite3_column_int64(stmt, 0);
+    char const *name = sqlite3_column_text(stmt, 1);
+    uint32_t unique_node_id = sqlite3_column_int(stmt, 2);
+    uint32_t unique_pin_id = sqlite3_column_int(stmt, 3);
+    uint32_t unique_link_id = sqlite3_column_int(stmt, 4);
+
+    graph_asset.id = id;
+    strcpy(graph_asset.name, name);
+    graph_asset.unique_node_id = unique_node_id;
+    graph_asset.unique_pin_id = unique_pin_id;
+    graph_asset.unique_link_id = unique_link_id;
+
+    eg_vector_push(graph_assets, &graph_asset);
+  }
+
+  sqlite3_finalize(stmt);
+
+  eg_string_destroy(sql);
+
+  return graph_assets;
+}
 eg_graph_asset_t eg_database_load_graph_asset_by_id(eg_graph_asset_id_t graph_asset_id) {
   eg_graph_asset_t graph_asset = {0};
 
@@ -1296,6 +1333,9 @@ void eg_database_destroy_scene_assets(eg_vector_t *scene_assets) {
   eg_vector_destroy(scene_assets);
 }
 
+void eg_database_destroy_graph_asset(eg_graph_asset_t *graph_asset) {
+  // TODO
+}
 void eg_database_destroy_graph_assets(eg_vector_t *graph_assets) {
   // TODO
 
@@ -1381,15 +1421,12 @@ static void eg_database_create_pipeline_tables(void) {
   {
     eg_string_t *sql = eg_string_create();
 
-    eg_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_RESOURCE (\n");
+    eg_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_SHADER (\n");
     eg_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
     eg_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "VERTEX_SHADER_FILE_PATH VARCHAR(255),\n");
-    eg_string_appendf(sql, "FRAGMENT_SHADER_FILE_PATH VARCHAR(255),\n");
-    eg_string_appendf(sql, "COMPUTE_SHADER_FILE_PATH VARCHAR(255),\n");
+    eg_string_appendf(sql, "CONTENT STRING,\n");
     eg_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
     eg_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
-    eg_string_appendf(sql, "UNIQUE (PIPELINE_ASSET_ID)\n");
     eg_string_appendf(sql, ")\n");
 
     sqlite3_stmt *stmt = 0;
@@ -1625,6 +1662,9 @@ static void eg_database_create_graph_tables(void) {
     eg_string_appendf(sql, "CREATE TABLE IF NOT EXISTS GRAPH_ASSET (\n");
     eg_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
     eg_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
+    eg_string_appendf(sql, "UNIQUE_NODE_ID INTEGER NOT NULL,\n");
+    eg_string_appendf(sql, "UNIQUE_PIN_ID INTEGER NOT NULL,\n");
+    eg_string_appendf(sql, "UNIQUE_LINK_ID INTEGER NOT NULL,\n");
     eg_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
     eg_string_appendf(sql, "UNIQUE (NAME)\n");
     eg_string_appendf(sql, ")\n");

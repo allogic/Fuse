@@ -1,17 +1,11 @@
 #ifndef ED_VIEWPORT_VIEW_H
 #define ED_VIEWPORT_VIEW_H
 
-typedef enum ed_gbuffer_attachment_type_t {
-  ED_GBUFFER_ATTACHMENT_TYPE_COLOR,
-  ED_GBUFFER_ATTACHMENT_TYPE_DEPTH,
-  ED_GBUFFER_ATTACHMENT_TYPE_COUNT,
-} ed_gbuffer_attachment_type_t;
-
-extern char const *g_viewport_gbuffer_attachment_type_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT];
+extern char const *g_viewport_gbuffer_attachment_type_names[EG_GBUFFER_ATTACHMENT_TYPE_COUNT];
 
 class ed_viewport_t : public ed_view_t {
 public:
-  ed_viewport_t(char const *name, uint8_t enable_controls);
+  ed_viewport_t(char const *name);
   virtual ~ed_viewport_t();
 
 public:
@@ -30,12 +24,10 @@ private:
   uint32_t m_prev_width = 1;
   uint32_t m_prev_height = 1;
 
-  uint8_t m_enable_controls = 0;
-
   VkDescriptorSet *m_gbuffer_color_attachment = 0;
   VkDescriptorSet *m_gbuffer_depth_attachment = 0;
 
-  ed_gbuffer_attachment_type_t m_gbuffer_attachment_type = ED_GBUFFER_ATTACHMENT_TYPE_COUNT;
+  eg_gbuffer_attachment_type_t m_gbuffer_attachment_type = EG_GBUFFER_ATTACHMENT_TYPE_COLOR;
 };
 
 #endif // ED_VIEWPORT_VIEW_H

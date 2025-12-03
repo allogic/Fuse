@@ -2,13 +2,12 @@
 
 #include <editor/view/ed_viewport.h>
 
-extern char const *g_viewport_gbuffer_attachment_type_names[ED_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
+extern char const *g_viewport_gbuffer_attachment_type_names[EG_GBUFFER_ATTACHMENT_TYPE_COUNT] = {
   "Color",
   "Depth",
 };
 
-ed_viewport_t::ed_viewport_t(char const *name, uint8_t enable_controls) : ed_view_t(name),
-                                                                          m_enable_controls(enable_controls) {
+ed_viewport_t::ed_viewport_t(char const *name) : ed_view_t(name) {
   uint32_t image_count = eg_swapchain_image_count();
 
   m_gbuffer_color_attachment = (VkDescriptorSet *)eg_heap_alloc(sizeof(VkDescriptorSet) * image_count, 0, 0);
@@ -38,46 +37,45 @@ void ed_viewport_t::refresh() {
   }
 }
 void ed_viewport_t::draw() {
-  uint32_t image_index = eg_renderer_image_index();
+  ImVec2 window_size = ImGui::GetWindowSize();
+  ImVec2 controlbar_size = ImVec2(window_size.x, 30.0F);
 
-  if (m_enable_controls) {
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, ED_SHALLOW_GRAY_COLOR);
+  ImGui::BeginChild("controlbar", controlbar_size);
+  ImGui::PopStyleColor(1);
 
-    ImGui::SetNextItemWidth(200.0F);
+  ImGui::SetCursorPos(ImVec2(3.0F, 3.0F));
+  ImGui::SetNextItemWidth(120.0F);
 
-    if (ImGui::BeginCombo("Attachment", g_viewport_gbuffer_attachment_type_names[m_gbuffer_attachment_type])) {
+  if (ImGui::BeginCombo("##Attachment", g_viewport_gbuffer_attachment_type_names[m_gbuffer_attachment_type])) {
 
-      uint64_t attachment_index = 0;
-      uint64_t attachment_count = ED_GBUFFER_ATTACHMENT_TYPE_COUNT;
+    uint64_t attachment_index = 0;
+    uint64_t attachment_count = EG_GBUFFER_ATTACHMENT_TYPE_COUNT;
 
-      while (attachment_index < attachment_count) {
+    while (attachment_index < attachment_count) {
 
-        uint8_t is_selected = (m_gbuffer_attachment_type == attachment_index);
+      uint8_t is_selected = (m_gbuffer_attachment_type == attachment_index);
 
-        if (ImGui::Selectable(g_viewport_gbuffer_attachment_type_names[attachment_index], is_selected)) {
-          m_gbuffer_attachment_type = (ed_gbuffer_attachment_type_t)attachment_index;
-        }
-
-        if (is_selected) {
-          ImGui::SetItemDefaultFocus();
-        }
-
-        attachment_index++;
+      if (ImGui::Selectable(g_viewport_gbuffer_attachment_type_names[attachment_index], is_selected)) {
+        m_gbuffer_attachment_type = (eg_gbuffer_attachment_type_t)attachment_index;
       }
 
-      ImGui::EndCombo();
+      if (is_selected) {
+        ImGui::SetItemDefaultFocus();
+      }
+
+      attachment_index++;
     }
+
+    ImGui::EndCombo();
   }
 
-  ImVec2 window_size = ImGui::GetWindowSize();
+  ImGui::EndChild();
 
-  if (m_enable_controls) {
-    window_size.y -= 25.0F;
-  }
+  m_width = (window_size.x < 0) ? 1 : (uint32_t)window_size.x;
+  m_height = (window_size.y < 0) ? 1 : (uint32_t)window_size.y;
 
-  m_width = window_size.x < 0 ? 1 : (uint32_t)window_size.x;
-  m_height = window_size.y < 0 ? 1 : (uint32_t)window_size.y;
-
-  m_is_dirty = ((m_width != m_prev_width) || (m_height != m_prev_height));
+  m_is_dirty = (m_width != m_prev_width) || (m_height != m_prev_height);
 
   if (m_is_dirty) {
 
@@ -87,20 +85,18 @@ void ed_viewport_t::draw() {
     m_prev_height = m_height;
   }
 
-  ImVec2 image_position_min = ImGui::GetCursorScreenPos();
-  ImVec2 image_position_max = ImVec2(image_position_min.x + window_size.x, image_position_min.y + window_size.y);
+  uint32_t image_index = eg_renderer_image_index();
 
   VkDescriptorSet gbuffer_image = 0;
 
   switch (m_gbuffer_attachment_type) {
-    case ED_GBUFFER_ATTACHMENT_TYPE_COLOR: {
+    case EG_GBUFFER_ATTACHMENT_TYPE_COLOR: {
 
       gbuffer_image = m_gbuffer_color_attachment[image_index];
 
       break;
     }
-
-    case ED_GBUFFER_ATTACHMENT_TYPE_DEPTH: {
+    case EG_GBUFFER_ATTACHMENT_TYPE_DEPTH: {
 
       gbuffer_image = m_gbuffer_depth_attachment[image_index];
 
@@ -110,7 +106,13 @@ void ed_viewport_t::draw() {
 
   ImDrawList *draw_list = ImGui::GetWindowDrawList();
 
-  draw_list->AddImageRounded(gbuffer_image, image_position_min, image_position_max, ImVec2(0.0F, 0.0F), ImVec2(1.0F, 1.0F), IM_COL32_WHITE, 1.0F);
+  ImVec2 image_position_min = ImGui::GetCursorScreenPos();
+  image_position_min.y -= 4.0F;
+
+  ImVec2 image_position_max = ImVec2(image_position_min.x + window_size.x, image_position_min.y + window_size.y);
+  image_position_max.y -= controlbar_size.y;
+
+  draw_list->AddImageRounded(gbuffer_image, image_position_min, image_position_max, ImVec2(0.0F, 0.0F), ImVec2(1.0F, 1.0F), IM_COL32_WHITE, 0.0F);
 }
 
 void ed_viewport_t::create_attachments() {

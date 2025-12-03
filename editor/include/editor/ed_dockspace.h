@@ -12,7 +12,7 @@ public:
   virtual void draw();
 
 private:
-  void begin_child(ed_view_t *view);
+  void begin_child(ed_view_t *view, float border_size);
   void end_child(ed_view_t *view);
 
 private:

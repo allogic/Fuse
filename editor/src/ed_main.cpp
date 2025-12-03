@@ -5,7 +5,7 @@
 #include <editor/ed_dockspace.h>
 
 #include <editor/view/ed_canvas.h>
-#include <editor/view/ed_catalog.h>
+#include <editor/view/ed_asset.h>
 #include <editor/view/ed_hierarchy.h>
 #include <editor/view/ed_geometry.h>
 #include <editor/view/ed_inspector.h>
@@ -40,6 +40,7 @@ ImFont *g_editor_material_symbols_h6 = 0;
 ImFont *g_editor_material_symbols = 0;
 
 ed_viewport_t *g_editor_viewport = 0;
+ed_asset_t *g_editor_asset = 0;
 
 ed_statusbar_t *g_editor_statusbar = 0;
 ed_dockspace_t *g_editor_dockspace = 0;
@@ -223,10 +224,11 @@ static void editor_create(void) {
 
   ImGui_ImplVulkan_Init(&imgui_vulkan_init_info);
 
-  g_editor_viewport = ed_heap_alloc<ed_viewport_t>("Scene", 1);
+  g_editor_viewport = ed_heap_alloc<ed_viewport_t>(ED_VIEWPORT_WINDOW_ID);
+  g_editor_asset = ed_heap_alloc<ed_asset_t>(ED_ASSET_WINDOW_ID);
 
   g_editor_statusbar = ed_heap_alloc<ed_statusbar_t>();
-  g_editor_dockspace = ed_heap_alloc<ed_dockspace_t>(g_editor_viewport);
+  g_editor_dockspace = ed_heap_alloc<ed_dockspace_t>(g_editor_viewport, g_editor_asset);
   g_editor_titlebar = ed_heap_alloc<ed_titlebar_t>();
 }
 static void editor_refresh(void) {
@@ -262,6 +264,7 @@ static void editor_destroy(void) {
   ed_heap_free<ed_dockspace_t>(g_editor_dockspace);
   ed_heap_free<ed_titlebar_t>(g_editor_titlebar);
 
+  ed_heap_free<ed_asset_t>(g_editor_asset);
   ed_heap_free<ed_viewport_t>(g_editor_viewport);
 
   ImNodes::PopColorStyle();

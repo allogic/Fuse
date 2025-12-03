@@ -301,27 +301,33 @@ typedef struct eg_model_import_settings_t {
   char model_file_path[0xFF];
 } eg_model_import_settings_t;
 
+typedef enum eg_gbuffer_attachment_type_t {
+  EG_GBUFFER_ATTACHMENT_TYPE_COLOR,
+  EG_GBUFFER_ATTACHMENT_TYPE_DEPTH,
+  EG_GBUFFER_ATTACHMENT_TYPE_COUNT,
+} eg_gbuffer_attachment_type_t;
+
 typedef enum eg_asset_type_t {
-  LB_ASSET_TYPE_SWAPCHAIN,
-  LB_ASSET_TYPE_RENDERER,
-  LB_ASSET_TYPE_PIPELINE,
-  LB_ASSET_TYPE_MODEL,
-  LB_ASSET_TYPE_SCENE,
-  LB_ASSET_TYPE_GRAPH,
-  LB_ASSET_TYPE_COUNT,
+  EG_ASSET_TYPE_SWAPCHAIN,
+  EG_ASSET_TYPE_RENDERER,
+  EG_ASSET_TYPE_PIPELINE,
+  EG_ASSET_TYPE_MODEL,
+  EG_ASSET_TYPE_SCENE,
+  EG_ASSET_TYPE_GRAPH,
+  EG_ASSET_TYPE_COUNT,
 } eg_asset_type_t;
 
 typedef enum eg_pipeline_type_t {
-  LB_PIPELINE_TYPE_GRAPHIC,
-  LB_PIPELINE_TYPE_COMPUTE,
-  LB_PIPELINE_TYPE_COUNT,
+  EG_PIPELINE_TYPE_GRAPHIC,
+  EG_PIPELINE_TYPE_COMPUTE,
+  EG_PIPELINE_TYPE_COUNT,
 } eg_pipeline_type_t;
 
 typedef enum eg_node_type_t {
-  LB_NODE_TYPE_MESH,
-  LB_NODE_TYPE_NOISE,
-  LB_NODE_TYPE_OUTPUT,
-  LB_NODE_TYPE_COUNT,
+  EG_NODE_TYPE_MESH,
+  EG_NODE_TYPE_NOISE,
+  EG_NODE_TYPE_OUTPUT,
+  EG_NODE_TYPE_COUNT,
 } eg_node_type_t;
 
 typedef struct eg_swapchain_asset_t {

@@ -466,7 +466,7 @@ static void eg_renderer_create_debug_buffers(void) {
   }
 }
 static void eg_renderer_create_pipelines(void) {
-  eg_vector_t *graphic_pipeline_assets = eg_database_load_all_pipeline_assets_by_type(LB_PIPELINE_TYPE_GRAPHIC);
+  eg_vector_t *graphic_pipeline_assets = eg_database_load_all_pipeline_assets_by_type(EG_PIPELINE_TYPE_GRAPHIC);
 
   uint64_t graphic_pipeline_asset_index = 0;
   uint64_t graphic_pipeline_asset_count = eg_vector_count(graphic_pipeline_assets);
@@ -506,7 +506,7 @@ static void eg_renderer_create_pipelines(void) {
 
   eg_database_destroy_pipeline_assets(graphic_pipeline_assets);
 
-  eg_vector_t *compute_pipeline_assets = eg_database_load_all_pipeline_assets_by_type(LB_PIPELINE_TYPE_COMPUTE);
+  eg_vector_t *compute_pipeline_assets = eg_database_load_all_pipeline_assets_by_type(EG_PIPELINE_TYPE_COMPUTE);
 
   uint64_t compute_pipeline_asset_index = 0;
   uint64_t compute_pipeline_asset_count = eg_vector_count(compute_pipeline_assets);
@@ -980,13 +980,13 @@ static void eg_renderer_destroy_pipelines(void) {
     if (s_renderer_current->pipeline_link[pipeline_link_index]) {
 
       switch (s_renderer_current->pipeline_type[pipeline_link_index]) {
-        case LB_PIPELINE_TYPE_GRAPHIC: {
+        case EG_PIPELINE_TYPE_GRAPHIC: {
 
           eg_graphic_pipeline_destroy(s_renderer_current->pipeline_link[pipeline_link_index]);
 
           break;
         }
-        case LB_PIPELINE_TYPE_COMPUTE: {
+        case EG_PIPELINE_TYPE_COMPUTE: {
 
           eg_compute_pipeline_destroy(s_renderer_current->pipeline_link[pipeline_link_index]);
 
