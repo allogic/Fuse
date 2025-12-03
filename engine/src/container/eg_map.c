@@ -306,6 +306,7 @@ void eg_map_destroy(eg_map_t *map) {
   }
 
   eg_heap_free(map->table);
+  eg_heap_free(map);
 }
 
 void *eg_map_record_key(eg_map_record_t *record) {

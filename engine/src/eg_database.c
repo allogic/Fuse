@@ -21,19 +21,19 @@ static sqlite3 *s_database_handle = 0;
 void eg_database_create(void) {
   EG_SQL_CHECK(sqlite3_open("engine.db", &s_database_handle));
 
-  eg_database_create_swapchain_tables();
-  eg_database_create_renderer_tables();
-  eg_database_create_pipeline_tables();
-  eg_database_create_scene_tables();
-  eg_database_create_model_tables();
-  eg_database_create_graph_tables();
+  // eg_database_create_swapchain_tables();
+  // eg_database_create_renderer_tables();
+  // eg_database_create_pipeline_tables();
+  // eg_database_create_scene_tables();
+  // eg_database_create_model_tables();
+  // eg_database_create_graph_tables();
 
-  eg_database_create_default_swapchain_assets();
-  eg_database_create_default_renderer_assets();
-  eg_database_create_default_pipeline_assets();
-  eg_database_create_default_scene_assets();
-  eg_database_create_default_model_assets();
-  eg_database_create_default_graph_assets();
+  // eg_database_create_default_swapchain_assets();
+  // eg_database_create_default_renderer_assets();
+  // eg_database_create_default_pipeline_assets();
+  // eg_database_create_default_scene_assets();
+  // eg_database_create_default_model_assets();
+  // eg_database_create_default_graph_assets();
 }
 void eg_database_destroy(void) {
   EG_SQL_CHECK(sqlite3_close(s_database_handle));

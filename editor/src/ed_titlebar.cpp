@@ -88,11 +88,6 @@ void ed_titlebar_t::draw_main_menu() {
   if (ImGui::Button("Profiler")) {
     // g_profiler_scene->base.is_open = !g_profiler_scene->base.is_open;
   }
-
-  ImGui::SameLine();
-  if (ImGui::Button("Import")) {
-    eg_importer_import_default_assets();
-  }
 }
 void ed_titlebar_t::draw_window_controls() {
   HWND window_handle = eg_context_window_handle();

@@ -1,5 +1,9 @@
 #include <engine/eg_pch.h>
 
+// #define EG_DISABLE_SWAPCHAIN
+// #define EG_DISABLE_RENDERER
+// #define EG_DISABLE_SCENE
+
 struct eg_context_t {
   HMODULE module_handle;
   HWND window_handle;
@@ -47,7 +51,9 @@ struct eg_context_t {
 #endif // BUILD_DEBUG
   eg_world_settings_t world_settings;
   eg_viewport_t *viewport[0xFF];
-  eg_scene_t *scene;
+  eg_scene_t *scene[0xFF];
+  eg_viewport_t *main_viewport;
+  eg_viewport_t *main_scene;
 };
 
 static LRESULT eg_context_window_message_proc(HWND window_handle, UINT message, WPARAM w_param, LPARAM l_param);
@@ -153,9 +159,19 @@ void eg_context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
   eg_renderpass_create_main();
   eg_renderpass_create_gbuffer();
 
+#ifndef EG_DISABLE_SWAPCHAIN
   eg_swapchain_create(world_settings.default_swapchain_asset_id);
+#endif // EG_DISABLE_SWAPCHAIN
+
+#ifndef EG_DISABLE_RENDERER
   eg_renderer_create(world_settings.default_renderer_asset_id);
-  eg_scene_create(world_settings.default_scene_asset_id);
+#endif // EG_DISABLE_RENDERER
+
+#ifndef EG_DISABLE_SCENE
+  s_context_current->main_scene = eg_scene_create(world_settings.default_scene_asset_id);
+#endif // EG_DISABLE_SCENE
+
+  // eg_importer_import_default_assets(); // TODO: remove this..
 }
 void eg_context_run(void) {
   QueryPerformanceFrequency(&s_context_current->time_freq);
@@ -192,27 +208,43 @@ void eg_context_run(void) {
       mouse_key_index++;
     }
 
+#ifndef EG_DISABLE_SWAPCHAIN
     if (eg_swapchain_is_dirty()) {
 
       eg_swapchain_set_dirty(0);
 
+      EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_primary_queue()));
+      EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_present_queue()));
+
+#  ifndef EG_DISABLE_RENDERER
       eg_renderer_destroy();
+#  endif // EG_DISABLE_RENDERER
+
       eg_swapchain_destroy();
 
       eg_context_resize_surface();
 
       eg_swapchain_create(s_context_current->world_settings.default_swapchain_asset_id);
-      eg_renderer_create(s_context_current->world_settings.default_renderer_asset_id);
-    }
 
+#  ifndef EG_DISABLE_RENDERER
+      eg_renderer_create(s_context_current->world_settings.default_renderer_asset_id);
+#  endif // EG_DISABLE_RENDERER
+    }
+#endif // EG_DISABLE_SWAPCHAIN
+
+#ifndef EG_DISABLE_RENDERER
     if (eg_renderer_is_dirty()) {
 
       eg_renderer_set_dirty(0);
+
+      EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_primary_queue()));
+      EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_present_queue()));
 
       eg_renderer_destroy();
 
       eg_renderer_create(s_context_current->world_settings.default_renderer_asset_id);
     }
+#endif // EG_DISABLE_RENDERER
 
     while (PeekMessageA(&s_context_current->window_message, 0, 0, 0, PM_REMOVE)) {
 
@@ -222,10 +254,10 @@ void eg_context_run(void) {
 
     QueryPerformanceCounter(&s_context_current->time_start); // TODO: measure whole loop..?
 
-    eg_scene_update(s_context_current->scene);
-
-    eg_renderer_update(); // TODO: remove this..
+#ifndef EG_DISABLE_RENDERER
+    eg_renderer_update();
     eg_renderer_draw();
+#endif // EG_DISABLE_RENDERER
 
     QueryPerformanceCounter(&s_context_current->time_end); // TODO: measure whole loop..?
 
@@ -244,9 +276,20 @@ void eg_context_run(void) {
   }
 }
 void eg_context_destroy(void) {
-  eg_scene_destroy(s_context_current->scene);
+  EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_primary_queue()));
+  EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_present_queue()));
+
+#ifndef EG_DISABLE_SCENE
+  eg_scene_destroy(s_context_current->main_scene);
+#endif // EG_DISABLE_SCENE
+
+#ifndef EG_DISABLE_RENDERER
   eg_renderer_destroy();
+#endif // EG_DISABLE_RENDERER
+
+#ifndef EG_DISABLE_SWAPCHAIN
   eg_swapchain_destroy();
+#endif // EG_DISABLE_SWAPCHAIN
 
   eg_renderpass_destroy_gbuffer();
   eg_renderpass_destroy_main();
@@ -346,25 +389,36 @@ float eg_context_max_anisotropy(void) {
 eg_viewport_t **eg_context_viewports(void) {
   return s_context_current->viewport;
 }
-eg_scene_t *eg_context_scene(void) {
+eg_scene_t **eg_context_scenes(void) {
   return s_context_current->scene;
+}
+eg_viewport_t *eg_context_main_viewport(void) {
+  return s_context_current->main_viewport;
+}
+eg_scene_t *eg_context_main_scene(void) {
+  return s_context_current->main_scene;
 }
 
 void eg_context_set_running(uint8_t is_running) {
   s_context_current->is_window_running = is_running;
 }
-void eg_context_set_viewport(eg_viewport_t *viewport, uint64_t *viewport_index) {
-  while (s_context_current->viewport[*viewport_index]) {
-
-    (*viewport_index)++;
+void eg_context_set_viewport(eg_viewport_t *viewport, uint64_t *index) {
+  while (s_context_current->viewport[*index]) {
+    (*index)++;
   }
 
-  EG_ASSERT((*viewport_index) < 0xFF, "Invalid viewport index");
+  EG_ASSERT((*index) < 0xFF, "Invalid viewport index");
 
-  s_context_current->viewport[*viewport_index] = viewport;
+  s_context_current->viewport[*index] = viewport;
 }
-void eg_context_set_scene(eg_scene_t *scene) {
-  s_context_current->scene = scene;
+void eg_context_set_scene(eg_scene_t *scene, uint64_t *index) {
+  while (s_context_current->scene[*index]) {
+    (*index)++;
+  }
+
+  EG_ASSERT((*index) < 0xFF, "Invalid scene index");
+
+  s_context_current->scene[*index] = scene;
 }
 
 uint8_t eg_context_is_keyboard_key_pressed(eg_keyboard_key_t key) {

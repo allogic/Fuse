@@ -285,6 +285,7 @@ void eg_set_destroy(eg_set_t *set) {
   }
 
   eg_heap_free(set->table);
+  eg_heap_free(set);
 }
 
 void *eg_set_record_key(eg_set_record_t *record) {

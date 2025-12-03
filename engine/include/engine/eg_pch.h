@@ -47,6 +47,9 @@
 #include <engine/component/eg_script.h>
 #include <engine/component/eg_transform.h>
 
+#include <engine/system/eg_controller.h>
+#include <engine/system/eg_rigidbody.h>
+
 #include <engine/eg_buffer.h>
 #include <engine/eg_clang.h>
 #include <engine/eg_context.h>

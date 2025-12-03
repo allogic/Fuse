@@ -1,9 +1,7 @@
 #include <engine/eg_pch.h>
 
-#include <engine/system/eg_controller.h>
-#include <engine/system/eg_rigidbody.h>
-
 struct eg_scene_t {
+  uint64_t index;
   eg_scene_asset_t asset;
   ecs_world_t *world;
   ecs_entity_t root;
@@ -15,10 +13,12 @@ struct eg_scene_t {
 static void eg_scene_create_root(eg_scene_t *scene);
 static void eg_scene_create_player(eg_scene_t *scene);
 
-void eg_scene_create(eg_scene_asset_id_t scene_asset_id) {
+static void eg_scene_cleanup(eg_scene_t *scene, ecs_entity_t entity);
+
+eg_scene_t *eg_scene_create(eg_scene_asset_id_t scene_asset_id) {
   eg_scene_t *scene = (eg_scene_t *)eg_heap_alloc(sizeof(eg_scene_t), 1, 0);
 
-  eg_context_set_scene(scene);
+  eg_context_set_scene(scene, &scene->index);
 
   scene->asset = eg_database_load_scene_asset_by_id(scene_asset_id);
   scene->world = ecs_init_w_args(0, 0);
@@ -36,7 +36,6 @@ void eg_scene_create(eg_scene_asset_id_t scene_asset_id) {
                                                          {.id = ecs_id(eg_rigidbody_t)},
                                                          {.id = ecs_id(eg_editor_controller_t)}},
                                                        .run = eg_editor_controller_update});
-
   scene->rigidbody_system = ecs_system(scene->world, {.ctx = 0,
                                                       .entity = ecs_entity(scene->world, {.name = "rigidbody_system"}),
                                                       .query.terms = {
@@ -46,12 +45,20 @@ void eg_scene_create(eg_scene_asset_id_t scene_asset_id) {
 
   eg_scene_create_root(scene);
   eg_scene_create_player(scene);
+
+  return scene;
 }
 void eg_scene_update(eg_scene_t *scene) {
   ecs_run(scene->world, scene->controller_system, 0.0F, 0);
   ecs_run(scene->world, scene->rigidbody_system, 0.0F, 0);
 }
 void eg_scene_destroy(eg_scene_t *scene) {
+  eg_scene_t **scenes = eg_context_scenes();
+
+  scenes[scene->index] = 0;
+
+  eg_scene_cleanup(scene, scene->root);
+
   ecs_fini(scene->world);
 
   eg_database_destroy_scene_asset(&scene->asset);
@@ -128,4 +135,50 @@ static void eg_scene_create_player(eg_scene_t *scene) {
   eg_camera_create(camera);
 
   eg_editor_controller_create(editor_controller);
+}
+
+static void eg_scene_cleanup(eg_scene_t *scene, ecs_entity_t entity) {
+  eg_camera_t *camera = ecs_get_mut(scene->world, entity, eg_camera_t);
+  eg_editor_controller_t *editor_controller = ecs_get_mut(scene->world, entity, eg_editor_controller_t);
+  eg_rigidbody_t *rigidbody = ecs_get_mut(scene->world, entity, eg_rigidbody_t);
+  eg_script_t *script = ecs_get_mut(scene->world, entity, eg_script_t);
+  eg_transform_t *transform = ecs_get_mut(scene->world, entity, eg_transform_t);
+
+  if (camera) {
+    eg_camera_destroy(camera);
+  }
+
+  if (editor_controller) {
+    eg_editor_controller_destroy(editor_controller);
+  }
+
+  if (rigidbody) {
+    eg_rigidbody_destroy(rigidbody);
+  }
+
+  if (script) {
+    eg_script_destroy(script);
+  }
+
+  if (transform) {
+    eg_transform_destroy(transform);
+  }
+
+  ecs_iter_t child_iter = ecs_children(scene->world, entity);
+
+  ecs_children_next(&child_iter);
+
+  do {
+
+    uint32_t child_index = 0;
+    uint32_t child_count = child_iter.count;
+
+    while (child_index < child_count) {
+
+      eg_scene_cleanup(scene, child_iter.entities[child_index]);
+
+      child_index++;
+    }
+
+  } while (ecs_children_next(&child_iter));
 }

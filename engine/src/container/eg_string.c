@@ -258,4 +258,5 @@ uint64_t eg_string_capacity(eg_string_t *string) {
 }
 void eg_string_destroy(eg_string_t *string) {
   eg_heap_free(string->buffer);
+  eg_heap_free(string);
 }

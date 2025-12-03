@@ -45,11 +45,13 @@ uint32_t eg_context_titlebar_height(void);
 uint32_t eg_context_statusbar_height(void);
 float eg_context_max_anisotropy(void);
 eg_viewport_t **eg_context_viewports(void);
-eg_scene_t *eg_context_scene(void);
+eg_scene_t **eg_context_scenes(void);
+eg_viewport_t *eg_context_main_viewport(void);
+eg_scene_t *eg_context_main_scene(void);
 
 void eg_context_set_running(uint8_t is_running);
-void eg_context_set_viewport(eg_viewport_t *viewport, uint64_t *viewport_index);
-void eg_context_set_scene(eg_scene_t *scene);
+void eg_context_set_viewport(eg_viewport_t *viewport, uint64_t *index);
+void eg_context_set_scene(eg_scene_t *scene, uint64_t *index);
 
 // TODO: move this stuff away..
 

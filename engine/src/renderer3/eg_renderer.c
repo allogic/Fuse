@@ -54,7 +54,7 @@ static void eg_renderer_record_compute_commands(void);
 static void eg_renderer_record_graphic_commands(void);
 
 static void eg_renderer_gbuffer_pass(void);
-static void eg_renderer_editor_pass(void);
+static void eg_renderer_main_pass(void);
 
 static void eg_renderer_destroy_global_buffers(void);
 static void eg_renderer_destroy_debug_buffers(void);
@@ -97,6 +97,12 @@ void eg_renderer_create(eg_renderer_asset_id_t renderer_asset_id) {
   }
 }
 void eg_renderer_update(void) {
+  eg_scene_t *scene = eg_context_main_scene();
+
+  if (scene) {
+    eg_scene_update(scene);
+  }
+
   eg_vector3_t right_position = {0.0F, 0.0F, 0.0F};
   eg_vector3_t right_direction = {1.0F, 0.0F, 0.0F};
   eg_vector4_t right_color = {1.0F, 0.0F, 0.0F, 1.0F};
@@ -263,9 +269,6 @@ void eg_renderer_draw(void) {
   s_renderer_current->frame_index = (s_renderer_current->frame_index + 1) % s_renderer_current->frames_in_flight;
 }
 void eg_renderer_destroy(void) {
-  EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_primary_queue()));
-  EG_VULKAN_CHECK(vkQueueWaitIdle(eg_context_present_queue()));
-
   if (eg_context_is_editor_mode()) {
     g_context_editor_destroy_proc();
   }
@@ -586,7 +589,7 @@ static void eg_renderer_create_command_buffer(void) {
 }
 
 static void eg_renderer_update_uniform_buffers(void) {
-  eg_scene_t *scene = eg_context_scene();
+  eg_scene_t *scene = eg_context_main_scene();
 
   if (scene) {
 
@@ -751,11 +754,12 @@ static void eg_renderer_record_graphic_commands(void) {
   eg_renderer_gbuffer_pass();
 
   if (eg_context_is_editor_mode()) {
-
     eg_renderer_transition_viewport_images_to_shader_read();
+  }
 
-    eg_renderer_editor_pass();
+  eg_renderer_main_pass();
 
+  if (eg_context_is_editor_mode()) {
     eg_renderer_transition_viewport_images_to_render_target();
   }
 }
@@ -840,7 +844,9 @@ static void eg_renderer_gbuffer_pass(void) {
     s_renderer_current->debug_line_index_offset[s_renderer_current->frame_index] = 0;
   }
 }
-static void eg_renderer_editor_pass(void) {
+static void eg_renderer_main_pass(void) {
+  uint8_t is_editor_mode = eg_context_is_editor_mode();
+
   VkCommandBuffer command_buffer = s_renderer_current->command_buffer[s_renderer_current->frame_index];
 
   VkClearValue color_clear_value = {0};
@@ -858,8 +864,21 @@ static void eg_renderer_editor_pass(void) {
     depth_clear_value,
   };
 
-  uint32_t window_width = eg_context_window_width();
-  uint32_t window_height = eg_context_window_height();
+  uint32_t window_width = 0;
+  uint32_t window_height = 0;
+
+  if (is_editor_mode) {
+
+    window_width = eg_context_window_width();
+    window_height = eg_context_window_height();
+
+  } else {
+
+    eg_viewport_t *viewport = eg_context_main_viewport();
+
+    window_width = eg_viewport_width(viewport);
+    window_height = eg_viewport_height(viewport);
+  }
 
   VkRenderPassBeginInfo render_pass_create_info = {0};
   render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -892,7 +911,13 @@ static void eg_renderer_editor_pass(void) {
 
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  g_context_editor_draw_proc();
+  if (is_editor_mode) {
+
+    g_context_editor_draw_proc();
+
+  } else {
+    // TODO
+  }
 
   vkCmdEndRenderPass(command_buffer);
 }

@@ -72,8 +72,8 @@ static void ed_hierarchy_view_draw_tree(ed_hierarchy_view_t *hierarchy, ecs_worl
 
     do {
 
-      uint64_t child_index = 0;
-      uint64_t child_count = child_iter.count;
+      uint32_t child_index = 0;
+      uint32_t child_count = child_iter.count;
 
       while (child_index < child_count) {
 

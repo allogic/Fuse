@@ -191,4 +191,5 @@ uint64_t eg_vector_capacity(eg_vector_t *vector) {
 void eg_vector_destroy(eg_vector_t *vector) {
   eg_heap_free(vector->buffer);
   eg_heap_free(vector->swap_buffer);
+  eg_heap_free(vector);
 }
