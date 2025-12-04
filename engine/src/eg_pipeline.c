@@ -2,11 +2,6 @@
 
 struct eg_graphic_pipeline_t {
   eg_pipeline_asset_t asset;
-  eg_pipeline_resource_t resource;
-  eg_vector_t *vertex_input_bindings;
-  eg_vector_t *descriptor_bindings;
-  uint64_t vertex_input_binding_count;
-  uint64_t descriptor_binding_count;
   uint64_t descriptor_pool_size_count;
   uint64_t allocated_descriptor_set_count;
   uint64_t descriptor_set_layout_count;
@@ -31,9 +26,6 @@ struct eg_graphic_pipeline_t {
 };
 struct eg_compute_pipeline_t {
   eg_pipeline_asset_t asset;
-  eg_pipeline_resource_t resource;
-  eg_vector_t *descriptor_bindings;
-  uint64_t descriptor_binding_count;
   uint64_t descriptor_pool_size_count;
   uint64_t allocated_descriptor_set_count;
   uint64_t descriptor_set_layout_count;
@@ -52,6 +44,7 @@ struct eg_compute_pipeline_t {
   VkPipeline handle;
 };
 
+/*
 static void eg_graphic_pipeline_create_vertex_input_binding_descriptions(eg_graphic_pipeline_t *pipeline);
 static void eg_graphic_pipeline_create_vertex_input_attribute_descriptions(eg_graphic_pipeline_t *pipeline);
 static void eg_graphic_pipeline_create_descriptor_pool_sizes(eg_graphic_pipeline_t *pipeline);
@@ -69,31 +62,27 @@ static void eg_compute_pipeline_create_frame_dependant_buffers(eg_compute_pipeli
 static void eg_compute_pipeline_build(eg_compute_pipeline_t *pipeline);
 
 static void eg_compute_pipeline_destroy_frame_dependant_buffers(eg_compute_pipeline_t *pipeline);
+*/
 
 eg_graphic_pipeline_t *eg_graphic_pipeline_create(eg_pipeline_asset_id_t pipeline_asset_id) {
   eg_graphic_pipeline_t *pipeline = (eg_graphic_pipeline_t *)eg_heap_alloc(sizeof(eg_graphic_pipeline_t), 1, 0);
 
   pipeline->asset = eg_database_load_pipeline_asset_by_id(pipeline_asset_id);
-  pipeline->resource = eg_database_load_pipeline_resource_by_id(pipeline_asset_id);
-  pipeline->vertex_input_binding_count = eg_database_load_vertex_input_binding_count_by_id(pipeline_asset_id);
-  pipeline->vertex_input_bindings = eg_database_load_all_pipeline_vertex_input_bindings_by_id(pipeline_asset_id);
-  pipeline->descriptor_binding_count = eg_database_load_descriptor_binding_count_by_id(pipeline_asset_id);
-  pipeline->descriptor_bindings = eg_database_load_all_pipeline_descriptor_bindings_by_id(pipeline_asset_id);
-
   pipeline->descriptor_set_layouts = (VkDescriptorSetLayout *)eg_heap_alloc(sizeof(VkDescriptorSetLayout), 0, 0);
   pipeline->descriptor_sets = (VkDescriptorSet *)eg_heap_alloc(sizeof(VkDescriptorSet), 0, 0);
   pipeline->write_descriptor_sets = (VkWriteDescriptorSet *)eg_heap_alloc(sizeof(VkWriteDescriptorSet), 0, 0);
 
-  eg_graphic_pipeline_create_vertex_input_binding_descriptions(pipeline);
-  eg_graphic_pipeline_create_vertex_input_attribute_descriptions(pipeline);
-  eg_graphic_pipeline_create_descriptor_pool_sizes(pipeline);
-  eg_graphic_pipeline_create_descriptor_set_layout_bindings(pipeline);
-  eg_graphic_pipeline_create_frame_dependant_buffers(pipeline);
+  // eg_graphic_pipeline_create_vertex_input_binding_descriptions(pipeline);
+  // eg_graphic_pipeline_create_vertex_input_attribute_descriptions(pipeline);
+  // eg_graphic_pipeline_create_descriptor_pool_sizes(pipeline);
+  // eg_graphic_pipeline_create_descriptor_set_layout_bindings(pipeline);
+  // eg_graphic_pipeline_create_frame_dependant_buffers(pipeline);
 
-  eg_graphic_pipeline_build(pipeline);
+  // eg_graphic_pipeline_build(pipeline);
 
   return pipeline;
 }
+/*
 void eg_graphic_pipeline_set_auto_link_descriptor_bindings(eg_graphic_pipeline_t *pipeline, eg_map_t **auto_link_descriptor_binding_buffers_per_frame) {
   pipeline->auto_link_descriptor_binding_buffers_per_frame = auto_link_descriptor_binding_buffers_per_frame;
 }
@@ -220,8 +209,9 @@ void eg_graphic_pipeline_execute(eg_graphic_pipeline_t *pipeline, VkCommandBuffe
 
   vkCmdDrawIndexed(command_buffer, index_count, 1, 0, 0, 0);
 }
+*/
 void eg_graphic_pipeline_destroy(eg_graphic_pipeline_t *pipeline) {
-  eg_graphic_pipeline_destroy_frame_dependant_buffers(pipeline);
+  // eg_graphic_pipeline_destroy_frame_dependant_buffers(pipeline);
 
   eg_heap_free(pipeline->vertex_input_binding_descriptions);
   eg_heap_free(pipeline->vertex_input_attribute_descriptions);
@@ -237,9 +227,6 @@ void eg_graphic_pipeline_destroy(eg_graphic_pipeline_t *pipeline) {
   vkDestroyPipeline(eg_context_device(), pipeline->handle, 0);
 
   eg_database_destroy_pipeline_asset(&pipeline->asset);
-  eg_database_destroy_pipeline_resource(&pipeline->resource);
-  eg_database_destroy_pipeline_vertex_input_bindings(pipeline->vertex_input_bindings);
-  eg_database_destroy_pipeline_descriptor_bindings(pipeline->descriptor_bindings);
 
   eg_heap_free(pipeline);
 }
@@ -248,22 +235,19 @@ eg_compute_pipeline_t *eg_compute_pipeline_create(eg_pipeline_asset_id_t pipelin
   eg_compute_pipeline_t *pipeline = (eg_compute_pipeline_t *)eg_heap_alloc(sizeof(eg_compute_pipeline_t), 1, 0);
 
   pipeline->asset = eg_database_load_pipeline_asset_by_id(pipeline_asset_id);
-  pipeline->resource = eg_database_load_pipeline_resource_by_id(pipeline_asset_id);
-  pipeline->descriptor_binding_count = eg_database_load_descriptor_binding_count_by_id(pipeline_asset_id);
-  pipeline->descriptor_bindings = eg_database_load_all_pipeline_descriptor_bindings_by_id(pipeline_asset_id);
-
   pipeline->descriptor_set_layouts = (VkDescriptorSetLayout *)eg_heap_alloc(sizeof(VkDescriptorSetLayout), 0, 0);
   pipeline->descriptor_sets = (VkDescriptorSet *)eg_heap_alloc(sizeof(VkDescriptorSet), 0, 0);
   pipeline->write_descriptor_sets = (VkWriteDescriptorSet *)eg_heap_alloc(sizeof(VkWriteDescriptorSet), 0, 0);
 
-  eg_compute_pipeline_create_descriptor_pool_sizes(pipeline);
-  eg_compute_pipeline_create_descriptor_set_layout_bindings(pipeline);
-  eg_compute_pipeline_create_frame_dependant_buffers(pipeline);
+  // eg_compute_pipeline_create_descriptor_pool_sizes(pipeline);
+  // eg_compute_pipeline_create_descriptor_set_layout_bindings(pipeline);
+  // eg_compute_pipeline_create_frame_dependant_buffers(pipeline);
 
-  eg_compute_pipeline_build(pipeline);
+  // eg_compute_pipeline_build(pipeline);
 
   return pipeline;
 }
+/*
 void eg_compute_pipeline_set_auto_link_descriptor_bindings(eg_compute_pipeline_t *pipeline, eg_map_t **auto_link_descriptor_binding_buffers_per_frame) {
   pipeline->auto_link_descriptor_binding_buffers_per_frame = auto_link_descriptor_binding_buffers_per_frame;
 }
@@ -314,8 +298,9 @@ void eg_compute_pipeline_execute(eg_compute_pipeline_t *pipeline, VkCommandBuffe
   //
   // vkCmdDrawIndexed(command_buffer, (uint32_t)index_buffer_offset, 1, 0, 0, 0);
 }
+*/
 void eg_compute_pipeline_destroy(eg_compute_pipeline_t *pipeline) {
-  eg_compute_pipeline_destroy_frame_dependant_buffers(pipeline);
+  // eg_compute_pipeline_destroy_frame_dependant_buffers(pipeline);
 
   eg_heap_free(pipeline->descriptor_pool_sizes);
   eg_heap_free(pipeline->descriptor_set_layout_bindings);
@@ -329,12 +314,11 @@ void eg_compute_pipeline_destroy(eg_compute_pipeline_t *pipeline) {
   vkDestroyPipeline(eg_context_device(), pipeline->handle, 0);
 
   eg_database_destroy_pipeline_asset(&pipeline->asset);
-  eg_database_destroy_pipeline_resource(&pipeline->resource);
-  eg_database_destroy_pipeline_descriptor_bindings(pipeline->descriptor_bindings);
 
   eg_heap_free(pipeline);
 }
 
+/*
 static void eg_graphic_pipeline_create_vertex_input_binding_descriptions(eg_graphic_pipeline_t *pipeline) {
   // TODO: Support input_rate groups..
 
@@ -829,3 +813,4 @@ static void eg_compute_pipeline_destroy_frame_dependant_buffers(eg_compute_pipel
 
   eg_heap_free(pipeline->descriptor_binding_buffers_per_frame);
 }
+*/

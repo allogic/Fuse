@@ -485,18 +485,18 @@ static void eg_renderer_create_pipelines(void) {
       while (frame_index < frame_count) {
 
         // TODO: remove this!
-        eg_graphic_pipeline_link_vertex_input_binding_buffer(graphic_pipeline, frame_index, 0, eg_buffer_handle(s_renderer_current->debug_line_vertex_buffers[frame_index]), 0);
-        eg_graphic_pipeline_link_index_buffer(graphic_pipeline, frame_index, eg_buffer_handle(s_renderer_current->debug_line_index_buffers[frame_index]));
+        // eg_graphic_pipeline_link_vertex_input_binding_buffer(graphic_pipeline, frame_index, 0, eg_buffer_handle(s_renderer_current->debug_line_vertex_buffers[frame_index]), 0);
+        // eg_graphic_pipeline_link_index_buffer(graphic_pipeline, frame_index, eg_buffer_handle(s_renderer_current->debug_line_index_buffers[frame_index]));
 
-        if (graphic_pipeline_asset->auto_link_descriptor_bindings) {
-          eg_graphic_pipeline_set_auto_link_descriptor_bindings(graphic_pipeline, s_renderer_current->descriptor_binding_buffers_per_frame);
-        }
+        // if (graphic_pipeline_asset->auto_link_descriptor_binding) {
+        //   eg_graphic_pipeline_set_auto_link_descriptor_bindings(graphic_pipeline, s_renderer_current->descriptor_binding_buffers_per_frame);
+        // }
 
         frame_index++;
       }
 
-      eg_graphic_pipeline_allocate_descriptor_sets(graphic_pipeline, 1);
-      eg_graphic_pipeline_update_descriptor_sets(graphic_pipeline);
+      // eg_graphic_pipeline_allocate_descriptor_sets(graphic_pipeline, 1);
+      // eg_graphic_pipeline_update_descriptor_sets(graphic_pipeline);
 
       eg_renderer_link_pipeline(graphic_pipeline_asset->link_index, graphic_pipeline_asset->type, graphic_pipeline);
     }
@@ -524,15 +524,15 @@ static void eg_renderer_create_pipelines(void) {
 
       while (frame_index < frame_count) {
 
-        if (pipeline_asset->auto_link_descriptor_bindings) {
-          eg_compute_pipeline_set_auto_link_descriptor_bindings(pipeline, s_renderer_current->descriptor_binding_buffers_per_frame);
-        }
+        // if (pipeline_asset->auto_link_descriptor_binding) {
+        //   eg_compute_pipeline_set_auto_link_descriptor_bindings(pipeline, s_renderer_current->descriptor_binding_buffers_per_frame);
+        // }
 
         frame_index++;
       }
 
-      eg_compute_pipeline_allocate_descriptor_sets(pipeline, 1);
-      eg_compute_pipeline_update_descriptor_sets(pipeline);
+      // eg_compute_pipeline_allocate_descriptor_sets(pipeline, 1);
+      // eg_compute_pipeline_update_descriptor_sets(pipeline);
 
       eg_renderer_link_pipeline(pipeline_asset->link_index, pipeline_asset->type, pipeline);
     }
@@ -830,7 +830,7 @@ static void eg_renderer_gbuffer_pass(void) {
 
         uint32_t index_count = s_renderer_current->debug_line_index_offset[s_renderer_current->frame_index];
 
-        eg_graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
+        // eg_graphic_pipeline_execute(debug_pipeline, command_buffer, index_count);
       }
     }
 

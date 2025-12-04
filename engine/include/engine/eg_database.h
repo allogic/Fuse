@@ -18,15 +18,9 @@ eg_swapchain_asset_t eg_database_load_swapchain_asset_by_id(eg_swapchain_asset_i
 eg_vector_t *eg_database_load_all_renderer_assets(void);
 eg_renderer_asset_t eg_database_load_renderer_asset_by_id(eg_renderer_asset_id_t renderer_asset_id);
 
-uint64_t eg_database_load_vertex_input_binding_count_by_id(eg_pipeline_asset_id_t pipeline_asset_id);
-uint64_t eg_database_load_descriptor_binding_count_by_id(eg_pipeline_asset_id_t pipeline_asset_id);
-
 eg_vector_t *eg_database_load_all_pipeline_assets(void);
 eg_vector_t *eg_database_load_all_pipeline_assets_by_type(eg_pipeline_type_t pipeline_type);
 eg_pipeline_asset_t eg_database_load_pipeline_asset_by_id(eg_pipeline_asset_id_t pipeline_asset_id);
-eg_pipeline_resource_t eg_database_load_pipeline_resource_by_id(eg_pipeline_asset_id_t pipeline_asset_id);
-eg_vector_t *eg_database_load_all_pipeline_vertex_input_bindings_by_id(eg_pipeline_asset_id_t pipeline_asset_id);
-eg_vector_t *eg_database_load_all_pipeline_descriptor_bindings_by_id(eg_pipeline_asset_id_t pipeline_asset_id);
 
 eg_vector_t *eg_database_load_all_model_assets(void);
 eg_model_resource_t eg_database_load_model_resource_by_id(eg_model_asset_id_t model_asset_id);
@@ -48,9 +42,6 @@ void eg_database_store_swapchain_asset(eg_swapchain_asset_t *swapchain_asset);
 void eg_database_store_renderer_asset(eg_renderer_asset_t *renderer_asset);
 
 void eg_database_store_pipeline_asset(eg_pipeline_asset_t *pipeline_asset);
-void eg_database_store_pipeline_resource(eg_pipeline_resource_t *pipeline_resource);
-void eg_database_store_pipeline_vertex_input_binding(eg_pipeline_vertex_input_binding_t *pipeline_vertex_input_binding);
-void eg_database_store_pipeline_descriptor_binding(eg_pipeline_descriptor_binding_t *pipeline_descriptor_binding);
 
 void eg_database_store_model_asset(eg_model_asset_t *model_asset);
 void eg_database_store_model_resource(eg_model_resource_t *model_resource);
@@ -73,9 +64,6 @@ void eg_database_destroy_renderer_assets(eg_vector_t *renderer_assets);
 
 void eg_database_destroy_pipeline_asset(eg_pipeline_asset_t *pipeline_asset);
 void eg_database_destroy_pipeline_assets(eg_vector_t *pipeline_assets);
-void eg_database_destroy_pipeline_resource(eg_pipeline_resource_t *pipeline_resource);
-void eg_database_destroy_pipeline_vertex_input_bindings(eg_vector_t *vertex_input_bindings);
-void eg_database_destroy_pipeline_descriptor_bindings(eg_vector_t *descriptor_bindings);
 
 void eg_database_destroy_model_assets(eg_vector_t *model_assets);
 void eg_database_destroy_model_resource(eg_model_resource_t *model_resource);

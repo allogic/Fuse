@@ -248,61 +248,12 @@ eg_renderer_asset_t eg_database_load_renderer_asset_by_id(eg_renderer_asset_id_t
   return renderer_asset;
 }
 
-uint64_t eg_database_load_vertex_input_binding_count_by_id(eg_pipeline_asset_id_t pipeline_asset_id) {
-  uint64_t pipeline_vertex_input_binding_count = 0;
-
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "SELECT COUNT(*) AS CNT\n");
-  eg_string_appendf(sql, "FROM PIPELINE_VERTEX_INPUT_BINDING\n");
-  eg_string_appendf(sql, "WHERE PIPELINE_VERTEX_INPUT_BINDING.PIPELINE_ASSET_ID = %lld\n", pipeline_asset_id);
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-
-    pipeline_vertex_input_binding_count = (uint64_t)sqlite3_column_int64(stmt, 0);
-  }
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  return pipeline_vertex_input_binding_count;
-}
-uint64_t eg_database_load_descriptor_binding_count_by_id(eg_pipeline_asset_id_t pipeline_asset_id) {
-  uint64_t pipeline_descriptor_binding_count = 0;
-
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "SELECT COUNT(*) AS CNT\n");
-  eg_string_appendf(sql, "FROM PIPELINE_DESCRIPTOR_BINDING\n");
-  eg_string_appendf(sql, "WHERE PIPELINE_DESCRIPTOR_BINDING.PIPELINE_ASSET_ID = %lld\n", pipeline_asset_id);
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-
-    pipeline_descriptor_binding_count = (uint64_t)sqlite3_column_int64(stmt, 0);
-  }
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  return pipeline_descriptor_binding_count;
-}
-
 eg_vector_t *eg_database_load_all_pipeline_assets(void) {
   eg_vector_t *pipeline_assets = eg_vector_create(sizeof(eg_pipeline_asset_t));
 
   eg_string_t *sql = eg_string_create();
 
-  eg_string_appendf(sql, "SELECT PIPELINE_ASSET.ID, PIPELINE_ASSET.NAME, PIPELINE_ASSET.TYPE, PIPELINE_ASSET.LINK_INDEX, PIPELINE_ASSET.AUTO_CREATE_PIPELINE, PIPELINE_ASSET.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE_ASSET.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
+  eg_string_appendf(sql, "SELECT PIPELINE_ASSET.ID, PIPELINE_ASSET.NAME, PIPELINE_ASSET.TYPE, PIPELINE_ASSET.LINK_INDEX, PIPELINE_ASSET.AUTO_CREATE_PIPELINE, PIPELINE_ASSET.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.AUTO_LINK_DESCRIPTOR_BINDING, PIPELINE_ASSET.INTERLEAVED_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.SOURCE, PIPELINE_ASSET.SPIRV\n");
   eg_string_appendf(sql, "FROM PIPELINE_ASSET\n");
 
   sqlite3_stmt *stmt = 0;
@@ -319,8 +270,11 @@ eg_vector_t *eg_database_load_all_pipeline_assets(void) {
     uint32_t link_index = (uint32_t)sqlite3_column_int(stmt, 3);
     uint8_t auto_create_pipeline = (uint8_t)sqlite3_column_int(stmt, 4);
     uint8_t auto_create_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
-    uint8_t auto_link_descriptor_bindings = (uint8_t)sqlite3_column_int(stmt, 6);
+    uint8_t auto_link_descriptor_binding = (uint8_t)sqlite3_column_int(stmt, 6);
     uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 7);
+    char const *source = sqlite3_column_text(stmt, 8);
+    uint8_t const *spirv = sqlite3_column_blob(stmt, 9);
+    uint64_t spirv_size = sqlite3_column_bytes(stmt, 9);
 
     pipeline_asset.id = id;
     strcpy(pipeline_asset.name, name);
@@ -328,8 +282,11 @@ eg_vector_t *eg_database_load_all_pipeline_assets(void) {
     pipeline_asset.link_index = link_index;
     pipeline_asset.auto_create_pipeline = auto_create_pipeline;
     pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
-    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
+    pipeline_asset.auto_link_descriptor_binding = auto_link_descriptor_binding;
     pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
+    pipeline_asset.source = eg_string_value(source);
+    pipeline_asset.spirv = spirv ? eg_heap_alloc(spirv_size, 0, spirv) : 0;
+    pipeline_asset.spirv_size = spirv_size;
 
     eg_vector_push(pipeline_assets, &pipeline_asset);
   }
@@ -345,7 +302,7 @@ eg_vector_t *eg_database_load_all_pipeline_assets_by_type(eg_pipeline_type_t pip
 
   eg_string_t *sql = eg_string_create();
 
-  eg_string_appendf(sql, "SELECT PIPELINE_ASSET.ID, PIPELINE_ASSET.NAME, PIPELINE_ASSET.TYPE, PIPELINE_ASSET.LINK_INDEX, PIPELINE_ASSET.AUTO_CREATE_PIPELINE, PIPELINE_ASSET.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE_ASSET.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
+  eg_string_appendf(sql, "SELECT PIPELINE_ASSET.ID, PIPELINE_ASSET.NAME, PIPELINE_ASSET.TYPE, PIPELINE_ASSET.LINK_INDEX, PIPELINE_ASSET.AUTO_CREATE_PIPELINE, PIPELINE_ASSET.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE_ASSET.INTERLEAVED_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.SOURCE, PIPELINE_ASSET.SPIRV\n");
   eg_string_appendf(sql, "FROM PIPELINE_ASSET\n");
   eg_string_appendf(sql, "WHERE TYPE = %u\n", pipeline_type);
 
@@ -365,6 +322,9 @@ eg_vector_t *eg_database_load_all_pipeline_assets_by_type(eg_pipeline_type_t pip
     uint8_t auto_create_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
     uint8_t auto_link_descriptor_bindings = (uint8_t)sqlite3_column_int(stmt, 6);
     uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 7);
+    char const *source = sqlite3_column_text(stmt, 8);
+    uint8_t const *spirv = sqlite3_column_blob(stmt, 9);
+    uint64_t spirv_size = sqlite3_column_bytes(stmt, 9);
 
     pipeline_asset.id = id;
     strcpy(pipeline_asset.name, name);
@@ -372,8 +332,11 @@ eg_vector_t *eg_database_load_all_pipeline_assets_by_type(eg_pipeline_type_t pip
     pipeline_asset.link_index = link_index;
     pipeline_asset.auto_create_pipeline = auto_create_pipeline;
     pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
-    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
+    pipeline_asset.auto_link_descriptor_binding = auto_link_descriptor_bindings;
     pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
+    pipeline_asset.source = eg_string_value(source);
+    pipeline_asset.spirv = spirv ? eg_heap_alloc(spirv_size, 0, spirv) : 0;
+    pipeline_asset.spirv_size = spirv_size;
 
     eg_vector_push(pipeline_assets, &pipeline_asset);
   }
@@ -389,7 +352,7 @@ eg_pipeline_asset_t eg_database_load_pipeline_asset_by_id(eg_pipeline_asset_id_t
 
   eg_string_t *sql = eg_string_create();
 
-  eg_string_appendf(sql, "SELECT PIPELINE_ASSET.ID, PIPELINE_ASSET.NAME, PIPELINE_ASSET.TYPE, PIPELINE_ASSET.LINK_INDEX, PIPELINE_ASSET.AUTO_CREATE_PIPELINE, PIPELINE_ASSET.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE_ASSET.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
+  eg_string_appendf(sql, "SELECT PIPELINE_ASSET.ID, PIPELINE_ASSET.NAME, PIPELINE_ASSET.TYPE, PIPELINE_ASSET.LINK_INDEX, PIPELINE_ASSET.AUTO_CREATE_PIPELINE, PIPELINE_ASSET.AUTO_CREATE_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.AUTO_LINK_DESCRIPTOR_BINDINGS, PIPELINE_ASSET.INTERLEAVED_VERTEX_INPUT_BUFFER, PIPELINE_ASSET.SOURCE, PIPELINE_ASSET.SPIRV\n");
   eg_string_appendf(sql, "FROM PIPELINE_ASSET\n");
 
   sqlite3_stmt *stmt = 0;
@@ -406,6 +369,9 @@ eg_pipeline_asset_t eg_database_load_pipeline_asset_by_id(eg_pipeline_asset_id_t
     uint8_t auto_create_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 5);
     uint8_t auto_link_descriptor_bindings = (uint8_t)sqlite3_column_int(stmt, 6);
     uint8_t interleaved_vertex_input_buffer = (uint8_t)sqlite3_column_int(stmt, 7);
+    char const *source = sqlite3_column_text(stmt, 8);
+    uint8_t const *spirv = sqlite3_column_blob(stmt, 9);
+    uint64_t spirv_size = sqlite3_column_bytes(stmt, 9);
 
     pipeline_asset.id = id;
     strcpy(pipeline_asset.name, name);
@@ -413,8 +379,11 @@ eg_pipeline_asset_t eg_database_load_pipeline_asset_by_id(eg_pipeline_asset_id_t
     pipeline_asset.link_index = link_index;
     pipeline_asset.auto_create_pipeline = auto_create_pipeline;
     pipeline_asset.auto_create_vertex_input_buffer = auto_create_vertex_input_buffer;
-    pipeline_asset.auto_link_descriptor_bindings = auto_link_descriptor_bindings;
+    pipeline_asset.auto_link_descriptor_binding = auto_link_descriptor_bindings;
     pipeline_asset.interleaved_vertex_input_buffer = interleaved_vertex_input_buffer;
+    pipeline_asset.source = eg_string_value(source);
+    pipeline_asset.spirv = spirv ? eg_heap_alloc(spirv_size, 0, spirv) : 0;
+    pipeline_asset.spirv_size = spirv_size;
   }
 
   sqlite3_finalize(stmt);
@@ -422,131 +391,6 @@ eg_pipeline_asset_t eg_database_load_pipeline_asset_by_id(eg_pipeline_asset_id_t
   eg_string_destroy(sql);
 
   return pipeline_asset;
-}
-eg_pipeline_resource_t eg_database_load_pipeline_resource_by_id(eg_pipeline_asset_id_t pipeline_asset_id) {
-  eg_pipeline_resource_t pipeline_resource = {0};
-
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "SELECT PIPELINE_RESOURCE.ID, PIPELINE_RESOURCE.VERTEX_SHADER_FILE_PATH, PIPELINE_RESOURCE.FRAGMENT_SHADER_FILE_PATH, PIPELINE_RESOURCE.COMPUTE_SHADER_FILE_PATH\n");
-  eg_string_appendf(sql, "FROM PIPELINE_ASSET\n");
-  eg_string_appendf(sql, "LEFT JOIN PIPELINE_RESOURCE\n");
-  eg_string_appendf(sql, "ON PIPELINE_ASSET.ID = PIPELINE_RESOURCE.PIPELINE_ASSET_ID\n");
-  eg_string_appendf(sql, "WHERE PIPELINE_ASSET.ID = %lld\n", pipeline_asset_id);
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-
-    eg_pipeline_resource_id_t id = sqlite3_column_int64(stmt, 0);
-    char const *vertex_shader_file_path = sqlite3_column_text(stmt, 1);
-    char const *fragment_shader_file_path = sqlite3_column_text(stmt, 2);
-    char const *compute_shader_file_path = sqlite3_column_text(stmt, 3);
-
-    pipeline_resource.id = id;
-    pipeline_resource.pipeline_asset_id = pipeline_asset_id;
-    strcpy(pipeline_resource.vertex_shader_file_path, vertex_shader_file_path);
-    strcpy(pipeline_resource.fragment_shader_file_path, fragment_shader_file_path);
-    strcpy(pipeline_resource.compute_shader_file_path, compute_shader_file_path);
-  }
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  return pipeline_resource;
-}
-eg_vector_t *eg_database_load_all_pipeline_vertex_input_bindings_by_id(eg_pipeline_asset_id_t pipeline_asset_id) {
-  eg_vector_t *pipeline_vertex_input_bindings = eg_vector_create(sizeof(eg_pipeline_vertex_input_binding_t));
-
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "SELECT PIPELINE_VERTEX_INPUT_BINDING.ID, PIPELINE_VERTEX_INPUT_BINDING.NAME, PIPELINE_VERTEX_INPUT_BINDING.LOCATION, PIPELINE_VERTEX_INPUT_BINDING.SIZE, PIPELINE_VERTEX_INPUT_BINDING.COMPONENT_COUNT, PIPELINE_VERTEX_INPUT_BINDING.FORMAT, PIPELINE_VERTEX_INPUT_BINDING.INPUT_RATE\n");
-  eg_string_appendf(sql, "FROM PIPELINE_ASSET\n");
-  eg_string_appendf(sql, "LEFT JOIN PIPELINE_VERTEX_INPUT_BINDING\n");
-  eg_string_appendf(sql, "ON PIPELINE_ASSET.ID = PIPELINE_VERTEX_INPUT_BINDING.PIPELINE_ASSET_ID\n");
-  eg_string_appendf(sql, "WHERE PIPELINE_ASSET.ID = %lld\n", pipeline_asset_id);
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-
-    eg_pipeline_vertex_input_binding_t pipeline_vertex_input_binding = {0};
-
-    eg_pipeline_vertex_input_binding_id_t id = sqlite3_column_int64(stmt, 0);
-    char const *name = sqlite3_column_text(stmt, 1);
-    uint32_t location = (uint32_t)sqlite3_column_int(stmt, 2);
-    uint32_t size = (uint32_t)sqlite3_column_int(stmt, 3);
-    uint32_t component_count = (uint32_t)sqlite3_column_int(stmt, 4);
-    uint32_t format = (uint32_t)sqlite3_column_int(stmt, 5);
-    uint32_t input_rate = (uint32_t)sqlite3_column_int(stmt, 6);
-
-    pipeline_vertex_input_binding.id = id;
-    pipeline_vertex_input_binding.pipeline_asset_id = pipeline_asset_id;
-    strcpy(pipeline_vertex_input_binding.name, name);
-    pipeline_vertex_input_binding.location = location;
-    pipeline_vertex_input_binding.size = size;
-    pipeline_vertex_input_binding.component_count = component_count;
-    pipeline_vertex_input_binding.format = format;
-    pipeline_vertex_input_binding.input_rate = input_rate;
-
-    eg_vector_push(pipeline_vertex_input_bindings, &pipeline_vertex_input_binding);
-  }
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  return pipeline_vertex_input_bindings;
-}
-eg_vector_t *eg_database_load_all_pipeline_descriptor_bindings_by_id(eg_pipeline_asset_id_t pipeline_asset_id) {
-  eg_vector_t *pipeline_descriptor_bindings = eg_vector_create(sizeof(eg_pipeline_descriptor_binding_t));
-
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "SELECT PIPELINE_DESCRIPTOR_BINDING.ID, PIPELINE_DESCRIPTOR_BINDING.NAME, PIPELINE_DESCRIPTOR_BINDING.BINDING, PIPELINE_DESCRIPTOR_BINDING.DESCRIPTOR_TYPE, PIPELINE_DESCRIPTOR_BINDING.DESCRIPTOR_COUNT, PIPELINE_DESCRIPTOR_BINDING.STAGE_FLAGS, PIPELINE_DESCRIPTOR_BINDING.AUTO_BUFFER\n");
-  eg_string_appendf(sql, "FROM PIPELINE_ASSET\n");
-  eg_string_appendf(sql, "LEFT JOIN PIPELINE_DESCRIPTOR_BINDING\n");
-  eg_string_appendf(sql, "ON PIPELINE_ASSET.ID = PIPELINE_DESCRIPTOR_BINDING.PIPELINE_ASSET_ID\n");
-  eg_string_appendf(sql, "WHERE PIPELINE_ASSET.ID = %lld\n", pipeline_asset_id);
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  while (sqlite3_step(stmt) == SQLITE_ROW) {
-
-    eg_pipeline_descriptor_binding_t pipeline_descriptor_binding = {0};
-
-    eg_pipeline_descriptor_binding_id_t id = sqlite3_column_int64(stmt, 0);
-    char const *name = (char const *)sqlite3_column_text(stmt, 1);
-    uint32_t binding = (uint32_t)sqlite3_column_int(stmt, 2);
-    uint32_t descriptor_type = (uint32_t)sqlite3_column_int(stmt, 3);
-    uint32_t descriptor_count = (uint32_t)sqlite3_column_int(stmt, 4);
-    uint32_t stage_flags = (uint32_t)sqlite3_column_int(stmt, 5);
-    uint8_t auto_buffer = (uint8_t)sqlite3_column_int(stmt, 6);
-
-    pipeline_descriptor_binding.id = id;
-    pipeline_descriptor_binding.pipeline_asset_id = pipeline_asset_id;
-    strcpy(pipeline_descriptor_binding.name, name);
-    pipeline_descriptor_binding.binding = binding;
-    pipeline_descriptor_binding.descriptor_type = descriptor_type;
-    pipeline_descriptor_binding.descriptor_count = descriptor_count;
-    pipeline_descriptor_binding.stage_flags = stage_flags;
-    pipeline_descriptor_binding.auto_buffer = auto_buffer;
-
-    eg_vector_push(pipeline_descriptor_bindings, &pipeline_descriptor_binding);
-  }
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  return pipeline_descriptor_bindings;
 }
 
 eg_vector_t *eg_database_load_all_model_assets(void) {
@@ -937,15 +781,17 @@ void eg_database_store_renderer_asset(eg_renderer_asset_t *renderer_asset) {
 void eg_database_store_pipeline_asset(eg_pipeline_asset_t *pipeline_asset) {
   eg_string_t *sql = eg_string_create();
 
-  eg_string_appendf(sql, "INSERT INTO PIPELINE_ASSET (NAME, TYPE, LINK_INDEX, AUTO_CREATE_PIPELINE, AUTO_CREATE_VERTEX_INPUT_BUFFER, AUTO_LINK_DESCRIPTOR_BINDINGS, INTERLEAVED_VERTEX_INPUT_BUFFER)\n");
-  eg_string_appendf(sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
+  eg_string_appendf(sql, "INSERT INTO PIPELINE_ASSET (NAME, TYPE, LINK_INDEX, AUTO_CREATE_PIPELINE, AUTO_CREATE_VERTEX_INPUT_BUFFER, AUTO_LINK_DESCRIPTOR_BINDINGS, INTERLEAVED_VERTEX_INPUT_BUFFER, SOURCE, SPIRV)\n");
+  eg_string_appendf(sql, "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)\n");
   eg_string_appendf(sql, "ON CONFLICT (NAME) DO UPDATE SET\n");
   eg_string_appendf(sql, "TYPE = EXCLUDED.TYPE,\n");
   eg_string_appendf(sql, "LINK_INDEX = EXCLUDED.LINK_INDEX,\n");
   eg_string_appendf(sql, "AUTO_CREATE_PIPELINE = EXCLUDED.AUTO_CREATE_PIPELINE,\n");
   eg_string_appendf(sql, "AUTO_CREATE_VERTEX_INPUT_BUFFER = EXCLUDED.AUTO_CREATE_VERTEX_INPUT_BUFFER,\n");
   eg_string_appendf(sql, "AUTO_LINK_DESCRIPTOR_BINDINGS = EXCLUDED.AUTO_LINK_DESCRIPTOR_BINDINGS,\n");
-  eg_string_appendf(sql, "INTERLEAVED_VERTEX_INPUT_BUFFER = EXCLUDED.INTERLEAVED_VERTEX_INPUT_BUFFER\n");
+  eg_string_appendf(sql, "INTERLEAVED_VERTEX_INPUT_BUFFER = EXCLUDED.INTERLEAVED_VERTEX_INPUT_BUFFER,\n");
+  eg_string_appendf(sql, "SOURCE = EXCLUDED.SOURCE,\n");
+  eg_string_appendf(sql, "SPIRV = EXCLUDED.SPIRV\n");
 
   sqlite3_stmt *stmt = 0;
 
@@ -956,8 +802,10 @@ void eg_database_store_pipeline_asset(eg_pipeline_asset_t *pipeline_asset) {
   sqlite3_bind_int(stmt, 3, pipeline_asset->link_index);
   sqlite3_bind_int(stmt, 4, pipeline_asset->auto_create_pipeline);
   sqlite3_bind_int(stmt, 5, pipeline_asset->auto_create_vertex_input_buffer);
-  sqlite3_bind_int(stmt, 6, pipeline_asset->auto_link_descriptor_bindings);
+  sqlite3_bind_int(stmt, 6, pipeline_asset->auto_link_descriptor_binding);
   sqlite3_bind_int(stmt, 7, pipeline_asset->interleaved_vertex_input_buffer);
+  sqlite3_bind_text(stmt, 8, eg_string_buffer(pipeline_asset->source), -1, SQLITE_STATIC);
+  sqlite3_bind_blob(stmt, 9, pipeline_asset->spirv, (int32_t)pipeline_asset->spirv_size, SQLITE_STATIC);
 
   EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
 
@@ -967,96 +815,6 @@ void eg_database_store_pipeline_asset(eg_pipeline_asset_t *pipeline_asset) {
 
   if (pipeline_asset->id == 0) {
     pipeline_asset->id = eg_database_get_sequence_index_by_name("PIPELINE_ASSET");
-  }
-}
-void eg_database_store_pipeline_resource(eg_pipeline_resource_t *pipeline_resource) {
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "INSERT INTO PIPELINE_RESOURCE (PIPELINE_ASSET_ID, VERTEX_SHADER_FILE_PATH, FRAGMENT_SHADER_FILE_PATH, COMPUTE_SHADER_FILE_PATH)\n");
-  eg_string_appendf(sql, "VALUES (?, ?, ?, ?)\n");
-  eg_string_appendf(sql, "ON CONFLICT (PIPELINE_ASSET_ID) DO UPDATE SET\n");
-  eg_string_appendf(sql, "VERTEX_SHADER_FILE_PATH = EXCLUDED.VERTEX_SHADER_FILE_PATH,\n");
-  eg_string_appendf(sql, "FRAGMENT_SHADER_FILE_PATH = EXCLUDED.FRAGMENT_SHADER_FILE_PATH,\n");
-  eg_string_appendf(sql, "COMPUTE_SHADER_FILE_PATH = EXCLUDED.COMPUTE_SHADER_FILE_PATH\n");
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  sqlite3_bind_int64(stmt, 1, pipeline_resource->pipeline_asset_id);
-  sqlite3_bind_text(stmt, 2, pipeline_resource->vertex_shader_file_path, -1, SQLITE_STATIC);
-  sqlite3_bind_text(stmt, 3, pipeline_resource->fragment_shader_file_path, -1, SQLITE_STATIC);
-  sqlite3_bind_text(stmt, 4, pipeline_resource->compute_shader_file_path, -1, SQLITE_STATIC);
-
-  EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  if (pipeline_resource->id == 0) {
-    pipeline_resource->id = eg_database_get_sequence_index_by_name("PIPELINE_RESOURCE");
-  }
-}
-void eg_database_store_pipeline_vertex_input_binding(eg_pipeline_vertex_input_binding_t *pipeline_vertex_input_binding) {
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "INSERT INTO PIPELINE_VERTEX_INPUT_BINDING (PIPELINE_ASSET_ID, NAME, LOCATION, SIZE, COMPONENT_COUNT, FORMAT, INPUT_RATE)\n");
-  eg_string_appendf(sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
-  eg_string_appendf(sql, "ON CONFLICT (PIPELINE_ASSET_ID, LOCATION) DO UPDATE SET\n");
-  eg_string_appendf(sql, "INPUT_RATE = EXCLUDED.INPUT_RATE\n");
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  sqlite3_bind_int64(stmt, 1, pipeline_vertex_input_binding->pipeline_asset_id);
-  sqlite3_bind_text(stmt, 2, pipeline_vertex_input_binding->name, -1, SQLITE_STATIC);
-  sqlite3_bind_int(stmt, 3, pipeline_vertex_input_binding->location);
-  sqlite3_bind_int(stmt, 4, pipeline_vertex_input_binding->size);
-  sqlite3_bind_int(stmt, 5, pipeline_vertex_input_binding->component_count);
-  sqlite3_bind_int(stmt, 6, pipeline_vertex_input_binding->format);
-  sqlite3_bind_int(stmt, 7, pipeline_vertex_input_binding->input_rate);
-
-  EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  if (pipeline_vertex_input_binding->id == 0) {
-    pipeline_vertex_input_binding->id = eg_database_get_sequence_index_by_name("PIPELINE_VERTEX_INPUT_BINDING");
-  }
-}
-void eg_database_store_pipeline_descriptor_binding(eg_pipeline_descriptor_binding_t *pipeline_descriptor_binding) {
-  eg_string_t *sql = eg_string_create();
-
-  eg_string_appendf(sql, "INSERT INTO PIPELINE_DESCRIPTOR_BINDING (PIPELINE_ASSET_ID, NAME, BINDING, DESCRIPTOR_TYPE, DESCRIPTOR_COUNT, STAGE_FLAGS, AUTO_BUFFER)\n");
-  eg_string_appendf(sql, "VALUES (?, ?, ?, ?, ?, ?, ?)\n");
-  eg_string_appendf(sql, "ON CONFLICT (PIPELINE_ASSET_ID, BINDING) DO UPDATE SET\n");
-  eg_string_appendf(sql, "STAGE_FLAGS = EXCLUDED.STAGE_FLAGS | PIPELINE_DESCRIPTOR_BINDING.STAGE_FLAGS,\n");
-  eg_string_appendf(sql, "AUTO_BUFFER = EXCLUDED.AUTO_BUFFER\n");
-
-  sqlite3_stmt *stmt = 0;
-
-  EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-  sqlite3_bind_int64(stmt, 1, pipeline_descriptor_binding->pipeline_asset_id);
-  sqlite3_bind_text(stmt, 2, pipeline_descriptor_binding->name, -1, SQLITE_STATIC);
-  sqlite3_bind_int(stmt, 3, pipeline_descriptor_binding->binding);
-  sqlite3_bind_int(stmt, 4, pipeline_descriptor_binding->descriptor_type);
-  sqlite3_bind_int(stmt, 5, pipeline_descriptor_binding->descriptor_count);
-  sqlite3_bind_int(stmt, 6, pipeline_descriptor_binding->stage_flags);
-  sqlite3_bind_int(stmt, 7, pipeline_descriptor_binding->auto_buffer);
-
-  EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
-
-  sqlite3_finalize(stmt);
-
-  eg_string_destroy(sql);
-
-  if (pipeline_descriptor_binding->id == 0) {
-    pipeline_descriptor_binding->id = eg_database_get_sequence_index_by_name("PIPELINE_DESCRIPTOR_BINDING");
   }
 }
 
@@ -1274,25 +1032,28 @@ void eg_database_destroy_renderer_assets(eg_vector_t *renderer_assets) {
 }
 
 void eg_database_destroy_pipeline_asset(eg_pipeline_asset_t *pipeline_asset) {
-  // TODO
+  eg_string_destroy(pipeline_asset->source);
+
+  if (pipeline_asset->spirv) {
+    eg_heap_free(pipeline_asset->spirv);
+  }
 }
 void eg_database_destroy_pipeline_assets(eg_vector_t *pipeline_assets) {
-  // TODO
+  uint64_t asset_index = 0;
+  uint64_t asset_count = eg_vector_count(pipeline_assets);
+
+  while (asset_index < asset_count) {
+
+    eg_pipeline_asset_t *asset = (eg_pipeline_asset_t *)eg_vector_at(pipeline_assets, asset_index);
+
+    eg_string_destroy(asset->source);
+
+    if (asset->spirv) {
+      eg_heap_free(asset->spirv);
+    }
+  }
 
   eg_vector_destroy(pipeline_assets);
-}
-void eg_database_destroy_pipeline_resource(eg_pipeline_resource_t *pipeline_resource) {
-  // TODO
-}
-void eg_database_destroy_pipeline_vertex_input_bindings(eg_vector_t *pipeline_vertex_input_bindings) {
-  // TODO
-
-  eg_vector_destroy(pipeline_vertex_input_bindings);
-}
-void eg_database_destroy_pipeline_descriptor_bindings(eg_vector_t *pipeline_descriptor_bindings) {
-  // TODO
-
-  eg_vector_destroy(pipeline_descriptor_bindings);
 }
 
 void eg_database_destroy_model_assets(eg_vector_t *model_assets) {
@@ -1401,88 +1162,12 @@ static void eg_database_create_pipeline_tables(void) {
     eg_string_appendf(sql, "LINK_INDEX INTEGER NOT NULL,\n");
     eg_string_appendf(sql, "AUTO_CREATE_PIPELINE INTEGER NOT NULL,\n");
     eg_string_appendf(sql, "AUTO_CREATE_VERTEX_INPUT_BUFFER INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "AUTO_LINK_DESCRIPTOR_BINDINGS INTEGER NOT NULL,\n");
+    eg_string_appendf(sql, "AUTO_LINK_DESCRIPTOR_BINDING INTEGER NOT NULL,\n");
     eg_string_appendf(sql, "INTERLEAVED_VERTEX_INPUT_BUFFER INTEGER NOT NULL,\n");
+    eg_string_appendf(sql, "SOURCE TEXT NOT NULL,\n");
+    eg_string_appendf(sql, "SPIRV BLOB,\n");
     eg_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
     eg_string_appendf(sql, "UNIQUE (NAME)\n");
-    eg_string_appendf(sql, ")\n");
-
-    sqlite3_stmt *stmt = 0;
-
-    EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-    EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
-
-    sqlite3_finalize(stmt);
-
-    eg_string_destroy(sql);
-  }
-
-  {
-    eg_string_t *sql = eg_string_create();
-
-    eg_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_SHADER (\n");
-    eg_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
-    eg_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "CONTENT STRING,\n");
-    eg_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
-    eg_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
-    eg_string_appendf(sql, ")\n");
-
-    sqlite3_stmt *stmt = 0;
-
-    EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-    EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
-
-    sqlite3_finalize(stmt);
-
-    eg_string_destroy(sql);
-  }
-
-  {
-    eg_string_t *sql = eg_string_create();
-
-    eg_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_VERTEX_INPUT_BINDING (\n");
-    eg_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
-    eg_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
-    eg_string_appendf(sql, "LOCATION INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "SIZE INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "COMPONENT_COUNT INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "FORMAT INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "INPUT_RATE INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
-    eg_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
-    eg_string_appendf(sql, "UNIQUE (PIPELINE_ASSET_ID, LOCATION)\n");
-    eg_string_appendf(sql, ")\n");
-
-    sqlite3_stmt *stmt = 0;
-
-    EG_SQL_CHECK(sqlite3_prepare_v2(s_database_handle, eg_string_buffer(sql), -1, &stmt, 0));
-
-    EG_SQL_CHECK_STATUS(sqlite3_step(stmt), SQLITE_DONE);
-
-    sqlite3_finalize(stmt);
-
-    eg_string_destroy(sql);
-  }
-
-  {
-    eg_string_t *sql = eg_string_create();
-
-    eg_string_appendf(sql, "CREATE TABLE IF NOT EXISTS PIPELINE_DESCRIPTOR_BINDING (\n");
-    eg_string_appendf(sql, "ID INTEGER PRIMARY KEY AUTOINCREMENT,\n");
-    eg_string_appendf(sql, "PIPELINE_ASSET_ID INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "NAME VARCHAR(255) NOT NULL,\n");
-    eg_string_appendf(sql, "BINDING INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "DESCRIPTOR_TYPE INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "DESCRIPTOR_COUNT INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "STAGE_FLAGS INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "AUTO_BUFFER INTEGER NOT NULL,\n");
-    eg_string_appendf(sql, "CREATED_AT DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
-    eg_string_appendf(sql, "FOREIGN KEY (PIPELINE_ASSET_ID) REFERENCES PIPELINE_ASSET(ID)\n");
-    eg_string_appendf(sql, "UNIQUE (PIPELINE_ASSET_ID, BINDING)\n");
     eg_string_appendf(sql, ")\n");
 
     sqlite3_stmt *stmt = 0;

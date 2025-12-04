@@ -17,7 +17,7 @@ void eg_importer_import_default_assets(void) {
   strcpy(debug_line_import_settings.fragment_shader_file_path, EG_ASSET_ROOT_DIR "\\shader\\debug_line_frag.spv");
   debug_line_import_settings.auto_create_pipeline = 1;
   debug_line_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
-  debug_line_import_settings.auto_link_descriptor_bindings = 1;
+  debug_line_import_settings.auto_link_descriptor_binding = 1;
   debug_line_import_settings.interleaved_vertex_input = 1;
 
   eg_importer_import_graphic_pipeline(&debug_line_import_settings);
@@ -29,7 +29,7 @@ void eg_importer_import_default_assets(void) {
   strcpy(principled_brdf_import_settings.fragment_shader_file_path, EG_ASSET_ROOT_DIR "\\shader\\principled_brdf_frag.spv");
   principled_brdf_import_settings.auto_create_pipeline = 1;
   principled_brdf_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
-  principled_brdf_import_settings.auto_link_descriptor_bindings = 1;
+  principled_brdf_import_settings.auto_link_descriptor_binding = 1;
   principled_brdf_import_settings.interleaved_vertex_input = 1;
 
   eg_importer_import_graphic_pipeline(&principled_brdf_import_settings);
@@ -41,7 +41,7 @@ void eg_importer_import_default_assets(void) {
   strcpy(terrain_import_settings.fragment_shader_file_path, EG_ASSET_ROOT_DIR "\\shader\\environment_terrain_frag.spv");
   terrain_import_settings.auto_create_pipeline = 0;
   terrain_import_settings.auto_create_vertex_input_buffer = 0; // TODO: experimental..
-  terrain_import_settings.auto_link_descriptor_bindings = 1;
+  terrain_import_settings.auto_link_descriptor_binding = 1;
   terrain_import_settings.interleaved_vertex_input = 1;
 
   eg_importer_import_graphic_pipeline(&terrain_import_settings);
@@ -77,18 +77,10 @@ void eg_importer_import_graphic_pipeline(eg_graphic_pipeline_import_settings_t *
   pipeline_asset.link_index = 0;
   pipeline_asset.auto_create_pipeline = import_settings->auto_create_pipeline;
   pipeline_asset.auto_create_vertex_input_buffer = import_settings->auto_create_vertex_input_buffer;
-  pipeline_asset.auto_link_descriptor_bindings = import_settings->auto_link_descriptor_bindings;
+  pipeline_asset.auto_link_descriptor_binding = import_settings->auto_link_descriptor_binding;
   pipeline_asset.interleaved_vertex_input_buffer = import_settings->interleaved_vertex_input;
 
   eg_database_store_pipeline_asset(&pipeline_asset);
-
-  eg_pipeline_resource_t pipeline_resource = {0};
-
-  pipeline_resource.pipeline_asset_id = pipeline_asset.id;
-  strcpy(pipeline_resource.vertex_shader_file_path, import_settings->vertex_shader_file_path);
-  strcpy(pipeline_resource.fragment_shader_file_path, import_settings->fragment_shader_file_path);
-
-  eg_database_store_pipeline_resource(&pipeline_resource);
 
   eg_importer_process_pipeline_vertex_input_bindings(&pipeline_asset, &reflect_vertex_shader_module);
 
@@ -119,17 +111,10 @@ void eg_importer_import_compute_pipeline(eg_compute_pipeline_import_settings_t *
   pipeline_asset.link_index = 0;
   pipeline_asset.auto_create_pipeline = 1;
   pipeline_asset.auto_create_vertex_input_buffer = 0;
-  pipeline_asset.auto_link_descriptor_bindings = 1;
+  pipeline_asset.auto_link_descriptor_binding = 1;
   pipeline_asset.interleaved_vertex_input_buffer = 0;
 
   eg_database_store_pipeline_asset(&pipeline_asset);
-
-  eg_pipeline_resource_t pipeline_resource = {0};
-
-  pipeline_resource.pipeline_asset_id = pipeline_asset.id;
-  strcpy(pipeline_resource.compute_shader_file_path, import_settings->compute_shader_file_path);
-
-  eg_database_store_pipeline_resource(&pipeline_resource);
 
   eg_importer_process_pipeline_descriptor_bindings(&pipeline_asset, &reflect_compute_shader_module, VK_SHADER_STAGE_COMPUTE_BIT);
 
@@ -383,17 +368,13 @@ static void eg_importer_process_pipeline_vertex_input_bindings(eg_pipeline_asset
 
     SpvReflectInterfaceVariable *input_variable = input_variables[input_variable_index];
 
-    eg_pipeline_vertex_input_binding_t pipeline_vertex_input_binding = {0};
-
-    pipeline_vertex_input_binding.pipeline_asset_id = pipeline_asset->id;
-    strcpy(pipeline_vertex_input_binding.name, input_variable->name);
-    pipeline_vertex_input_binding.location = input_variable->location;
-    pipeline_vertex_input_binding.size = input_variable->numeric.scalar.width / 8;
-    pipeline_vertex_input_binding.component_count = input_variable->numeric.vector.component_count;
-    pipeline_vertex_input_binding.format = input_variable->format;
-    pipeline_vertex_input_binding.input_rate = VK_VERTEX_INPUT_RATE_VERTEX; // TODO
-
-    eg_database_store_pipeline_vertex_input_binding(&pipeline_vertex_input_binding);
+    // pipeline_vertex_input_binding.pipeline_asset_id = pipeline_asset->id;
+    // strcpy(pipeline_vertex_input_binding.name, input_variable->name);
+    // pipeline_vertex_input_binding.location = input_variable->location;
+    // pipeline_vertex_input_binding.size = input_variable->numeric.scalar.width / 8;
+    // pipeline_vertex_input_binding.component_count = input_variable->numeric.vector.component_count;
+    // pipeline_vertex_input_binding.format = input_variable->format;
+    // pipeline_vertex_input_binding.input_rate = VK_VERTEX_INPUT_RATE_VERTEX; // TODO
 
     input_variable_index++;
   }
@@ -413,17 +394,13 @@ static void eg_importer_process_pipeline_descriptor_bindings(eg_pipeline_asset_t
 
     SpvReflectDescriptorBinding *descriptor_binding = descriptor_bindings[descriptor_binding_index];
 
-    eg_pipeline_descriptor_binding_t pipeline_descriptor_binding = {0};
-
-    pipeline_descriptor_binding.pipeline_asset_id = pipeline_asset->id;
-    strcpy(pipeline_descriptor_binding.name, descriptor_binding->name);
-    pipeline_descriptor_binding.binding = descriptor_binding->binding;
-    pipeline_descriptor_binding.descriptor_type = descriptor_binding->descriptor_type;
-    pipeline_descriptor_binding.descriptor_count = 1;
-    pipeline_descriptor_binding.stage_flags = stage_flag;
-    pipeline_descriptor_binding.auto_buffer = 1;
-
-    eg_database_store_pipeline_descriptor_binding(&pipeline_descriptor_binding);
+    // pipeline_descriptor_binding.pipeline_asset_id = pipeline_asset->id;
+    // strcpy(pipeline_descriptor_binding.name, descriptor_binding->name);
+    // pipeline_descriptor_binding.binding = descriptor_binding->binding;
+    // pipeline_descriptor_binding.descriptor_type = descriptor_binding->descriptor_type;
+    // pipeline_descriptor_binding.descriptor_count = 1;
+    // pipeline_descriptor_binding.stage_flags = stage_flag;
+    // pipeline_descriptor_binding.auto_buffer = 1;
 
     descriptor_binding_index++;
   }

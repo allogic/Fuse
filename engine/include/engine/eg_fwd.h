@@ -6,9 +6,6 @@ typedef int64_t eg_swapchain_asset_id_t;
 typedef int64_t eg_renderer_asset_id_t;
 
 typedef int64_t eg_pipeline_asset_id_t;
-typedef int64_t eg_pipeline_resource_id_t;
-typedef int64_t eg_pipeline_vertex_input_binding_id_t;
-typedef int64_t eg_pipeline_descriptor_binding_id_t;
 
 typedef int64_t eg_model_asset_id_t;
 typedef int64_t eg_model_resource_id_t;
@@ -287,7 +284,7 @@ typedef struct eg_graphic_pipeline_import_settings_t {
   char fragment_shader_file_path[0xFF];
   uint8_t auto_create_pipeline;
   uint8_t auto_create_vertex_input_buffer;
-  uint8_t auto_link_descriptor_bindings;
+  uint8_t auto_link_descriptor_binding;
   uint8_t interleaved_vertex_input;
 } eg_graphic_pipeline_import_settings_t;
 
@@ -351,36 +348,12 @@ typedef struct eg_pipeline_asset_t {
   uint32_t link_index;
   uint8_t auto_create_pipeline;
   uint8_t auto_create_vertex_input_buffer; // TODO: experimental..
-  uint8_t auto_link_descriptor_bindings;
+  uint8_t auto_link_descriptor_binding;
   uint8_t interleaved_vertex_input_buffer;
+  eg_string_t *source;
+  uint8_t *spirv;
+  uint64_t spirv_size;
 } eg_pipeline_asset_t;
-typedef struct eg_pipeline_resource_t {
-  eg_pipeline_resource_id_t id;
-  eg_pipeline_asset_id_t pipeline_asset_id;
-  char vertex_shader_file_path[0xFF];
-  char fragment_shader_file_path[0xFF];
-  char compute_shader_file_path[0xFF];
-} eg_pipeline_resource_t;
-typedef struct eg_pipeline_vertex_input_binding_t {
-  eg_pipeline_vertex_input_binding_id_t id;
-  eg_pipeline_asset_id_t pipeline_asset_id;
-  char name[0xFF];
-  uint32_t location;
-  uint32_t size;
-  uint32_t component_count;
-  uint32_t format;
-  uint32_t input_rate;
-} eg_pipeline_vertex_input_binding_t;
-typedef struct eg_pipeline_descriptor_binding_t {
-  eg_pipeline_descriptor_binding_id_t id;
-  eg_pipeline_asset_id_t pipeline_asset_id;
-  char name[0xFF];
-  uint32_t binding;
-  uint32_t descriptor_type;
-  uint32_t descriptor_count;
-  uint32_t stage_flags;
-  uint8_t auto_buffer;
-} eg_pipeline_descriptor_binding_t;
 
 typedef struct eg_model_asset_t {
   eg_model_asset_id_t id;
