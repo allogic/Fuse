@@ -118,6 +118,8 @@ eg_context_t *eg_context_current(void) {
 
 void eg_context_create(int32_t width, int32_t height, uint8_t is_editor_mode) {
   eg_database_create();
+  eg_clang_create();
+  eg_glslang_create();
 
   eg_world_settings_t world_settings = {0};
 
@@ -302,6 +304,8 @@ void eg_context_destroy(void) {
 
   eg_heap_free(s_context_current);
 
+  eg_glslang_destroy();
+  eg_clang_destroy();
   eg_database_destroy();
 }
 

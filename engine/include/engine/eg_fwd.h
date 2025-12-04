@@ -161,6 +161,15 @@ typedef struct eg_cpu_frame_sample_t {
   float delta;
 } eg_cpu_frame_sample_t;
 
+typedef struct eg_spirv_bin_t {
+  uint32_t *vertex_words;
+  uint32_t *fragment_words;
+  uint32_t *compute_words;
+  uint64_t vertex_size;
+  uint64_t fragment_size;
+  uint64_t compute_size;
+} eg_spirv_bin_t;
+
 typedef struct eg_world_settings_t {
   eg_scene_asset_id_t default_scene_asset_id;
   eg_swapchain_asset_id_t default_swapchain_asset_id;

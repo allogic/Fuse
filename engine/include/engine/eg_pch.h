@@ -59,6 +59,7 @@
 #include <engine/eg_image.h>
 #include <engine/eg_importer.h>
 #include <engine/eg_model.h>
+#include <engine/eg_glslang.h>
 #include <engine/eg_pipeline.h>
 #include <engine/eg_profiler.h>
 #include <engine/eg_random.h>

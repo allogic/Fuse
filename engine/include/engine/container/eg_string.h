@@ -8,10 +8,13 @@ extern "C" {
 eg_string_t *eg_string_create(void);
 eg_string_t *eg_string_format(char const *format, ...);
 eg_string_t *eg_string_value(char const *value);
+eg_string_t *eg_string_values(char const *value, uint64_t value_size);
 eg_string_t *eg_string_file(char const *input_file);
-
-void eg_string_to_file(eg_string_t *string, char const *output_file);
 eg_string_t *eg_string_copy(eg_string_t *reference);
+eg_string_t *eg_string_substr(eg_string_t *string, uint64_t from, uint64_t to);
+
+int64_t eg_string_find(eg_string_t *string, char const *pattern);
+void eg_string_write(eg_string_t *string, char const *output_file);
 uint8_t eg_string_equal(eg_string_t *string, eg_string_t *reference);
 void eg_string_fill(eg_string_t *string, char const *value);
 void eg_string_upper(eg_string_t *string);

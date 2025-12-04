@@ -58,7 +58,20 @@ eg_string_t *eg_string_value(char const *value) {
 
   return string;
 }
-eg_string_t *eg_string_create_file(char const *input_file) {
+eg_string_t *eg_string_values(char const *value, uint64_t value_size) {
+  eg_string_t *string = eg_string_create();
+
+  if (value) {
+    eg_string_resize(string, value_size);
+
+    memcpy(string->buffer, value, value_size);
+  }
+
+  string->buffer[string->buffer_size] = 0;
+
+  return string;
+}
+eg_string_t *eg_string_file(char const *input_file) {
   eg_string_t *string = eg_string_create();
 
   uint8_t *buffer = 0;
@@ -78,10 +91,6 @@ eg_string_t *eg_string_create_file(char const *input_file) {
 
   return string;
 }
-
-void eg_string_to_file(eg_string_t *string, char const *output_file) {
-  eg_filesys_save_text(string->buffer, string->buffer_size, output_file);
-}
 eg_string_t *eg_string_copy(eg_string_t *reference) {
   eg_string_t *string = (eg_string_t *)eg_heap_alloc(sizeof(eg_string_t), 1, 0);
 
@@ -90,6 +99,60 @@ eg_string_t *eg_string_copy(eg_string_t *reference) {
   string->buffer_size = reference->buffer_size;
 
   return string;
+}
+eg_string_t *eg_string_substr(eg_string_t *string, uint64_t from, uint64_t to) {
+  return eg_string_values(string->buffer, to - from);
+}
+
+int64_t eg_string_find(eg_string_t *string, char const *pattern) {
+  int64_t found_pos = -1;
+
+  uint64_t pattern_size = strlen(pattern);
+
+  uint64_t buffer_pos = 0;
+  uint64_t buffer_end = string->buffer_size;
+
+  while (buffer_pos < buffer_end) {
+
+    uint8_t equal = 1;
+
+    uint64_t pattern_pos = 0;
+    uint64_t pattern_end = pattern_size;
+
+    if ((buffer_pos + pattern_size) >= buffer_end) {
+      break;
+    }
+
+    while (pattern_pos < pattern_end) {
+
+      char left = *(string->buffer + buffer_pos + pattern_pos);
+      char right = *(pattern + pattern_pos);
+
+      if (left != right) {
+        equal = 0;
+      }
+
+      if (equal == 0) {
+        break;
+      }
+
+      pattern_pos++;
+    }
+
+    if (equal) {
+
+      found_pos = buffer_end - buffer_pos;
+
+      break;
+    }
+
+    buffer_pos++;
+  }
+
+  return found_pos;
+}
+void eg_string_write(eg_string_t *string, char const *output_file) {
+  eg_filesys_save_text(string->buffer, string->buffer_size, output_file);
 }
 uint8_t eg_string_equal(eg_string_t *string, eg_string_t *reference) {
   uint8_t not_equal = 0;
